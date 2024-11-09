@@ -1,0 +1,210 @@
+<script setup lang="ts">
+import { usePomodoro } from '../stores/pomodoro'
+import { storeToRefs } from 'pinia'
+
+const store = usePomodoro()
+const { timeLeft, isRunning, stats } = storeToRefs(store)
+</script>
+
+<template>
+  <div class="pomodoro-container">
+    <div class="timer-card">
+      <h1 class="timer-title">
+        <img src="/assets/my-melody-2.png" alt="My Melody" />
+        Pomodoro Timer
+      </h1>
+      
+      <div class="timer-display-container">
+        <div v-if="isRunning" class="dancing-melody">
+          <img src="/assets/my-melody-3.gif" alt="My Melody Dancing" />
+        </div>
+        <div class="timer-display">
+          {{ Math.floor(timeLeft / 60) }}:{{ (timeLeft % 60).toString().padStart(2, '0') }}
+        </div>
+      </div>
+
+      <div class="timer-controls">
+        <button 
+          @click="store.toggleTimer"
+          :class="['control-button', 'primary', { running: isRunning }]"
+        >
+          <span class="button-icon">{{ isRunning ? '⏸️' : '▶️' }}</span>
+          {{ isRunning ? 'Pause' : 'Start' }}
+        </button>
+        <button 
+          @click="store.resetTimer"
+          class="control-button secondary"
+        >
+          <span class="button-icon">🔄</span>
+          Reset
+        </button>
+      </div>
+
+      <div class="stats-container">
+        <div class="stats-header">
+          <img src="/assets/my-melody-1.png" alt="My Melody and Friend" />
+          <h2>Your Progress</h2>
+        </div>
+        <div class="stats-content">
+          <p>
+            <span class="stats-icon">🎯</span>
+            Completed Sessions: {{ stats.completedSessions }}
+          </p>
+          <p>
+            <span class="stats-icon">⏱️</span>
+            Total Focus Time: {{ Math.floor(stats.totalFocusTime / 60) }} minutes
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.pomodoro-container {
+  min-height: 100vh;
+  background-color: #fce7f3;
+  padding: 1rem;
+}
+
+.timer-card {
+  background-color: white;
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 24rem;
+  margin: 0 auto;
+  border: 4px solid #fbcfe8;
+}
+
+.timer-title {
+  font-size: 1.875rem;
+  font-weight: bold;
+  color: #db2777;
+  text-align: center;
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.timer-title img {
+  width: 2rem;
+  height: 2rem;
+}
+
+.timer-display-container {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.dancing-melody {
+  position: absolute;
+  top: -4rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.dancing-melody img {
+  width: 6rem;
+  height: 6rem;
+}
+
+.timer-display {
+  font-size: 3.75rem;
+  font-weight: bold;
+  text-align: center;
+  color: #db2777;
+  background-color: #fdf2f8;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.timer-controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.control-button {
+  padding: 0.75rem 2rem;
+  border-radius: 9999px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.3s;
+}
+
+.control-button.primary {
+  background-color: #f472b6;
+  color: white;
+}
+
+.control-button.primary:hover {
+  background-color: #db2777;
+}
+
+.control-button.secondary {
+  background-color: #fbcfe8;
+  color: #db2777;
+}
+
+.control-button.secondary:hover {
+  background-color: #f9a8d4;
+}
+
+.button-icon {
+  font-size: 1.25rem;
+}
+
+.stats-container {
+  background-color: #fdf2f8;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  border: 2px solid #fbcfe8;
+}
+
+.stats-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.stats-header img {
+  width: 2rem;
+  height: 2rem;
+}
+
+.stats-header h2 {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #db2777;
+  margin: 0;
+}
+
+.stats-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: #be185d;
+}
+
+.stats-content p {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.stats-icon {
+  font-size: 1.25rem;
+}
+</style>
