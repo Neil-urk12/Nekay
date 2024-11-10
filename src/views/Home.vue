@@ -54,7 +54,7 @@ const fetchWeather = async () => {
 };
 
 onMounted(() => {
-  // useNotesStore().initialize();
+  useNotesStore().initialise();
   setInterval(determineTimeOfDay, 60000);
   determineTimeOfDay();
   fetchWeather();

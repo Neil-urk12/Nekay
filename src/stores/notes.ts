@@ -7,7 +7,7 @@ import {
   getJournalEntries,
   getFolders,
 } from "../firebase/firestore-service";
-import { IndexedDBService } from "../services/indexedDB";
+import { indexedDBService } from "../services/indexedDB";
 import { syncService } from "../services/syncService";
 
 export interface Task {
@@ -41,11 +41,11 @@ export const useNotesStore = defineStore("notes", {
 
   actions: {
     async initialise() {
-      await IndexedDBService.init();
+      await indexedDBService.init();
 
-      this.tasks = await IndexedDBService.getAllItems("tasks");
-      this.journalEntries = await IndexedDBService.getAllItems("journal");
-      this.folders = await IndexedDBService.getAllItems("folders");
+      this.tasks = await indexedDBService.getAllItems("tasks");
+      this.journalEntries = await indexedDBService.getAllItems("journal");
+      this.folders = await indexedDBService.getAllItems("folders");
 
       if (navigator.onLine) {
         syncService.syncData();
@@ -68,7 +68,7 @@ export const useNotesStore = defineStore("notes", {
       this.tasks.push(task);
       storeTask(task);
 
-      await IndexedDBService.addItem("tasks", task);
+      await indexedDBService.addItem("tasks", task);
     },
 
     toggleTask(taskId: string) {
