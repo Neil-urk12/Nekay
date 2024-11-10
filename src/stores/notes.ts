@@ -1,37 +1,56 @@
-import { defineStore } from 'pinia'
-import { storeTask, storeJournalEntry, storeFolder, getTasks, getJournalEntries, getFolders } from '../firebase/firestore-service';
-
+import { defineStore } from "pinia";
+import {
+  storeTask,
+  storeJournalEntry,
+  storeFolder,
+  getTasks,
+  getJournalEntries,
+  getFolders,
+} from "../firebase/firestore-service";
+import { IndexedDBService } from "../services/indexedDB";
+import { syncService } from "../services/syncService";
 
 export interface Task {
-  id: string
-  title: string
-  completed: boolean
-  folderId: string | null
+  id: string;
+  title: string;
+  completed: boolean;
+  folderId: string | null;
 }
 
 export interface JournalEntry {
-  id: string
-  title: string
-  content: string
-  date: string
-  folderId: string | null
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+  folderId: string | null;
 }
 
 export interface Folder {
-  id: string
-  name: string
-  type: 'task' | 'journal'
+  id: string;
+  name: string;
+  type: "task" | "journal";
 }
 
-export const useNotesStore = defineStore('notes', {
+export const useNotesStore = defineStore("notes", {
   state: () => ({
     tasks: [] as Task[],
     journalEntries: [] as JournalEntry[],
     folders: [] as Folder[],
-    loading: false
+    loading: false,
   }),
 
   actions: {
+    async initialise() {
+      await IndexedDBService.init();
+
+      this.tasks = await IndexedDBService.getAllItems("tasks");
+      this.journalEntries = await IndexedDBService.getAllItems("journal");
+      this.folders = await IndexedDBService.getAllItems("folders");
+
+      if (navigator.onLine) {
+        syncService.syncData();
+      }
+    },
     // Task actions
     async fetchTasks() {
       this.loading = true;
@@ -39,26 +58,28 @@ export const useNotesStore = defineStore('notes', {
       this.tasks = tasks;
       this.loading = false;
     },
-    addTask(title: string, folderId: string | null = null) {
+    async addTask(title: string, folderId: string | null = null) {
       const task: Task = {
         id: Date.now().toString(),
         title,
         completed: false,
-        folderId
-      }
-      this.tasks.push(task)
+        folderId,
+      };
+      this.tasks.push(task);
       storeTask(task);
+
+      await IndexedDBService.addItem("tasks", task);
     },
 
     toggleTask(taskId: string) {
-      const task = this.tasks.find(t => t.id === taskId)
+      const task = this.tasks.find((t) => t.id === taskId);
       if (task) {
-        task.completed = !task.completed
+        task.completed = !task.completed;
       }
     },
 
     deleteTask(taskId: string) {
-      this.tasks = this.tasks.filter(t => t.id !== taskId)
+      this.tasks = this.tasks.filter((t) => t.id !== taskId);
     },
 
     // Journal actions
@@ -68,27 +89,31 @@ export const useNotesStore = defineStore('notes', {
       this.journalEntries = journalEntries;
       this.loading = false;
     },
-    addJournalEntry(title: string, content: string, folderId: string | null = null) {
+    addJournalEntry(
+      title: string,
+      content: string,
+      folderId: string | null = null
+    ) {
       const entry: JournalEntry = {
         id: Date.now().toString(),
         title,
         content,
         date: new Date().toISOString(),
-        folderId
-      }
-      this.journalEntries.push(entry)
+        folderId,
+      };
+      this.journalEntries.push(entry);
       storeJournalEntry(entry);
     },
 
     updateJournalEntry(entryId: string, updates: Partial<JournalEntry>) {
-      const entry = this.journalEntries.find(e => e.id === entryId)
+      const entry = this.journalEntries.find((e) => e.id === entryId);
       if (entry) {
-        Object.assign(entry, updates)
+        Object.assign(entry, updates);
       }
     },
 
     async deleteJournalEntry(entryId: string) {
-      const entryIndex = this.journalEntries.findIndex(e => e.id === entryId);
+      const entryIndex = this.journalEntries.findIndex((e) => e.id === entryId);
       if (entryIndex !== -1) {
         this.journalEntries.splice(entryIndex, 1);
       }
@@ -101,39 +126,39 @@ export const useNotesStore = defineStore('notes', {
       this.folders = folders;
       this.loading = false;
     },
-    addFolder(name: string, type: 'task' | 'journal') {
+    addFolder(name: string, type: "task" | "journal") {
       const folder: Folder = {
         id: Date.now().toString(),
         name,
-        type
-      }
-      this.folders.push(folder)
+        type,
+      };
+      this.folders.push(folder);
       storeFolder(folder);
     },
 
     deleteFolder(folderId: string) {
-      this.folders = this.folders.filter(f => f.id !== folderId)
+      this.folders = this.folders.filter((f) => f.id !== folderId);
       // Remove folder reference from tasks and entries
-      this.tasks = this.tasks.map(t => 
+      this.tasks = this.tasks.map((t) =>
         t.folderId === folderId ? { ...t, folderId: null } : t
-      )
-      this.journalEntries = this.journalEntries.map(e =>
+      );
+      this.journalEntries = this.journalEntries.map((e) =>
         e.folderId === folderId ? { ...e, folderId: null } : e
-      )
+      );
     },
 
     editTask(taskId: string, newTitle: string) {
-      const taskIndex = this.tasks.findIndex(t => t.id === taskId);
+      const taskIndex = this.tasks.findIndex((t) => t.id === taskId);
       if (taskIndex !== -1) {
         this.tasks[taskIndex].title = newTitle;
       }
     },
 
     editFolder(folderId: string, newTitle: string) {
-      const folderIndex = this.folders.findIndex(f => f.id === folderId);
+      const folderIndex = this.folders.findIndex((f) => f.id === folderId);
       if (folderIndex !== -1) {
         this.folders[folderIndex].name = newTitle;
       }
-    }
-  }
-})
+    },
+  },
+});

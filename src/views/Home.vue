@@ -1,83 +1,93 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted } from "vue";
+import { useNotesStore } from "../stores/notes";
 
-const timeOfDay = ref('')
-const backgroundImage = ref('')
-
+const timeOfDay = ref("");
+const backgroundImage = ref("");
 
 const determineTimeOfDay = () => {
-  const hour = new Date().getHours()
-  
+  const hour = new Date().getHours();
+
   if (hour >= 5 && hour < 12) {
-    timeOfDay.value = 'morning'
-    backgroundImage.value = 'url(/public/assets/bgsky.jpg)'
+    timeOfDay.value = "morning";
+    backgroundImage.value = "url(/public/assets/bgsky.jpg)";
   } else if (hour >= 12 && hour < 13) {
-    timeOfDay.value = 'noon'
-    backgroundImage.value = 'url(/public/assets/bgsky.jpg)'
+    timeOfDay.value = "noon";
+    backgroundImage.value = "url(/public/assets/bgsky.jpg)";
   } else if (hour >= 13 && hour < 17) {
-    timeOfDay.value = 'afternoon'
-    backgroundImage.value = 'url(/public/assets/background.jpg)'
+    timeOfDay.value = "afternoon";
+    backgroundImage.value = "url(/public/assets/background.jpg)";
   } else if (hour >= 17 && hour < 21) {
-    timeOfDay.value = 'evening'
-    backgroundImage.value = 'url(/public/assets/sunsetbg.jpg)'
+    timeOfDay.value = "evening";
+    backgroundImage.value = "url(/public/assets/sunsetbg.jpg)";
   } else {
-    timeOfDay.value = 'night'
-    backgroundImage.value = 'url(/public/assets/moonbg.gif)'
+    timeOfDay.value = "night";
+    backgroundImage.value = "url(/public/assets/moonbg.gif)";
   }
-}
+};
 const currentWeather = ref({
   temp_c: 0,
-  condition: { text: '', icon: '' }
-})
+  condition: { text: "", icon: "" },
+});
 const forecast = ref({
   maxtemp_c: 0,
-  mintemp_c: 0
-})
+  mintemp_c: 0,
+});
 const airQuality = ref({
   pm2_5: 0,
-  pm10: 0
-})
+  pm10: 0,
+});
 
 const fetchWeather = async () => {
   try {
-    const response = await fetch('http://api.weatherapi.com/v1/forecast.json?key=f8303cb3a0c1425cae2180137240911&q=Liloan,Cebu&days=1&aqi=yes&alerts=yes')
-    const data = await response.json()
-    
-    currentWeather.value = data.current
-    forecast.value = data.forecast.forecastday[0].day
-    airQuality.value = data.current.air_quality
-    
+    const response = await fetch(
+      "http://api.weatherapi.com/v1/forecast.json?key=f8303cb3a0c1425cae2180137240911&q=Liloan,Cebu&days=1&aqi=yes&alerts=yes"
+    );
+    const data = await response.json();
+
+    currentWeather.value = data.current;
+    forecast.value = data.forecast.forecastday[0].day;
+    airQuality.value = data.current.air_quality;
   } catch (error) {
-    console.error('Error fetching weather:', error)
+    console.error("Error fetching weather:", error);
   }
-}
+};
 
 onMounted(() => {
-  setInterval(determineTimeOfDay, 60000) 
-  determineTimeOfDay()
-  fetchWeather()
-})
+  // useNotesStore().initialize();
+  setInterval(determineTimeOfDay, 60000);
+  determineTimeOfDay();
+  fetchWeather();
+});
 </script>
 
 <template>
   <div class="home-container" :style="{ backgroundImage: backgroundImage }">
     <div class="melody-header">
-      <img class="homeMelody" src="/public/assets/melodysticker.gif" alt="My Melody" loading="lazy" />
+      <img
+        class="homeMelody"
+        src="/public/assets/melodysticker.gif"
+        alt="My Melody"
+        loading="lazy"
+      />
     </div>
     <div class="message-container">
       <div class="message-box">
         <div class="cloud-icon">
-          <img src="/assets/cloud.png" alt="Cloud" loading="lazy"/>
+          <img src="/assets/cloud.png" alt="Cloud" loading="lazy" />
         </div>
         <p class="greeting">Hi Kaykayy! 💖</p>
         <p>Good {{ timeOfDay }}!</p>
         <p>I hope you're having a great {{ timeOfDay }}! <3</p>
       </div>
       <div class="cloud-icon">
-        <img src="/assets/cloud.png" alt="Cloud" loading="lazy"/>
+        <img src="/assets/cloud.png" alt="Cloud" loading="lazy" />
       </div>
       <div class="weather">
-        <h3>The weather in Liloan, Cebu is {{ currentWeather.condition.text }} and {{ currentWeather.temp_c }}°C.</h3>
+        <h3>
+          The weather in Liloan, Cebu is {{ currentWeather.condition.text }} and
+          {{ currentWeather.temp_c }}°C.
+        </h3>
         <div class="otherWeather">
           <div class="forecast">
             <p>Today's Forecast:</p>
@@ -142,7 +152,7 @@ onMounted(() => {
   text-align: center;
   margin: 0;
 }
-.homeMelody{
+.homeMelody {
   width: 100%;
   height: 100%;
 }
@@ -174,7 +184,8 @@ button {
   color: #db2777;
   margin: 0;
 }
-.forecast, .air-quality {
+.forecast,
+.air-quality {
   margin: 0.25rem 0;
   padding: 0.5rem;
   background-color: rgba(255, 74, 156, 0.1);
