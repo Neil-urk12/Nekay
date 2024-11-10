@@ -15,6 +15,8 @@ const editingTaskId = ref<string | null>(null)
 const editingFolderId = ref<string | null>(null)
 const editingTaskTitle = ref('')
 const editingFolderName = ref('')
+const itemToDelete = ref<{ id: string; type: 'task' | 'folder'; name: string } | null>(null)
+const showDeleteModal = ref(false)
 
 const determineTimeOfDay = () => {
   const hour = new Date().getHours()
@@ -114,6 +116,8 @@ const filteredTasks = computed(() => {
 onMounted(() => {
   setInterval(determineTimeOfDay, 60000)
   determineTimeOfDay()
+  store.fetchTasks();
+  store.fetchFolders();
 })
 
 </script>

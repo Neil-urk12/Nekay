@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useNotesStore } from '../stores/notes'
 import { storeToRefs } from 'pinia'
 
 const store = useNotesStore()
-const { journalEntries, folders } = storeToRefs(store)
+const { journalEntries, folders, loading } = storeToRefs(store)
 
 const newEntryTitle = ref('')
 const newEntryContent = ref('')
@@ -44,6 +44,11 @@ const formatDate = (dateString: string) => {
     day: 'numeric'
   })
 }
+
+onMounted(() => {
+  store.fetchJournalEntries();
+  store.fetchFolders();
+})
 </script>
 
 <template>
@@ -107,7 +112,9 @@ const formatDate = (dateString: string) => {
         </div>
 
         <div class="entries-list">
+          <div v-if="loading">Loading...</div>
           <div
+            v-else
             v-for="entry in filteredEntries"
             :key="entry.id"
             class="entry-item"

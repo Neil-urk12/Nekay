@@ -1,13 +1,15 @@
 import { defineStore } from 'pinia'
+import { storeTask, storeJournalEntry, storeFolder, getTasks, getJournalEntries, getFolders, deleteDoc, doc } from '../firebase/firestore-service';
+import { db, app } from '../firebase/firebase-config';
 
-interface Task {
+export interface Task {
   id: string
   title: string
   completed: boolean
   folderId: string | null
 }
 
-interface JournalEntry {
+export interface JournalEntry {
   id: string
   title: string
   content: string
@@ -15,7 +17,7 @@ interface JournalEntry {
   folderId: string | null
 }
 
-interface Folder {
+export interface Folder {
   id: string
   name: string
   type: 'task' | 'journal'
@@ -25,11 +27,18 @@ export const useNotesStore = defineStore('notes', {
   state: () => ({
     tasks: [] as Task[],
     journalEntries: [] as JournalEntry[],
-    folders: [] as Folder[]
+    folders: [] as Folder[],
+    loading: false
   }),
 
   actions: {
     // Task actions
+    async fetchTasks() {
+      this.loading = true;
+      const tasks = await getTasks();
+      this.tasks = tasks;
+      this.loading = false;
+    },
     addTask(title: string, folderId: string | null = null) {
       const task: Task = {
         id: Date.now().toString(),
@@ -38,6 +47,7 @@ export const useNotesStore = defineStore('notes', {
         folderId
       }
       this.tasks.push(task)
+      storeTask(task);
     },
 
     toggleTask(taskId: string) {
@@ -52,6 +62,12 @@ export const useNotesStore = defineStore('notes', {
     },
 
     // Journal actions
+    async fetchJournalEntries() {
+      this.loading = true;
+      const journalEntries = await getJournalEntries();
+      this.journalEntries = journalEntries;
+      this.loading = false;
+    },
     addJournalEntry(title: string, content: string, folderId: string | null = null) {
       const entry: JournalEntry = {
         id: Date.now().toString(),
@@ -61,6 +77,7 @@ export const useNotesStore = defineStore('notes', {
         folderId
       }
       this.journalEntries.push(entry)
+      storeJournalEntry(entry);
     },
 
     updateJournalEntry(entryId: string, updates: Partial<JournalEntry>) {
@@ -70,11 +87,18 @@ export const useNotesStore = defineStore('notes', {
       }
     },
 
-    deleteJournalEntry(entryId: string) {
+    async deleteJournalEntry(entryId: string) {
+      await deleteDoc(doc(db, 'journalEntries', entryId));
       this.journalEntries = this.journalEntries.filter(e => e.id !== entryId)
     },
 
     // Folder actions
+    async fetchFolders() {
+      this.loading = true;
+      const folders = await getFolders();
+      this.folders = folders;
+      this.loading = false;
+    },
     addFolder(name: string, type: 'task' | 'journal') {
       const folder: Folder = {
         id: Date.now().toString(),
@@ -82,6 +106,7 @@ export const useNotesStore = defineStore('notes', {
         type
       }
       this.folders.push(folder)
+      storeFolder(folder);
     },
 
     deleteFolder(folderId: string) {
@@ -93,6 +118,20 @@ export const useNotesStore = defineStore('notes', {
       this.journalEntries = this.journalEntries.map(e =>
         e.folderId === folderId ? { ...e, folderId: null } : e
       )
+    },
+
+    editTask(taskId: string, newTitle: string) {
+      const taskIndex = this.tasks.findIndex(t => t.id === taskId);
+      if (taskIndex !== -1) {
+        this.tasks[taskIndex].title = newTitle;
+      }
+    },
+
+    editFolder(folderId: string, newTitle: string) {
+      const folderIndex = this.folders.findIndex(f => f.id === folderId);
+      if (folderIndex !== -1) {
+        this.folders[folderIndex].name = newTitle;
+      }
     }
   }
 })
