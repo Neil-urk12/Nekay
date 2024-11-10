@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Offline - Nekay App</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Comic Sans MS", cursive;
+        background-color: #fce7f3;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .offline-container {
+        background-color: white;
+        border-radius: 1.5rem;
+        padding: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        max-width: 90%;
+        width: 20rem;
+        margin: 1rem;
+      }
+
+      .melody-image {
+        width: 150px;
+        height: 150px;
+        margin-bottom: 1rem;
+      }
+
+      h1 {
+        color: #db2777;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+      }
+
+      p {
+        color: #64748b;
+        margin-bottom: 1.5rem;
+        line-height: 1.5;
+      }
+
+      .retry-button {
+        background-color: #f472b6;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.3s;
+      }
+
+      .retry-button:hover {
+        background-color: #db2777;
+      }
+
+      .status-message {
+        margin-top: 1rem;
+        font-size: 0.875rem;
+        color: #9ca3af;
+      }
+
+      .loading {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid #f472b6;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 1s linear infinite;
+        margin-left: 0.5rem;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="offline-container">
+      <img
+        src="/public/assets/sleepingmelody.png"
+        alt="Sleeping My Melody"
+        class="melody-image"
+      />
+      <h1>Oops! You're Offline</h1>
+      <p>
+        It looks like you lost your internet connection. Don't worry, some
+        features are still available offline!
+      </p>
+      <button class="retry-button" onclick="retryConnection()">
+        Try Again
+      </button>
+      <div id="status-message" class="status-message"></div>
+    </div>
+
+    <script>
+      function retryConnection() {
+        const statusMessage = document.getElementById("status-message");
+        statusMessage.innerHTML =
+          'Checking connection... <div class="loading"></div>';
+
+        // Try to fetch a small resource to test connection
+        fetch("/manifest.json")
+          .then((response) => {
+            if (response.status === 200) {
+              statusMessage.textContent = "Connected! Redirecting...";
+              setTimeout(() => {
+                window.location.reload();
+              }, 1000);
+            } else {
+              throw new Error("Still offline");
+            }
+          })
+          .catch(() => {
+            statusMessage.textContent =
+              "Still offline. Please try again later.";
+          });
+      }
+      setInterval(() => {
+        if (navigator.onLine) {
+          window.location.reload();
+        }
+      }, 5000);
+    </script>
+  </body>
+</html>
