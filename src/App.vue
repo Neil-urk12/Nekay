@@ -6,7 +6,7 @@ const BottomNav = defineAsyncComponent(() => import('./components/BottomNav.vue'
 <template>
   <div class="app-container">
     <router-view></router-view>
-    <BottomNav />
+    <BottomNav v-if="$route.path !== '/login'" />
   </div>
 </template>
 
