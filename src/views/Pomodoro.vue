@@ -10,14 +10,11 @@ const { timeLeft, isRunning, stats } = storeToRefs(store)
   <div class="pomodoro-container">
     <div class="timer-card">
       <h1 class="timer-title">
-        <img src="/assets/my-melody-2.png" alt="My Melody" />
+        <img src="/public/assets/melodykiss.png" alt="My Melody" loading="lazy" />
         Pomodoro Timer
       </h1>
       
       <div class="timer-display-container">
-        <div v-if="isRunning" class="dancing-melody">
-          <img src="/assets/my-melody-3.gif" alt="My Melody Dancing" />
-        </div>
         <div class="timer-display">
           {{ Math.floor(timeLeft / 60) }}:{{ (timeLeft % 60).toString().padStart(2, '0') }}
         </div>
@@ -42,12 +39,12 @@ const { timeLeft, isRunning, stats } = storeToRefs(store)
 
       <div class="stats-container">
         <div class="stats-header">
-          <img src="/assets/my-melody-1.png" alt="My Melody and Friend" />
+          <img src="/public/assets/sleepingmelody.png" alt="My Melody and Friend" loading="lazy" />
           <h2>Your Progress</h2>
         </div>
         <div class="stats-content">
           <p>
-            <span class="stats-icon">🎯</span>
+            <span class="stats-icon"><svg width="20px" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M64 64c0-17.7-14.3-32-32-32S0 46.3 0 64L0 400c0 44.2 35.8 80 80 80l400 0c17.7 0 32-14.3 32-32s-14.3-32-32-32L80 416c-8.8 0-16-7.2-16-16L64 64zm406.6 86.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L320 210.7l-57.4-57.4c-12.5-12.5-32.8-12.5-45.3 0l-112 112c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L240 221.3l57.4 57.4c12.5 12.5 32.8 12.5 45.3 0l128-128z"/></svg></span>
             Completed Sessions: {{ stats.completedSessions }}
           </p>
           <p>
@@ -55,6 +52,10 @@ const { timeLeft, isRunning, stats } = storeToRefs(store)
             Total Focus Time: {{ Math.floor(stats.totalFocusTime / 60) }} minutes
           </p>
         </div>
+      </div>
+      <div v-if="isRunning" class="dancing-melody">
+        <p>Go! Go! Go! Goo Babieee!</p>
+        <img src="/public/assets/melody3.gif" alt="My Melody Dancing" loading="lazy" />
       </div>
     </div>
   </div>
@@ -66,7 +67,6 @@ const { timeLeft, isRunning, stats } = storeToRefs(store)
   background-color: #fce7f3;
   padding: 1rem;
 }
-
 .timer-card {
   background-color: white;
   border-radius: 1.5rem;
@@ -76,7 +76,6 @@ const { timeLeft, isRunning, stats } = storeToRefs(store)
   margin: 0 auto;
   border: 4px solid #fbcfe8;
 }
-
 .timer-title {
   font-size: 1.875rem;
   font-weight: bold;
@@ -88,29 +87,28 @@ const { timeLeft, isRunning, stats } = storeToRefs(store)
   justify-content: center;
   gap: 0.5rem;
 }
-
+svg{
+fill: #db2777;
+}
 .timer-title img {
   width: 2rem;
   height: 2rem;
 }
-
 .timer-display-container {
   position: relative;
   margin-bottom: 2rem;
 }
-
 .dancing-melody {
   position: absolute;
-  top: -4rem;
+  color: black;
+  font-size: 1.15rem;
+  bottom: 5rem;
   left: 50%;
   transform: translateX(-50%);
 }
-
 .dancing-melody img {
-  width: 6rem;
-  height: 6rem;
+  width: 10rem;
 }
-
 .timer-display {
   font-size: 3.75rem;
   font-weight: bold;
@@ -121,14 +119,12 @@ const { timeLeft, isRunning, stats } = storeToRefs(store)
   padding: 1.5rem;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
 }
-
 .timer-controls {
   display: flex;
   justify-content: center;
   gap: 1rem;
   margin-bottom: 2rem;
 }
-
 .control-button {
   padding: 0.75rem 2rem;
   border-radius: 9999px;
@@ -141,69 +137,57 @@ const { timeLeft, isRunning, stats } = storeToRefs(store)
   gap: 0.5rem;
   transition: background-color 0.3s;
 }
-
 .control-button.primary {
   background-color: #f472b6;
   color: white;
 }
-
 .control-button.primary:hover {
   background-color: #db2777;
 }
-
 .control-button.secondary {
   background-color: #fbcfe8;
   color: #db2777;
 }
-
 .control-button.secondary:hover {
   background-color: #f9a8d4;
 }
-
 .button-icon {
   font-size: 1.25rem;
 }
-
 .stats-container {
   background-color: #fdf2f8;
   border-radius: 1rem;
   padding: 1.5rem;
   border: 2px solid #fbcfe8;
 }
-
 .stats-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
-
 .stats-header img {
   width: 2rem;
   height: 2rem;
 }
-
 .stats-header h2 {
   font-size: 1.25rem;
   font-weight: bold;
   color: #db2777;
   margin: 0;
 }
-
 .stats-content {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   color: #be185d;
 }
-
 .stats-content p {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin: 0;
 }
-
 .stats-icon {
   font-size: 1.25rem;
 }
