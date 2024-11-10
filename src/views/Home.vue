@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watchEffect } from "vue";
 import { useNotesStore } from "../stores/notes";
 
 const timeOfDay = ref("");
@@ -25,9 +25,18 @@ const determineTimeOfDay = () => {
     backgroundImage.value = "url(/public/assets/moonbg.gif)";
   }
 };
-const currentWeather = ref({
+// Add interfaces for weather data
+interface WeatherData {
+  temp_c: number;
+  condition: {
+    text: string;
+    icon: string;
+  };
+}
+
+const currentWeather = ref<WeatherData>({
   temp_c: 0,
-  condition: { text: "", icon: "" },
+  condition: { text: "", icon: "" }
 });
 const forecast = ref({
   maxtemp_c: 0,
@@ -37,11 +46,13 @@ const airQuality = ref({
   pm2_5: 0,
   pm10: 0,
 });
+const API_KEY = import.meta.env.VITE_API_KEY;
+const weatherError = ref<string>("");
 
 const fetchWeather = async () => {
   try {
     const response = await fetch(
-      "http://api.weatherapi.com/v1/forecast.json?key=f8303cb3a0c1425cae2180137240911&q=Liloan,Cebu&days=1&aqi=yes&alerts=yes"
+      `http://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=Liloan,Cebu&days=1&aqi=yes&alerts=yes`
     );
     const data = await response.json();
 
@@ -49,10 +60,28 @@ const fetchWeather = async () => {
     forecast.value = data.forecast.forecastday[0].day;
     airQuality.value = data.current.air_quality;
   } catch (error) {
+    weatherError.value = "Unable to fetch weather data";
     console.error("Error fetching weather:", error);
+  } finally {
+    isLoading.value = false;
   }
+}
+
+const isLoading = ref(true);
+const imageLoadError = ref(false);
+
+const handleImageError = (event: Event) => {
+  imageLoadError.value = true;
+  const imgElement = event.target as HTMLImageElement
+  imgElement.src = '/public/assets/melodysticker.gif'
 };
 
+watchEffect(() => {
+  const weatherInterval = setInterval(() => {
+    fetchWeather();
+  }, 1800000); 
+  return () => clearInterval(weatherInterval);
+});
 
 onMounted(() => {
   useNotesStore().initialise();
@@ -70,6 +99,7 @@ onMounted(() => {
         src="/public/assets/melodysticker.gif"
         alt="My Melody"
         loading="lazy"
+         @error="handleImageError"
       />
     </div>
     <div class="message-container">
