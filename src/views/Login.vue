@@ -31,39 +31,38 @@
       </div>
     </div>
   </template>
+<script lang="ts" setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const secretKey = ref('')
+const hasError = ref(false)
+const errorMessage = ref('')
+
+const handleSubmit = async () => {
+  hasError.value = false
+  errorMessage.value = ''
   
-  <script lang="ts" setup>
-  import { ref } from 'vue'
-  
-  const secretKey = ref('')
-  const hasError = ref(false)
-  const errorMessage = ref('')
-  
-  const handleSubmit = async () => {
-    hasError.value = false
-    errorMessage.value = ''
-    
-    if (secretKey.value.length < 6) {
-      hasError.value = true
-      errorMessage.value = 'Secret key must be at least 6 characters'
-      return
-    }
-    
-    try {
-      if (secretKey.value !== process.env.VITE_SECRET_KEY) {
-        throw new Error('Invalid secret key')
-      }
-      console.log('Secret key submitted:', secretKey.value)
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      alert('Login successful!')
-    } catch (error) {
-      hasError.value = true
-      errorMessage.value = 'Invalid secret key'
-    }
+  if (secretKey.value.length < 6) {
+    hasError.value = true
+    errorMessage.value = 'Secret key must be at least 6 characters'
+    return
   }
-  </script>
   
+  try {
+    if (secretKey.value !== process.env.VITE_SECRET_KEY) {
+      throw new Error('Invalid secret key')
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    localStorage.setItem('isAuthenticated', 'true')
+    router.push('/')
+  } catch (error) {
+    hasError.value = true
+    errorMessage.value = 'Invalid secret key'
+  }
+}
+</script>
   <style scoped>
   .login-container {
     min-height: 100vh;
