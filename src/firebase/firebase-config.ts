@@ -6,13 +6,13 @@ import {
 } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDAjkmkmixb-HR-Gyh5K6QYWXo6Kc2S8Q0",
-  authDomain: "nekay-b4b50.firebaseapp.com",
-  projectId: "nekay-b4b50",
-  storageBucket: "nekay-b4b50.firebasestorage.app",
-  messagingSenderId: "833816673115",
-  appId: "1:833816673115:web:2b51df86efd3f4bfeb787e",
-  measurementId: "G-YJHYN5NKJ1",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase

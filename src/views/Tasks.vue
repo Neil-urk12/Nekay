@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useNotesStore } from '../stores/notes'
+import { ref, computed, onMounted, Ref } from 'vue'
+import { useNotesStore, Task, Folder } from '../stores/notes'
 import { storeToRefs } from 'pinia'
 
 const store = useNotesStore()
@@ -59,7 +59,7 @@ const addFolder = () => {
 }
 
 const editTask = (taskId: string) => {
-  const task = tasks.value.find(t => t.id === taskId)
+  const task = tasks.value.find((t: Task) => t.id === taskId)
   if (task) {
     editingTaskId.value = taskId
     editingTaskTitle.value = task.title
@@ -81,7 +81,7 @@ const cancelEditTask = () => {
 
 
 const editFolder = (folderId: string) => {
-  const folder = folders.value.find(f => f.id === folderId)
+  const folder = folders.value.find((f: Folder) => f.id === folderId)
   if (folder) {
     editingFolderId.value = folderId
     editingFolderName.value = folder.name
@@ -104,9 +104,12 @@ const cancelEditFolder = () => {
 
 const filteredTasks = computed(() => {
   if (!selectedFolderId.value) return tasks.value
-  return tasks.value.filter(task => task.folderId === selectedFolderId.value)
+  return tasks.value.filter((task: Task) => task.folderId === selectedFolderId.value)
 })
 
+// let store: ReturnType<typeof useNotesStore>
+// let tasks: Ref<Task[]>
+// let folders: Ref<Folder[]>
 onMounted(() => {
   setInterval(determineTimeOfDay, 60000)
   determineTimeOfDay()
@@ -135,7 +138,7 @@ onMounted(() => {
             All Tasks
           </button>
           <button
-            v-for="folder in folders.filter(f => f.type === 'task')"
+            v-for="folder in folders.filter((f: Folder) => f.type === 'task')"
             :key="folder.id"
             class="folder-item"
             :class="{ active: selectedFolderId === folder.id }"
