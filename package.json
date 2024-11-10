@@ -9,10 +9,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.46.1",
+    "firebase": "^11.0.1",
     "pinia": "^2.1.7",
     "vue": "^3.5.10",
-    "vue-router": "^4.2.5"
+    "vue-router": "^4.2.5",
+    "workbox-precaching": "^7.3.0",
+    "workbox-routing": "^7.3.0",
+    "workbox-strategies": "^7.3.0",
+    "workbox-webpack-plugin": "^7.3.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.1.4",
