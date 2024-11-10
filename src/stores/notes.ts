@@ -41,8 +41,7 @@ export const useNotesStore = defineStore("notes", {
 
   actions: {
     async initialise() {
-      await indexedDBService.init();
-
+      // Remove the call to indexedDBService.init() here
       this.tasks = await indexedDBService.getAllItems("tasks");
       this.journalEntries = await indexedDBService.getAllItems("journal");
       this.folders = await indexedDBService.getAllItems("folders");
