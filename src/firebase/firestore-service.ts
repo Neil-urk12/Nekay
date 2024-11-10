@@ -1,6 +1,4 @@
-import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc } from 'firebase/firestore';
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
+import { getFirestore, collection, getDocs, addDoc } from 'firebase/firestore';
 import { Task, JournalEntry, Folder } from '../stores/notes';
 import { app } from './firebase-config';
 
@@ -74,5 +72,3 @@ export const getFolders = async () => {
     return [];
   }
 };
-
-export { deleteDoc, doc };

@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 
 const timeOfDay = ref('')
 const backgroundImage = ref('')
-const weather = ref('')
+
 
 const determineTimeOfDay = () => {
   const hour = new Date().getHours()

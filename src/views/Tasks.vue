@@ -79,9 +79,6 @@ const cancelEditTask = () => {
   editingTaskTitle.value = ''
 }
 
-const deleteTask = (taskId: string) => {
-  store.deleteTask(taskId)
-}
 
 const editFolder = (folderId: string) => {
   const folder = folders.value.find(f => f.id === folderId)
@@ -104,9 +101,6 @@ const cancelEditFolder = () => {
   editingFolderName.value = ''
 }
 
-const deleteFolder = (folderId: string) => {
-  store.deleteFolder(folderId)
-}
 
 const filteredTasks = computed(() => {
   if (!selectedFolderId.value) return tasks.value

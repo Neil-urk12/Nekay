@@ -4,7 +4,7 @@ export const usePomodoro = defineStore('pomodoro', {
   state: () => ({
     timeLeft: 25 * 60, // 25 minutes in seconds
     isRunning: false,
-    timer: null as number | null,
+    timer: null as NodeJS.Timeout | null,
     stats: {
       completedSessions: 0,
       totalFocusTime: 0

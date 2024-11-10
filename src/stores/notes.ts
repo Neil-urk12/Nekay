@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
-import { storeTask, storeJournalEntry, storeFolder, getTasks, getJournalEntries, getFolders, deleteDoc, doc } from '../firebase/firestore-service';
-import { db, app } from '../firebase/firebase-config';
+import { storeTask, storeJournalEntry, storeFolder, getTasks, getJournalEntries, getFolders } from '../firebase/firestore-service';
+
 
 export interface Task {
   id: string
@@ -88,8 +88,10 @@ export const useNotesStore = defineStore('notes', {
     },
 
     async deleteJournalEntry(entryId: string) {
-      await deleteDoc(doc(db, 'journalEntries', entryId));
-      this.journalEntries = this.journalEntries.filter(e => e.id !== entryId)
+      const entryIndex = this.journalEntries.findIndex(e => e.id === entryId);
+      if (entryIndex !== -1) {
+        this.journalEntries.splice(entryIndex, 1);
+      }
     },
 
     // Folder actions
