@@ -45,8 +45,20 @@ export class IndexedDBService {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
-        console.error("Error opening IndexedDB");
-        reject(request.error);
+        const errorMessage = {
+          message: "Failed to initialize offline storage",
+          details: request.error?.message || "Unknown error",
+          code: "INDEXEDDB_INIT_ERROR"
+        };
+        reject(errorMessage);
+      };
+      
+      request.onblocked = () => {
+        const errorMessage = {
+          message: "Database blocked - please close other tabs with this app",
+          code: "INDEXEDDB_BLOCKED"
+        };
+        reject(errorMessage);
       };
 
       request.onsuccess = () => {
