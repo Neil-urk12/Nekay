@@ -9,7 +9,7 @@ import { useNotesStore } from "./stores/notes";
 
 const initApp = async () => {
   try {
-    await indexedDBService.init(); // Initialize IndexedDB only once
+    await indexedDBService.init(); 
   } catch (err) {
     console.log("Failed to initialize IndexedDB: ", err);
   }
@@ -18,15 +18,10 @@ const initApp = async () => {
   app.use(pinia);
   app.use(router);
   
-  // Initialize the notes store
   const notesStore = useNotesStore(pinia);
-  notesStore.initialise(); // Remove the call to indexedDBService.init() here
+  notesStore.initialise(); 
 
   app.mount("#app");
 };
 initApp();
 registerServiceWorker();
-// const app = createApp(App);
-// app.use(createPinia());
-// app.use(router);
-// app.mount("#app");

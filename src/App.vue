@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import BottomNav from './components/BottomNav.vue'
+import { defineAsyncComponent } from 'vue';
+const BottomNav = defineAsyncComponent(() => import('./components/BottomNav.vue'))
 </script>
 
 <template>
@@ -14,7 +15,6 @@ body {
   margin: 0;
   font-family: 'Comic Sans MS', cursive;
 }
-
 .app-container {
   min-height: 100vh;
   background-color: #fce7f3;
