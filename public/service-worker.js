@@ -43,17 +43,30 @@ self.addEventListener("install", (event) => {
       console.log("Opened cache");
       // return cache.addAll(urlsToCache);
       return Promise.all(
-        urlsToCache.map((url) => {
+        urlsToCache.map( async (url) => {
           return cache.add(url).catch((err) => {
-            console.error("Error caching", ${ url }, err);
+            console.error("Error caching", url, err);
           });
         })
       );
     })
   );
+
+  // Initialize IndexedDBService in the install event
+  self.clients.matchAll().then((clients) => {
+    clients.forEach((client) => {
+      client.postMessage({ type: 'init-indexeddb' });
+    });
+  });
 });
 
 self.addEventListener("fetch", (event) => {
+  // Check if the request is for Firestore
+  if (event.request.url.includes("firestore.googleapis.com")) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((response) => {
       if (response) {
@@ -116,13 +129,39 @@ async function syncTasks() {
 
 async function getOfflineTasks() {
   // Implement getting tasks from IndexedDB or other local storage
-  return [];
+  return await indexedDBService.getPendingSyncItems("tasks");
 }
 
 async function syncTask(task) {
   // Implement syncing individual task with server
+  try {
+    // Assuming there is a function to sync task with the server
+    await syncTaskWithServer(task);
+    await indexedDBService.updateSyncStatus("tasks", task.id, "synced");
+  } catch (error) {
+    await indexedDBService.updateSyncStatus("tasks", task.id, "failed");
+    throw error;
+  }
 }
 
 async function clearOfflineTasks() {
   // Implement clearing synced tasks from offline storage
+  const syncedTasks = await indexedDBService.getAllItems("tasks");
+  await Promise.all(syncedTasks.map((task) => {
+    if (task.syncStatus === "synced") {
+      return indexedDBService.deleteItem("tasks", task.id);
+    }
+  }));
 }
+
+async function syncTaskWithServer(task) {
+  // Placeholder for syncing task with the server
+  console.log("Syncing task with server:", task);
+}
+
+// Initialize IndexedDBService
+// indexedDBService.init().then(() => {
+//   console.log("IndexedDBService initialized in service worker");
+// }).catch((error) => {
+//   console.error("Error initializing IndexedDBService in service worker:", error);
+// });

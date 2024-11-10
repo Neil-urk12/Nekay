@@ -2,10 +2,10 @@ import { createApp } from "vue";
 import { createPinia } from "pinia";
 import router from "./router";
 import "./style.css";
-// import App from "./App.vue";
-import App from "/src/App.vue";
+import App from "./App.vue";
 import { indexedDBService } from "./services/indexedDB";
 import { registerServiceWorker } from "./utils/serviceWorker";
+import { useNotesStore } from "./stores/notes";
 
 const initApp = async () => {
   try {
@@ -14,8 +14,14 @@ const initApp = async () => {
     console.log("Failed to initialize IndexedDB: ", err);
   }
   const app = createApp(App);
-  app.use(createPinia());
+  const pinia = createPinia();
+  app.use(pinia);
   app.use(router);
+  
+  // Initialize the notes store
+  const notesStore = useNotesStore(pinia);
+  notesStore.initialise();
+
   app.mount("#app");
 };
 initApp();
