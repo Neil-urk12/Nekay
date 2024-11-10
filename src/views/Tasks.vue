@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, Ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useNotesStore, Task, Folder } from '../stores/notes'
 import { storeToRefs } from 'pinia'
 
