@@ -140,6 +140,7 @@ onMounted(() => {
           <button
             v-for="folder in folders.filter((f: Folder) => f.type === 'task')"
             :key="folder.id"
+            :data-folder-id="folder.id"
             class="folder-item"
             :class="{ active: selectedFolderId === folder.id }"
             @click="selectedFolderId = folder.id"
