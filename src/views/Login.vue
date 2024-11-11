@@ -51,7 +51,7 @@ const handleSubmit = async () => {
   }
   
   try {
-    if (secretKey.value !== process.env.VITE_SECRET_KEY) {
+    if (secretKey.value !== import.meta.env.VITE_SECRET_KEY) {
       throw new Error('Invalid secret key')
     }
     await new Promise(resolve => setTimeout(resolve, 1000))
