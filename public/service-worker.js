@@ -35,6 +35,7 @@ const urlsToCache = [
   // "/src/views/Journal.vue",
   // offline page
   "/offline.html",
+  "/src/views/Login.vue" 
 ];
 
 self.addEventListener("install", (event) => {

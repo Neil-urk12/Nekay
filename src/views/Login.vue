@@ -20,8 +20,10 @@
               v-model="secretKey"
               placeholder="Enter Secret Key"
               :class="{ 'error': hasError }"
+              aria-label="Secret Key"
+              aria-describedby="secretKeyError"
             />
-            <span class="error-message" v-if="hasError">{{ errorMessage }}</span>
+            <span id="secretKeyError" class="error-message" v-if="hasError">{{ errorMessage }}</span>
           </div>
           
           <button type="submit" :disabled="!secretKey">
@@ -57,11 +59,17 @@ const handleSubmit = async () => {
     return
   }
   
+  if (!/^\d+$/.test(secretKey.value)) {
+    hasError.value = true
+    errorMessage.value = 'Secret key must only contain numbers'
+    return
+  }
+
   try {
     if (Number(secretKey.value.trim()) !== envSecretKey) {
       console.log('Invalid secret key:', secretKey.value)
       hasError.value = true
-      errorMessage.value = 'Invalid secret key'
+      errorMessage.value = 'Incorrect secret key'
       return
     }
     await new Promise(resolve => setTimeout(resolve, 1000))
@@ -69,7 +77,8 @@ const handleSubmit = async () => {
     router.push('/')
   } catch (error) {
     hasError.value = true
-    errorMessage.value = 'Invalid secret key'
+    console.log('user clicked')
+    errorMessage.value = 'An error occurred during login'
   }
 }
 </script>
