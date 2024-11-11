@@ -32,17 +32,24 @@
     </div>
   </template>
 <script lang="ts" setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const secretKey = ref('')
 const hasError = ref(false)
 const errorMessage = ref('')
+const envSecretKey = Number(import.meta.env.VITE_SECRET_KEY)
+
+watch(secretKey, () => {
+  hasError.value = false
+  errorMessage.value = ''
+})
 
 const handleSubmit = async () => {
   hasError.value = false
   errorMessage.value = ''
+  console.log('User clicked')
   
   if (secretKey.value.length < 6) {
     hasError.value = true
@@ -51,8 +58,11 @@ const handleSubmit = async () => {
   }
   
   try {
-    if (secretKey.value.trim() !== import.meta.env.VITE_SECRET_KEY) {
-      throw new Error('Invalid secret key')
+    if (Number(secretKey.value.trim()) !== envSecretKey) {
+      console.log('Invalid secret key:', secretKey.value)
+      hasError.value = true
+      errorMessage.value = 'Invalid secret key'
+      return
     }
     await new Promise(resolve => setTimeout(resolve, 1000))
     localStorage.setItem('isAuthenticated', 'true')

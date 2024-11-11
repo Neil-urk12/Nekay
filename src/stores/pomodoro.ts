@@ -2,13 +2,14 @@ import { defineStore } from 'pinia'
 
 export const usePomodoro = defineStore('pomodoro', {
   state: () => ({
-    timeLeft: 25 * 60, // 25 minutes in seconds
+    timeLeft: 25 * 60,
     isRunning: false,
     timer: null as NodeJS.Timeout | null,
     stats: {
       completedSessions: 0,
       totalFocusTime: 0
-    }
+    },
+    error: null as string | null
   }),
   
   actions: {
@@ -19,17 +20,40 @@ export const usePomodoro = defineStore('pomodoro', {
         this.startTimer()
       }
     },
+    saveStats() {
+      localStorage.setItem('pomodoroStats', JSON.stringify(this.stats))
+    },
+    loadStats() {
+      const saved = localStorage.getItem('pomodoroStats')
+      if (saved) {
+        this.stats = JSON.parse(saved)
+      }
+    },
+
+    validateStats() {
+      if (this.stats.completedSessions < 0) {
+        throw new Error('Completed sessions cannot be negative')
+      }
+      if (this.stats.totalFocusTime < 0) {
+        throw new Error('Total focus time cannot be negative')
+      }
+    },
 
     startTimer() {
-      if (!this.isRunning) {
-        this.isRunning = true
-        this.timer = setInterval(() => {
-          if (this.timeLeft > 0) {
-            this.timeLeft--
-          } else {
-            this.completeSession()
-          }
-        }, 1000)
+      try {
+        if (!this.isRunning) {
+          this.isRunning = true
+          this.timer = setInterval(() => {
+            if (this.timeLeft > 0) {
+              this.timeLeft--
+            } else {
+              this.completeSession()
+            }
+          }, 1000)
+        }
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : 'Failed to start timer'
+        this.pauseTimer()
       }
     },
 
@@ -47,11 +71,16 @@ export const usePomodoro = defineStore('pomodoro', {
     },
 
     completeSession() {
-      this.pauseTimer()
-      this.stats.completedSessions++
-      this.stats.totalFocusTime += 25 * 60
-      this.resetTimer()
-      // Could add notification here
+      try {
+        this.pauseTimer()
+        this.stats.completedSessions++
+        this.stats.totalFocusTime += 25 * 60
+        this.validateStats()
+        this.resetTimer()
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : 'Failed to complete session'
+        this.resetTimer()
+      }
     }
   }
 })
