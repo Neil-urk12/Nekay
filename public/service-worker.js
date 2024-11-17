@@ -1,168 +1,239 @@
-const CACHE_NAME = "my-app-cache-v1";
-const urlsToCache = [
-  "/",
-  "/index.html",
-  "/manifest.json",
-  // Styles and Scripts
-  "/style.css",
-  "/main.js",
-  // Images and Icons
-  "/assets/melody.gif",
-  "/assets/melody2.gif",
-  "/assets/melody3.gif",
-  "/assets/melodykiss.png",
-  "/assets/sleepingmelody.png",
-  "/assets/bgsky.jpg",
-  "/assets/sunsetbg.jpg",
-  "/assets/moonbg.gif",
-  "/chart-line-solid.svg",
-  "/journal.svg",
-  "/taskIcon.svg",
-  "/vite.svg",
-  "/img/icons/safari-pinned-tab.svg",
-  // Routes
-  // "/pomodoro",
-  // "/tasks",
-  // "/journal",
-  // Firebase assets (for offline persistence)
-  "/__/firebase/init.js",
-  // Vue components
-  // "/src/App.vue",
-  // "/src/components/BottomNav.vue",
-  // "/src/views/Home.vue",
-  // "/src/views/Pomodoro.vue",
-  // "/src/views/Tasks.vue",
-  // "/src/views/Journal.vue",
-  // offline page
-  "/offline.html",
-  "/src/views/Login.vue" 
+importScripts('/dexie.min.js');
+
+// Cache Strategies
+const STATIC_CACHE = 'static-cache-v1';
+const DYNAMIC_CACHE = 'dynamic-cache-v1';
+const OFFLINE_PAGE = '/offline.html';
+
+const STATIC_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/style.css',
+  '/main.js',
+  '/dexie.min.js',
+  '/assets/melody.gif',
+  '/assets/melody2.gif',
+  '/assets/melody3.gif',
+  '/assets/melodykiss.png',
+  '/assets/sleepingmelody.png',
+  '/assets/bgsky.jpg',
+  '/assets/sunsetbg.jpg',
+  '/assets/moonbg.gif',
+  '/chart-line-solid.svg',
+  '/journal.svg',
+  '/taskIcon.svg',
+  '/vite.svg',
+  '/img/icons/safari-pinned-tab.svg',
+  OFFLINE_PAGE
 ];
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log("Opened cache");
-      // return cache.addAll(urlsToCache);
-      return Promise.all(
-        urlsToCache.map( async (url) => {
-          return cache.add(url).catch((err) => {
-            console.error("Error caching", url, err);
-          });
-        })
-      );
-    })
-  );
-
-  // Initialize IndexedDBService in the install event
-  self.clients.matchAll().then((clients) => {
-    clients.forEach((client) => {
-      client.postMessage({ type: 'init-indexeddb' });
+// Initialize Dexie
+class NekayDatabase extends Dexie {
+  constructor() {
+    super('NekayOfflineDB');
+    this.version(1).stores({
+      syncQueue: '++id, action, store, timestamp',
+      tasks: '++id, syncStatus, folderId, lastModified',
+      journal: '++id, syncStatus, folderId, date, lastModified',
+      folders: '++id, syncStatus, type, lastModified',
+      notes: '++id, syncStatus, lastModified',
+      pomodoro: '++id, syncStatus, type, startTime, lastModified'
     });
-  });
+  }
+}
+
+const db = new NekayDatabase();
+
+// Install Event
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    Promise.all([
+      caches.open(STATIC_CACHE).then((cache) => {
+        console.log('Caching static assets');
+        return cache.addAll(STATIC_ASSETS);
+      }),
+      caches.open(DYNAMIC_CACHE),
+      db.open()
+    ])
+  );
+  self.skipWaiting();
 });
 
-self.addEventListener("fetch", (event) => {
-  // Check if the request is for Firestore
-  if (event.request.url.includes("firestore.googleapis.com")) {
-    event.respondWith(fetch(event.request));
-    return;
+// Activate Event
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    Promise.all([
+      // Clean up old caches
+      caches.keys().then((keys) => {
+        return Promise.all(
+          keys
+            .filter((key) => key !== STATIC_CACHE && key !== DYNAMIC_CACHE)
+            .map((key) => caches.delete(key))
+        );
+      }),
+      // Claim clients
+      self.clients.claim()
+    ])
+  );
+});
+
+// Fetch Event
+self.addEventListener('fetch', (event) => {
+  // Handle API requests
+  if (event.request.url.includes('/api/')) {
+    return handleApiRequest(event);
   }
 
+  // Handle static assets
+  if (STATIC_ASSETS.some(asset => event.request.url.includes(asset))) {
+    return handleStaticAsset(event);
+  }
+
+  // Handle dynamic assets
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      if (response) {
-        return response;
-      }
-
-      const fetchRequest = event.request.clone();
-
-      return fetch(fetchRequest).then((response) => {
-        // Check if we received a valid response
-        if (!response || response.status !== 200 || response.type !== "basic") {
+    caches.match(event.request)
+      .then((response) => {
+        if (response) {
           return response;
         }
-
-        // Clone the response
-        const responseToCache = response.clone();
-
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
-        });
-
-        return response;
-      });
-    })
+        return fetch(event.request)
+          .then((fetchResponse) => {
+            if (!fetchResponse || fetchResponse.status !== 200) {
+              return fetchResponse;
+            }
+            return caches.open(DYNAMIC_CACHE)
+              .then((cache) => {
+                cache.put(event.request.url, fetchResponse.clone());
+                return fetchResponse;
+              });
+          })
+          .catch(() => {
+            // If the fetch fails, return the offline page for navigation requests
+            if (event.request.mode === 'navigate') {
+              return caches.match(OFFLINE_PAGE);
+            }
+            return null;
+          });
+      })
   );
 });
 
-// Update Service Worker
-self.addEventListener("activate", (event) => {
-  const cacheWhitelist = [CACHE_NAME];
-
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-});
-
-self.addEventListener("sync", (event) => {
-  if (event.tag === "sync-tasks") {
-    event.waitUntil(syncTasks());
-  }
-});
-
-async function syncTasks() {
+async function handleApiRequest(event) {
   try {
-    const offlineTasks = await getOfflineTasks();
-    await Promise.all(offlineTasks.map((task) => syncTask(task)));
-    await clearOfflineTasks();
+    const response = await fetch(event.request);
+    return response;
   } catch (error) {
-    console.error("Error syncing tasks:", error);
-  }
-}
-
-async function getOfflineTasks() {
-  // Implement getting tasks from IndexedDB or other local storage
-  return await indexedDBService.getPendingSyncItems("tasks");
-}
-
-async function syncTask(task) {
-  // Implement syncing individual task with server
-  try {
-    // Assuming there is a function to sync task with the server
-    await syncTaskWithServer(task);
-    await indexedDBService.updateSyncStatus("tasks", task.id, "synced");
-  } catch (error) {
-    await indexedDBService.updateSyncStatus("tasks", task.id, "failed");
+    console.error('API request failed:', error);
+    
+    // Queue failed request
+    const request = event.request.clone();
+    await queueFailedRequest(request);
+    
+    // Try to return cached data
+    const cachedResponse = await caches.match(event.request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
     throw error;
   }
 }
 
-async function clearOfflineTasks() {
-  // Implement clearing synced tasks from offline storage
-  const syncedTasks = await indexedDBService.getAllItems("tasks");
-  await Promise.all(syncedTasks.map((task) => {
-    if (task.syncStatus === "synced") {
-      return indexedDBService.deleteItem("tasks", task.id);
+function handleStaticAsset(event) {
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => response || fetch(event.request))
+  );
+}
+
+async function queueFailedRequest(request) {
+  try {
+    const serializedRequest = {
+      url: request.url,
+      method: request.method,
+      headers: Array.from(request.headers.entries()),
+      body: await request.clone().text(),
+      mode: request.mode,
+      credentials: request.credentials,
+      cache: request.cache
+    };
+
+    await db.syncQueue.add({
+      action: 'api',
+      store: 'requests',
+      data: serializedRequest,
+      timestamp: Date.now(),
+      attempts: 0
+    });
+  } catch (error) {
+    console.error('Failed to queue request:', error);
+  }
+}
+
+// Background Sync
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-data') {
+    event.waitUntil(syncData());
+  }
+});
+
+async function syncData() {
+  try {
+    const pendingItems = await db.syncQueue.toArray();
+    
+    for (const item of pendingItems) {
+      try {
+        if (item.action === 'api') {
+          await processSyncRequest(item.data);
+        } else {
+          await processSyncItem(item);
+        }
+        await db.syncQueue.delete(item.id);
+      } catch (error) {
+        console.error('Error processing sync item:', error);
+        await db.syncQueue.update(item.id, {
+          attempts: (item.attempts || 0) + 1
+        });
+      }
     }
-  }));
+  } catch (error) {
+    console.error('Error during sync:', error);
+  }
 }
 
-async function syncTaskWithServer(task) {
-  // Placeholder for syncing task with the server
-  console.log("Syncing task with server:", task);
+async function processSyncRequest(requestData) {
+  const request = new Request(requestData.url, {
+    method: requestData.method,
+    headers: new Headers(requestData.headers),
+    body: requestData.body,
+    mode: requestData.mode,
+    credentials: requestData.credentials,
+    cache: requestData.cache
+  });
+
+  const response = await fetch(request);
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return response;
 }
 
-// Initialize IndexedDBService
-// indexedDBService.init().then(() => {
-//   console.log("IndexedDBService initialized in service worker");
-// }).catch((error) => {
-//   console.error("Error initializing IndexedDBService in service worker:", error);
-// });
+async function processSyncItem(item) {
+  const { store, data, action } = item;
+  const table = db.table(store);
+  
+  switch (action) {
+    case 'create':
+      await table.add(data);
+      break;
+    case 'update':
+      await table.update(data.id, data);
+      break;
+    case 'delete':
+      await table.delete(data.id);
+      break;
+    default:
+      throw new Error(`Unknown action: ${action}`);
+  }
+}

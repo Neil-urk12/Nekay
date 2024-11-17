@@ -45,6 +45,8 @@ const formatDate = (dateString: string) => {
   })
 }
 
+let displayHiddenLetter = ref(false)
+
 onMounted(() => {
   store.fetchJournalEntries();
   store.fetchFolders();
@@ -53,8 +55,15 @@ onMounted(() => {
 
 <template>
   <div class="journal-container">
+    <div class="popup" v-if="displayHiddenLetter">
+      <div class="modal-content">
+        <span @click="displayHiddenLetter=!displayHiddenLetter" class="close">&times;</span>
+        <p>ksjdfkjsdfjsdlfjsdkl</p>
+      </div>
+    </div>
     <div class="content-card">
-      <h1 class="page-title">
+      <h1 class="page-title" @click="displayHiddenLetter = !displayHiddenLetter">
+        <button class="displayLetter" @click="displayHiddenLetter=!displayHiddenLetter" style="width: 5px; height: 5px;">K</button>
         <img src="/public/assets/melody2.gif" alt="My Melody" />
         My Journal
       </h1>
@@ -267,11 +276,10 @@ button {
   white-space: pre-wrap;
 }
 
-.delete-button {
+.delete-button, .displayLetter {
   background-color: #fb7185;
   font-size: 0.875rem;
 }
-
 .delete-button:hover {
   background-color: #e11d48;
 }
