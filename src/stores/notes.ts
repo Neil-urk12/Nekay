@@ -1,34 +1,36 @@
 import { defineStore } from "pinia";
-import {
-  storeTask,
-  storeJournalEntry,
-  storeFolder,
-  getTasks,
-  getJournalEntries,
-  getFolders,
-} from "../firebase/firestore-service";
-import { indexedDBService } from "../services/indexedDB";
 import { syncService } from "../services/syncService";
+import { indexedDBService } from "../services/indexedDB";
+import { useOffline } from "../composables/useOffline";
 
-export interface Task {
-  id: string;
+interface Task {
+  id?: number;
   title: string;
   completed: boolean;
-  folderId: string | null;
+  folderId?: string | null;
+  syncStatus: 'synced' | 'pending' | 'failed';
+  lastModified: number;
+  timestamp: number;
 }
 
-export interface JournalEntry {
-  id: string;
+interface JournalEntry {
+  id?: number;
   title: string;
   content: string;
   date: string;
-  folderId: string | null;
+  folderId?: string | null;
+  syncStatus: 'synced' | 'pending' | 'failed';
+  lastModified: number;
+  timestamp: number;
 }
 
-export interface Folder {
-  id: string;
+interface Folder {
+  id?: number;
   name: string;
   type: "task" | "journal";
+  syncStatus: 'synced' | 'pending' | 'failed';
+  lastModified: number;
+  timestamp: number;
 }
 
 export const useNotesStore = defineStore("notes", {
@@ -37,126 +39,296 @@ export const useNotesStore = defineStore("notes", {
     journalEntries: [] as JournalEntry[],
     folders: [] as Folder[],
     loading: false,
+    error: null as string | null,
+    lastSync: null as Date | null,
   }),
+
+  getters: {
+    tasksByFolder: (state) => (folderId: string | null) => {
+      return state.tasks.filter((task) => task.folderId === folderId);
+    },
+    entriesByFolder: (state) => (folderId: string | null) => {
+      return state.journalEntries.filter((entry) => entry.folderId === folderId);
+    },
+    pendingChanges: (state) => {
+      const pendingTasks = state.tasks.filter(t => t.syncStatus === 'pending');
+      const pendingEntries = state.journalEntries.filter(e => e.syncStatus === 'pending');
+      const pendingFolders = state.folders.filter(f => f.syncStatus === 'pending');
+      return pendingTasks.length + pendingEntries.length + pendingFolders.length;
+    }
+  },
 
   actions: {
     async initialise() {
-      // Remove the call to indexedDBService.init() here
-      this.tasks = await indexedDBService.getAllItems("tasks");
-      this.journalEntries = await indexedDBService.getAllItems("journal");
-      this.folders = await indexedDBService.getAllItems("folders");
+      try {
+        this.loading = true;
+        
+        // Load data from IndexedDB
+        const [tasks, entries, folders] = await Promise.all([
+          indexedDBService.getAllItems("tasks"),
+          indexedDBService.getAllItems("journal"),
+          indexedDBService.getAllItems("folders")
+        ]);
 
-      if (navigator.onLine) {
-        syncService.syncData();
+        this.tasks = tasks;
+        this.journalEntries = entries;
+        this.folders = folders;
+
+        // If online, sync with server
+        if (navigator.onLine) {
+          await this.syncWithServer();
+        }
+
+        this.error = null;
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : 'Failed to initialize store';
+      } finally {
+        this.loading = false;
       }
     },
+
+    async syncWithServer() {
+      try {
+        await syncService.syncData();
+        this.lastSync = new Date();
+      } catch (error) {
+        console.error('Sync failed:', error);
+        throw error;
+      }
+    },
+
     // Task actions
-    async fetchTasks() {
-      this.loading = true;
-      const tasks = await getTasks();
-      this.tasks = tasks;
-      this.loading = false;
-    },
     async addTask(title: string, folderId: string | null = null) {
-      const task: Task = {
-        id: Date.now().toString(),
-        title,
-        completed: false,
-        folderId,
-      };
-      this.tasks.push(task);
-      storeTask(task);
+      try {
+        const task: Task = {
+          title,
+          completed: false,
+          folderId,
+          syncStatus: 'pending',
+          lastModified: Date.now(),
+          timestamp: Date.now()
+        };
 
-      await indexedDBService.addItem("tasks", task);
+        const id = await indexedDBService.addItem("tasks", task);
+        task.id = id;
+        this.tasks.push(task);
+
+        if (navigator.onLine) {
+          await this.syncWithServer();
+        }
+
+        this.error = null;
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : 'Failed to add task';
+        throw error;
+      }
     },
 
-    toggleTask(taskId: string) {
+    async editTask(taskId: number, updates: Partial<Task>) {
+      try {
+        const task = this.tasks.find((t) => t.id === taskId);
+        if (!task) throw new Error('Task not found');
+
+        const updatedTask = {
+          ...task,
+          ...updates,
+          syncStatus: 'pending',
+          lastModified: Date.now()
+        };
+
+        await indexedDBService.updateItem("tasks", taskId, updatedTask);
+        
+        const index = this.tasks.findIndex((t) => t.id === taskId);
+        if (index !== -1) {
+          this.tasks[index] = updatedTask;
+        }
+
+        if (navigator.onLine) {
+          await this.syncWithServer();
+        }
+
+        this.error = null;
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : 'Failed to edit task';
+        throw error;
+      }
+    },
+
+    async toggleTask(taskId: number) {
       const task = this.tasks.find((t) => t.id === taskId);
       if (task) {
-        task.completed = !task.completed;
+        await this.editTask(taskId, { completed: !task.completed });
       }
     },
 
-    deleteTask(taskId: string) {
-      this.tasks = this.tasks.filter((t) => t.id !== taskId);
+    async deleteTask(taskId: number) {
+      try {
+        await indexedDBService.deleteItem("tasks", taskId);
+        this.tasks = this.tasks.filter((t) => t.id !== taskId);
+
+        if (navigator.onLine) {
+          await this.syncWithServer();
+        }
+
+        this.error = null;
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : 'Failed to delete task';
+        throw error;
+      }
     },
 
     // Journal actions
-    async fetchJournalEntries() {
-      this.loading = true;
-      const journalEntries = await getJournalEntries();
-      this.journalEntries = journalEntries;
-      this.loading = false;
-    },
-    addJournalEntry(
-      title: string,
-      content: string,
-      folderId: string | null = null
-    ) {
-      const entry: JournalEntry = {
-        id: Date.now().toString(),
-        title,
-        content,
-        date: new Date().toISOString(),
-        folderId,
-      };
-      this.journalEntries.push(entry);
-      storeJournalEntry(entry);
-    },
+    async addJournalEntry(title: string, content: string, folderId: string | null = null) {
+      try {
+        const entry: JournalEntry = {
+          title,
+          content,
+          date: new Date().toISOString(),
+          folderId,
+          syncStatus: 'pending',
+          lastModified: Date.now(),
+          timestamp: Date.now()
+        };
 
-    updateJournalEntry(entryId: string, updates: Partial<JournalEntry>) {
-      const entry = this.journalEntries.find((e) => e.id === entryId);
-      if (entry) {
-        Object.assign(entry, updates);
+        const id = await indexedDBService.addItem("journal", entry);
+        entry.id = id;
+        this.journalEntries.push(entry);
+
+        if (navigator.onLine) {
+          await this.syncWithServer();
+        }
+
+        this.error = null;
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : 'Failed to add journal entry';
+        throw error;
       }
     },
 
-    async deleteJournalEntry(entryId: string) {
-      const entryIndex = this.journalEntries.findIndex((e) => e.id === entryId);
-      if (entryIndex !== -1) {
-        this.journalEntries.splice(entryIndex, 1);
+    async updateJournalEntry(entryId: number, updates: Partial<JournalEntry>) {
+      try {
+        const entry = this.journalEntries.find((e) => e.id === entryId);
+        if (!entry) throw new Error('Journal entry not found');
+
+        const updatedEntry = {
+          ...entry,
+          ...updates,
+          syncStatus: 'pending',
+          lastModified: Date.now()
+        };
+
+        await indexedDBService.updateItem("journal", entryId, updatedEntry);
+        
+        const index = this.journalEntries.findIndex((e) => e.id === entryId);
+        if (index !== -1) {
+          this.journalEntries[index] = updatedEntry;
+        }
+
+        if (navigator.onLine) {
+          await this.syncWithServer();
+        }
+
+        this.error = null;
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : 'Failed to update journal entry';
+        throw error;
+      }
+    },
+
+    async deleteJournalEntry(entryId: number) {
+      try {
+        await indexedDBService.deleteItem("journal", entryId);
+        this.journalEntries = this.journalEntries.filter((e) => e.id !== entryId);
+
+        if (navigator.onLine) {
+          await this.syncWithServer();
+        }
+
+        this.error = null;
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : 'Failed to delete journal entry';
+        throw error;
       }
     },
 
     // Folder actions
-    async fetchFolders() {
-      this.loading = true;
-      const folders = await getFolders();
-      this.folders = folders;
-      this.loading = false;
-    },
-    addFolder(name: string, type: "task" | "journal") {
-      const folder: Folder = {
-        id: Date.now().toString(),
-        name,
-        type,
-      };
-      this.folders.push(folder);
-      storeFolder(folder);
-    },
+    async addFolder(name: string, type: "task" | "journal") {
+      try {
+        const folder: Folder = {
+          name,
+          type,
+          syncStatus: 'pending',
+          lastModified: Date.now(),
+          timestamp: Date.now()
+        };
 
-    deleteFolder(folderId: string) {
-      this.folders = this.folders.filter((f) => f.id !== folderId);
-      // Remove folder reference from tasks and entries
-      this.tasks = this.tasks.map((t) =>
-        t.folderId === folderId ? { ...t, folderId: null } : t
-      );
-      this.journalEntries = this.journalEntries.map((e) =>
-        e.folderId === folderId ? { ...e, folderId: null } : e
-      );
-    },
+        const id = await indexedDBService.addItem("folders", folder);
+        folder.id = id;
+        this.folders.push(folder);
 
-    editTask(taskId: string, newTitle: string) {
-      const taskIndex = this.tasks.findIndex((t) => t.id === taskId);
-      if (taskIndex !== -1) {
-        this.tasks[taskIndex].title = newTitle;
+        if (navigator.onLine) {
+          await this.syncWithServer();
+        }
+
+        this.error = null;
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : 'Failed to add folder';
+        throw error;
       }
     },
 
-    editFolder(folderId: string, newTitle: string) {
-      const folderIndex = this.folders.findIndex((f) => f.id === folderId);
-      if (folderIndex !== -1) {
-        this.folders[folderIndex].name = newTitle;
+    async editFolder(folderId: number, updates: Partial<Folder>) {
+      try {
+        const folder = this.folders.find((f) => f.id === folderId);
+        if (!folder) throw new Error('Folder not found');
+
+        const updatedFolder = {
+          ...folder,
+          ...updates,
+          syncStatus: 'pending',
+          lastModified: Date.now()
+        };
+
+        await indexedDBService.updateItem("folders", folderId, updatedFolder);
+        
+        const index = this.folders.findIndex((f) => f.id === folderId);
+        if (index !== -1) {
+          this.folders[index] = updatedFolder;
+        }
+
+        if (navigator.onLine) {
+          await this.syncWithServer();
+        }
+
+        this.error = null;
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : 'Failed to edit folder';
+        throw error;
+      }
+    },
+
+    async deleteFolder(folderId: number) {
+      try {
+        await indexedDBService.deleteItem("folders", folderId);
+        this.folders = this.folders.filter((f) => f.id !== folderId);
+
+        // Update related tasks and entries
+        const tasksToUpdate = this.tasks.filter(t => t.folderId === folderId);
+        const entriesToUpdate = this.journalEntries.filter(e => e.folderId === folderId);
+
+        await Promise.all([
+          ...tasksToUpdate.map(t => this.editTask(t.id!, { folderId: null })),
+          ...entriesToUpdate.map(e => this.updateJournalEntry(e.id!, { folderId: null }))
+        ]);
+
+        if (navigator.onLine) {
+          await this.syncWithServer();
+        }
+
+        this.error = null;
+      } catch (error) {
+        this.error = error instanceof Error ? error.message : 'Failed to delete folder';
+        throw error;
       }
     },
   },

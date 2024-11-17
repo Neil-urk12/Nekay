@@ -1,241 +1,249 @@
-export interface IndexedDBTask {
-  id: string;
+import Dexie, { Table } from 'dexie';
+
+interface Task {
+  id?: number;
   title: string;
   completed: boolean;
-  folderId: string | null;
-  syncStatus: "synced" | "pending" | "failed";
+  folderId?: string;
+  syncStatus: 'synced' | 'pending' | 'failed';
   lastModified: number;
+  timestamp: number;
 }
 
-export interface IndexedDBJournalEntry {
-  id: string;
+interface JournalEntry {
+  id?: number;
   title: string;
   content: string;
   date: string;
-  folderId: string | null;
-  syncStatus: "synced" | "pending" | "failed";
+  folderId?: string;
+  syncStatus: 'synced' | 'pending' | 'failed';
   lastModified: number;
+  timestamp: number;
 }
 
-export interface IndexedDBFolder {
-  id: string;
+interface Folder {
+  id?: number;
   name: string;
-  type: "task" | "journal";
-  syncStatus: "synced" | "pending" | "failed";
+  type: 'task' | 'journal';
+  syncStatus: 'synced' | 'pending' | 'failed';
   lastModified: number;
+  timestamp: number;
 }
 
-// Database configuration
-const DB_NAME = "NekayOfflineDB";
-const DB_VERSION = 1;
-const STORES = {
-  tasks: "tasks",
-  journal: "journal",
-  folders: "folders",
-  syncQueue: "syncQueue",
-};
+interface Note {
+  id?: number;
+  content: string;
+  syncStatus: 'synced' | 'pending' | 'failed';
+  lastModified: number;
+  timestamp: number;
+}
 
-// IndexedDB wrapper class
-export class IndexedDBService {
-  private db: IDBDatabase | null = null;
+interface PomodoroSession {
+  id?: number;
+  duration: number;
+  startTime: number;
+  endTime: number;
+  type: 'work' | 'break';
+  syncStatus: 'synced' | 'pending' | 'failed';
+  lastModified: number;
+  timestamp: number;
+}
 
-  // Initialize the database
-  public async init(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+interface SyncQueueItem {
+  id?: number;
+  action: 'create' | 'update' | 'delete';
+  store: string;
+  data: any;
+  timestamp: number;
+  attempts: number;
+}
 
-      request.onerror = () => {
-        const errorMessage = {
-          message: "Failed to initialize offline storage",
-          details: request.error?.message || "Unknown error",
-          code: "INDEXEDDB_INIT_ERROR"
-        };
-        reject(errorMessage);
-      };
+class NekayDatabase extends Dexie {
+  tasks!: Table<Task>;
+  journal!: Table<JournalEntry>;
+  folders!: Table<Folder>;
+  notes!: Table<Note>;
+  pomodoro!: Table<PomodoroSession>;
+  syncQueue!: Table<SyncQueueItem>;
+
+  constructor() {
+    super('NekayOfflineDB');
+    this.version(1).stores({
+      tasks: '++id, syncStatus, folderId, lastModified',
+      journal: '++id, syncStatus, folderId, date, lastModified',
+      folders: '++id, syncStatus, type, lastModified',
+      notes: '++id, syncStatus, lastModified',
+      pomodoro: '++id, syncStatus, type, startTime, lastModified',
+      syncQueue: '++id, action, store, timestamp'
+    });
+  }
+}
+
+const db = new NekayDatabase();
+
+class IndexedDBService {
+  async init(): Promise<void> {
+    try {
+      await db.open();
+      console.log('Database opened successfully');
+    } catch (error) {
+      console.error('Failed to open database:', error);
+      throw error;
+    }
+  }
+
+  async addItem(store: string, item: any): Promise<number> {
+    try {
+      const table = db.table(store);
+      const id = await table.add({
+        ...item,
+        syncStatus: 'pending',
+        lastModified: Date.now(),
+        timestamp: Date.now()
+      });
+      return id as number;
+    } catch (error) {
+      console.error(`Failed to add item to ${store}:`, error);
+      throw error;
+    }
+  }
+
+  async updateItem(store: string, id: number, updates: any): Promise<void> {
+    try {
+      const table = db.table(store);
+      await table.update(id, {
+        ...updates,
+        syncStatus: 'pending',
+        lastModified: Date.now()
+      });
+    } catch (error) {
+      console.error(`Failed to update item in ${store}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteItem(store: string, id: number): Promise<void> {
+    try {
+      const table = db.table(store);
+      await table.delete(id);
       
-      request.onblocked = () => {
-        const errorMessage = {
-          message: "Database blocked - please close other tabs with this app",
-          code: "INDEXEDDB_BLOCKED"
-        };
-        reject(errorMessage);
-      };
-
-      request.onsuccess = () => {
-        this.db = request.result;
-        console.log("IndexedDB initialized successfully");
-        resolve();
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-
-        // Create object stores with indexes
-        if (!db.objectStoreNames.contains(STORES.tasks)) {
-          const taskStore = db.createObjectStore(STORES.tasks, {
-            keyPath: "id",
-          });
-          taskStore.createIndex("syncStatus", "syncStatus", { unique: false });
-          taskStore.createIndex("folderId", "folderId", { unique: false });
-        }
-
-        if (!db.objectStoreNames.contains(STORES.journal)) {
-          const journalStore = db.createObjectStore(STORES.journal, {
-            keyPath: "id",
-          });
-          journalStore.createIndex("syncStatus", "syncStatus", {
-            unique: false,
-          });
-          journalStore.createIndex("folderId", "folderId", { unique: false });
-        }
-
-        if (!db.objectStoreNames.contains(STORES.folders)) {
-          const folderStore = db.createObjectStore(STORES.folders, {
-            keyPath: "id",
-          });
-          folderStore.createIndex("syncStatus", "syncStatus", {
-            unique: false,
-          });
-          folderStore.createIndex("type", "type", { unique: false });
-        }
-
-        if (!db.objectStoreNames.contains(STORES.syncQueue)) {
-          const syncQueueStore = db.createObjectStore(STORES.syncQueue, {
-            keyPath: "id",
-            autoIncrement: true,
-          });
-          syncQueueStore.createIndex("timestamp", "timestamp", {
-            unique: false,
-          });
-        }
-      };
-    });
-  }
-
-  // Generic method to add items to any store
-  async addItem<T>(storeName: string, item: T): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"));
-        return;
-      }
-
-      const transaction = this.db.transaction(storeName, "readwrite");
-      const store = transaction.objectStore(storeName);
-      const request = store.add({
-        ...item,
-        syncStatus: "pending",
-        lastModified: Date.now(),
+      // Add delete operation to sync queue
+      await db.syncQueue.add({
+        action: 'delete',
+        store,
+        data: { id },
+        timestamp: Date.now(),
+        attempts: 0
       });
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
+    } catch (error) {
+      console.error(`Failed to delete item from ${store}:`, error);
+      throw error;
+    }
   }
 
-  // Generic method to get all items from a store
-  async getAllItems<T>(storeName: string): Promise<T[]> {
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"));
-        return;
-      }
-
-      const transaction = this.db.transaction(storeName, "readonly");
-      const store = transaction.objectStore(storeName);
-      const request = store.getAll();
-
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+  async getAllItems(store: string): Promise<any[]> {
+    try {
+      const table = db.table(store);
+      return await table.toArray();
+    } catch (error) {
+      console.error(`Failed to get items from ${store}:`, error);
+      throw error;
+    }
   }
 
-  // Get pending sync items
-  async getPendingSyncItems(storeName: string): Promise<any[]> {
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"));
-        return;
-      }
-
-      const transaction = this.db.transaction(storeName, "readonly");
-      const store = transaction.objectStore(storeName);
-      const index = store.index("syncStatus");
-      const request = index.getAll("pending");
-
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+  async getItem(store: string, id: number): Promise<any> {
+    try {
+      const table = db.table(store);
+      return await table.get(id);
+    } catch (error) {
+      console.error(`Failed to get item from ${store}:`, error);
+      throw error;
+    }
   }
 
-  // Update sync status
-  async updateSyncStatus(
-    storeName: string,
-    id: string,
-    status: "synced" | "failed"
-  ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"));
-        return;
-      }
-
-      const transaction = this.db.transaction(storeName, "readwrite");
-      const store = transaction.objectStore(storeName);
-      const request = store.get(id);
-
-      request.onsuccess = () => {
-        const item = request.result;
-        if (item) {
-          item.syncStatus = status;
-          item.lastModified = Date.now();
-          store.put(item);
-          resolve();
-        }
-      };
-
-      request.onerror = () => reject(request.error);
-    });
+  async clearItems(store: string): Promise<void> {
+    try {
+      const table = db.table(store);
+      await table.clear();
+    } catch (error) {
+      console.error(`Failed to clear items from ${store}:`, error);
+      throw error;
+    }
   }
 
-  // Delete item
-  async deleteItem(storeName: string, id: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"));
-        return;
-      }
-
-      const transaction = this.db.transaction(storeName, "readwrite");
-      const store = transaction.objectStore(storeName);
-      const request = store.delete(id);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
+  async getPendingSyncItems(store: string): Promise<any[]> {
+    try {
+      const table = db.table(store);
+      return await table.where('syncStatus').equals('pending').toArray();
+    } catch (error) {
+      console.error(`Failed to get pending sync items from ${store}:`, error);
+      throw error;
+    }
   }
 
-  // Update item
-  async updateItem<T>(storeName: string, item: T): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"));
-        return;
-      }
+  async updateSyncStatus(store: string, id: number, status: 'pending' | 'synced' | 'failed'): Promise<void> {
+    try {
+      const table = db.table(store);
+      await table.update(id, { syncStatus: status, lastModified: Date.now() });
+    } catch (error) {
+      console.error(`Failed to update sync status in ${store}:`, error);
+      throw error;
+    }
+  }
 
-      const transaction = this.db.transaction(storeName, "readwrite");
-      const store = transaction.objectStore(storeName);
-      const request = store.put({
+  // New methods specific to Dexie functionality
+  async bulkAdd(store: string, items: any[]): Promise<number[]> {
+    try {
+      const table = db.table(store);
+      const timestamp = Date.now();
+      const itemsWithMeta = items.map(item => ({
         ...item,
-        syncStatus: "pending",
-        lastModified: Date.now(),
-      });
+        syncStatus: 'pending',
+        lastModified: timestamp,
+        timestamp
+      }));
+      return await table.bulkAdd(itemsWithMeta, { allKeys: true });
+    } catch (error) {
+      console.error(`Failed to bulk add items to ${store}:`, error);
+      throw error;
+    }
+  }
 
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
+  async bulkUpdate(store: string, items: { id: number; changes: any }[]): Promise<void> {
+    try {
+      const table = db.table(store);
+      await db.transaction('rw', table, async () => {
+        await Promise.all(
+          items.map(({ id, changes }) =>
+            table.update(id, {
+              ...changes,
+              syncStatus: 'pending',
+              lastModified: Date.now()
+            })
+          )
+        );
+      });
+    } catch (error) {
+      console.error(`Failed to bulk update items in ${store}:`, error);
+      throw error;
+    }
+  }
+
+  async searchItems(store: string, query: string): Promise<any[]> {
+    try {
+      const table = db.table(store);
+      return await table
+        .filter(item => 
+          Object.values(item).some(value => 
+            String(value).toLowerCase().includes(query.toLowerCase())
+          )
+        )
+        .toArray();
+    } catch (error) {
+      console.error(`Failed to search items in ${store}:`, error);
+      throw error;
+    }
   }
 }
 
-// Create and export a singleton instance
 export const indexedDBService = new IndexedDBService();

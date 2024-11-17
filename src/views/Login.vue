@@ -67,7 +67,6 @@ const handleSubmit = async () => {
 
   try {
     if (Number(secretKey.value.trim()) !== envSecretKey) {
-      console.log('Invalid secret key:', secretKey.value)
       hasError.value = true
       errorMessage.value = 'Incorrect secret key'
       return

@@ -10,6 +10,7 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "dexie": "^4.0.10",
     "dotenv": "^16.4.5",
     "firebase": "^11.0.1",
     "pinia": "^2.1.7",
