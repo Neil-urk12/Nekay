@@ -4,7 +4,7 @@ import { indexedDBService } from "../services/indexedDB";
 import { useOffline } from "../composables/useOffline";
 
 interface Task {
-  id?: number;
+  id?: string;
   title: string;
   completed: boolean;
   folderId?: string | null;
@@ -14,7 +14,7 @@ interface Task {
 }
 
 interface JournalEntry {
-  id?: number;
+  id?: string;
   title: string;
   content: string;
   date: string;
@@ -25,7 +25,7 @@ interface JournalEntry {
 }
 
 interface Folder {
-  id?: number;
+  id?: string;
   name: string;
   type: "task" | "journal";
   syncStatus: 'synced' | 'pending' | 'failed';
@@ -124,7 +124,7 @@ export const useNotesStore = defineStore("notes", {
       }
     },
 
-    async editTask(taskId: number, updates: Partial<Task>) {
+    async editTask(taskId: string, updates: Partial<Task>) {
       try {
         const task = this.tasks.find((t) => t.id === taskId);
         if (!task) throw new Error('Task not found');
@@ -154,14 +154,14 @@ export const useNotesStore = defineStore("notes", {
       }
     },
 
-    async toggleTask(taskId: number) {
+    async toggleTask(taskId: string) {
       const task = this.tasks.find((t) => t.id === taskId);
       if (task) {
         await this.editTask(taskId, { completed: !task.completed });
       }
     },
 
-    async deleteTask(taskId: number) {
+    async deleteTask(taskId: string) {
       try {
         await indexedDBService.deleteItem("tasks", taskId);
         this.tasks = this.tasks.filter((t) => t.id !== taskId);
@@ -205,7 +205,7 @@ export const useNotesStore = defineStore("notes", {
       }
     },
 
-    async updateJournalEntry(entryId: number, updates: Partial<JournalEntry>) {
+    async updateJournalEntry(entryId: string, updates: Partial<JournalEntry>) {
       try {
         const entry = this.journalEntries.find((e) => e.id === entryId);
         if (!entry) throw new Error('Journal entry not found');
@@ -235,7 +235,7 @@ export const useNotesStore = defineStore("notes", {
       }
     },
 
-    async deleteJournalEntry(entryId: number) {
+    async deleteJournalEntry(entryId: string) {
       try {
         await indexedDBService.deleteItem("journal", entryId);
         this.journalEntries = this.journalEntries.filter((e) => e.id !== entryId);
@@ -277,7 +277,7 @@ export const useNotesStore = defineStore("notes", {
       }
     },
 
-    async editFolder(folderId: number, updates: Partial<Folder>) {
+    async editFolder(folderId: string, updates: Partial<Folder>) {
       try {
         const folder = this.folders.find((f) => f.id === folderId);
         if (!folder) throw new Error('Folder not found');
@@ -307,7 +307,7 @@ export const useNotesStore = defineStore("notes", {
       }
     },
 
-    async deleteFolder(folderId: number) {
+    async deleteFolder(folderId: string) {
       try {
         await indexedDBService.deleteItem("folders", folderId);
         this.folders = this.folders.filter((f) => f.id !== folderId);
