@@ -1,204 +1,226 @@
-import { defineStore } from 'pinia';
-import { indexedDBService } from '../services/indexedDB';
+import { defineStore } from 'pinia'
+import { indexedDBService, PomodoroStats, PomodoroSession } from '../services/indexedDB'
 
-interface PomodoroStats {
-  completedSessions: number;
-  totalFocusTime: number;
-  lastModified: number;
-}
+const WORK_DURATION = 25 * 60 // 25 minutes in seconds
+const BREAK_DURATION = 5 * 60 // 5 minutes in seconds
+const NOTIFICATION_VOLUME = 0.5 // 50% volume
 
-interface PomodoroSession {
-  id?: number;
-  startTime: number;
-  endTime: number;
-  duration: number;
-  type: 'work' | 'break';
-  completed: boolean;
-  syncStatus: 'synced' | 'pending' | 'failed';
-  lastModified: number;
-  timestamp: number;
-}
+const STORAGE_KEY = 'pomodoro-state'
 
 export const usePomodoro = defineStore('pomodoro', {
   state: () => ({
-    timeLeft: 25 * 60,
+    timeLeft: WORK_DURATION,
     isRunning: false,
-    timer: null as NodeJS.Timeout | null,
-    stats: {
-      completedSessions: 0,
-      totalFocusTime: 0,
-      lastModified: Date.now()
-    } as PomodoroStats,
+    timer: null as ReturnType<typeof setInterval> | null,
+    stats: null as PomodoroStats | null,
     currentSession: null as PomodoroSession | null,
-    error: null as string | null
+    error: null as string | null,
+    isLoading: false,
+    mode: 'work' as 'work' | 'break'
   }),
 
   getters: {
     formattedTime: (state) => {
-      const minutes = Math.floor(state.timeLeft / 60);
-      const seconds = state.timeLeft % 60;
-      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      const minutes = Math.floor(state.timeLeft / 60)
+      const seconds = state.timeLeft % 60
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`
+    },
+    formattedTotalTime: (state) => {
+      if (!state.stats) return '0 minutes'
+      return `${Math.floor(state.stats.totalFocusTime / 60)} minutes`
     },
     progress: (state) => {
-      return ((25 * 60 - state.timeLeft) / (25 * 60)) * 100;
+      const total = state.mode === 'work' ? WORK_DURATION : BREAK_DURATION
+      return ((total - state.timeLeft) / total) * 100
     }
   },
 
   actions: {
     async init() {
       try {
-        // Load stats from IndexedDB
-        const stats = await indexedDBService.getAllItems('pomodoro');
-        if (stats.length > 0) {
-          this.stats = stats[0];
-        }
-        this.error = null;
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : 'Failed to initialize pomodoro';
-      }
-    },
+        this.isLoading = true
+        this.error = null
 
-    async startTimer() {
-      try {
-        if (!this.isRunning) {
-          this.isRunning = true;
-          
-          // Create new session
-          const session: PomodoroSession = {
-            startTime: Date.now(),
-            endTime: 0,
-            duration: 25 * 60,
-            type: 'work',
-            completed: false,
-            syncStatus: 'pending',
+        // Restore state from localStorage if it exists
+        const savedState = localStorage.getItem(STORAGE_KEY)
+        if (savedState) {
+          const { timeLeft, isRunning, mode } = JSON.parse(savedState)
+          this.timeLeft = timeLeft
+          this.mode = mode
+          if (isRunning) {
+            this.start()
+          }
+        }
+
+        const stats = await indexedDBService.getItem<PomodoroStats>('pomodoro', 'stats')
+        if (!stats) {
+          const newStats: PomodoroStats = {
+            id: 'stats',
+            completedSessions: 0,
+            totalFocusTime: 0,
             lastModified: Date.now(),
-            timestamp: Date.now()
-          };
-
-          const id = await indexedDBService.addItem('pomodoro', session);
-          session.id = id;
-          this.currentSession = session;
-
-          this.timer = setInterval(() => {
-            if (this.timeLeft > 0) {
-              this.timeLeft--;
-            } else {
-              this.completeSession();
-            }
-          }, 1000);
-        }
-        this.error = null;
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : 'Failed to start timer';
-        this.pauseTimer();
-      }
-    },
-
-    pauseTimer() {
-      if (this.timer) {
-        clearInterval(this.timer);
-        this.timer = null;
-      }
-      this.isRunning = false;
-    },
-
-    resetTimer() {
-      this.pauseTimer();
-      this.timeLeft = 25 * 60;
-      if (this.currentSession) {
-        this.updateSession({
-          ...this.currentSession,
-          completed: false,
-          endTime: Date.now()
-        });
-      }
-    },
-
-    async completeSession() {
-      try {
-        this.pauseTimer();
-        
-        if (this.currentSession) {
-          await this.updateSession({
-            ...this.currentSession,
-            completed: true,
-            endTime: Date.now()
-          });
-        }
-
-        // Update stats
-        const updatedStats = {
-          ...this.stats,
-          completedSessions: this.stats.completedSessions + 1,
-          totalFocusTime: this.stats.totalFocusTime + 25 * 60,
-          lastModified: Date.now()
-        };
-
-        await this.updateStats(updatedStats);
-        this.validateStats();
-        this.resetTimer();
-        
-        this.error = null;
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : 'Failed to complete session';
-        this.resetTimer();
-      }
-    },
-
-    async updateSession(session: PomodoroSession) {
-      try {
-        if (!session.id) return;
-        
-        const updatedSession = {
-          ...session,
-          syncStatus: 'pending',
-          lastModified: Date.now()
-        };
-
-        await indexedDBService.updateItem('pomodoro', session.id, updatedSession);
-        this.currentSession = updatedSession;
-        
-        this.error = null;
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : 'Failed to update session';
-      }
-    },
-
-    async updateStats(stats: PomodoroStats) {
-      try {
-        // Get the first stats record or create new one
-        const existingStats = await indexedDBService.getAllItems('pomodoro');
-        const id = existingStats.length > 0 ? existingStats[0].id : undefined;
-
-        if (id) {
-          await indexedDBService.updateItem('pomodoro', id, stats);
+            syncStatus: 'pending'
+          }
+          await indexedDBService.addItem('pomodoro', newStats)
+          this.stats = newStats
         } else {
-          const newId = await indexedDBService.addItem('pomodoro', stats);
-          stats.id = newId;
+          this.stats = stats
         }
 
-        this.stats = stats;
-        this.error = null;
-      } catch (error) {
-        this.error = error instanceof Error ? error.message : 'Failed to update stats';
+        // Request notification permission
+        if ('Notification' in window) {
+          await Notification.requestPermission()
+        }
+
+        // Add keyboard shortcuts
+        window.addEventListener('keydown', this.handleKeyPress)
+      } catch (err) {
+        this.error = 'Failed to initialize Pomodoro timer'
+        console.error(err)
+      } finally {
+        this.isLoading = false
       }
     },
 
-    validateStats() {
-      if (this.stats.completedSessions < 0) {
-        throw new Error('Completed sessions cannot be negative');
+    handleKeyPress(event: KeyboardEvent) {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return // Don't handle shortcuts when typing in inputs
       }
-      if (this.stats.totalFocusTime < 0) {
-        throw new Error('Total focus time cannot be negative');
+
+      switch(event.key.toLowerCase()) {
+        case ' ':
+          event.preventDefault()
+          this.isRunning ? this.pause() : this.start()
+          break
+        case 'r':
+          event.preventDefault()
+          this.reset()
+          break
+        case 'b':
+          event.preventDefault()
+          this.toggleMode()
+          break
       }
     },
 
-    toggleTimer() {
-      if (this.isRunning) {
-        this.pauseTimer();
-      } else {
-        this.startTimer();
+    saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        timeLeft: this.timeLeft,
+        isRunning: this.isRunning,
+        mode: this.mode
+      }))
+    },
+
+    toggleMode() {
+      this.pause()
+      this.mode = this.mode === 'work' ? 'break' : 'work'
+      this.timeLeft = this.mode === 'work' ? WORK_DURATION : BREAK_DURATION
+      this.saveState()
+    },
+
+    start() {
+      if (this.isRunning) return
+      
+      this.isRunning = true
+      if (this.mode === 'work') {
+        this.currentSession = {
+          id: crypto.randomUUID(),
+          startTime: Date.now(),
+          endTime: 0,
+          duration: 0,
+          type: 'work',
+          completed: false,
+          lastModified: Date.now(),
+          syncStatus: 'pending'
+        }
       }
+      
+      this.timer = setInterval(() => {
+        if (this.timeLeft > 0) {
+          this.timeLeft--
+          this.saveState()
+        } else {
+          this.complete()
+        }
+      }, 1000)
+    },
+
+    pause() {
+      if (!this.isRunning) return
+      
+      this.isRunning = false
+      if (this.timer) {
+        clearInterval(this.timer)
+        this.timer = null
+      }
+      this.saveState()
+    },
+
+    reset() {
+      this.pause()
+      this.timeLeft = this.mode === 'work' ? WORK_DURATION : BREAK_DURATION
+      this.currentSession = null
+      this.saveState()
+    },
+
+    async complete() {
+      try {
+        this.pause()
+        
+        if (this.currentSession && this.stats && this.mode === 'work') {
+          this.currentSession.endTime = Date.now()
+          // Convert milliseconds to seconds for consistency
+          const durationInSeconds = Math.floor((this.currentSession.endTime - this.currentSession.startTime) / 1000)
+          this.currentSession.duration = durationInSeconds
+          this.currentSession.completed = true
+          
+          await indexedDBService.addItem('pomodoro', this.currentSession)
+          
+          this.stats.completedSessions++
+          this.stats.totalFocusTime += durationInSeconds
+          this.stats.lastModified = Date.now()
+          this.stats.syncStatus = 'pending'
+          
+          await indexedDBService.updateItem('pomodoro', 'stats', this.stats)
+        }
+
+        // Toggle to break mode after work session, or work mode after break
+        this.mode = this.mode === 'work' ? 'break' : 'work'
+        this.timeLeft = this.mode === 'work' ? WORK_DURATION : BREAK_DURATION
+        this.saveState()
+
+        // Play notification sound
+        try {
+          const audio = new Audio('/notification.mp3')
+          audio.volume = NOTIFICATION_VOLUME
+          await audio.play()
+        } catch (err) {
+          console.warn('Failed to play notification sound:', err)
+        }
+
+        // Show system notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(
+            this.mode === 'work' ? 'Break Time!' : 'Back to Work!',
+            {
+              body: this.mode === 'work' 
+                ? 'Time to focus on your next task!' 
+                : 'Great job! Take a short break.',
+              icon: '/favicon.ico'
+            }
+          )
+        }
+      } catch (err) {
+        this.error = 'Failed to save session'
+        console.error(err)
+      }
+    },
+
+    dispose() {
+      window.removeEventListener('keydown', this.handleKeyPress)
+      this.pause()
     }
   }
-});
+})
+
+export type { PomodoroStats }
