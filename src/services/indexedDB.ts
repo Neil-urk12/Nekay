@@ -1,52 +1,45 @@
 import Dexie, { Table } from 'dexie';
 
-interface Task {
+export interface BaseItem {
   id?: string;
+  syncStatus?: 'synced' | 'pending' | 'failed';
+  lastModified?: number;
+  timestamp?: number;
+}
+
+export interface Task extends BaseItem {
   title: string;
   completed: boolean;
   folderId?: string;
-  syncStatus: 'synced' | 'pending' | 'failed';
-  lastModified: number;
-  timestamp: number;
 }
 
-interface JournalEntry {
-  id?: string;
+export interface JournalEntry extends BaseItem {
   title: string;
   content: string;
   date: string;
   folderId?: string;
-  syncStatus: 'synced' | 'pending' | 'failed';
-  lastModified: number;
-  timestamp: number;
 }
 
-interface Folder {
-  id?: string;
+export interface Folder extends BaseItem {
   name: string;
   type: 'task' | 'journal';
-  syncStatus: 'synced' | 'pending' | 'failed';
-  lastModified: number;
-  timestamp: number;
 }
 
-interface Note {
-  id?: string;
+export interface Note extends BaseItem {
   content: string;
-  syncStatus: 'synced' | 'pending' | 'failed';
-  lastModified: number;
-  timestamp: number;
 }
 
-interface PomodoroSession {
-  id?: string;
-  duration: number;
+export interface PomodoroSession extends BaseItem {
   startTime: number;
   endTime: number;
+  duration: number;
   type: 'work' | 'break';
-  syncStatus: 'synced' | 'pending' | 'failed';
-  lastModified: number;
-  timestamp: number;
+  completed: boolean;
+}
+
+export interface PomodoroStats extends BaseItem {
+  completedSessions: number;
+  totalFocusTime: number;
 }
 
 interface SyncQueueItem {
@@ -67,59 +60,33 @@ class NekayDatabase extends Dexie {
   syncQueue!: Table<SyncQueueItem>;
 
   constructor() {
-    // Change database name to force a fresh start
     super('NekayOfflineDB_v2');
     
     this.version(1).stores({
-      tasks: 'id, syncStatus, folderId, lastModified',
-      journal: 'id, syncStatus, folderId, date, lastModified',
-      folders: 'id, syncStatus, type, lastModified',
-      notes: 'id, syncStatus, lastModified',
-      pomodoro: 'id, syncStatus, type, startTime, lastModified',
+      tasks: 'id, syncStatus, folderId, lastModified, [syncStatus+lastModified]',
+      journal: 'id, syncStatus, folderId, date, lastModified, [syncStatus+lastModified]',
+      folders: 'id, syncStatus, type, lastModified, [syncStatus+lastModified]',
+      notes: 'id, syncStatus, lastModified, [syncStatus+lastModified]',
+      pomodoro: 'id, syncStatus, type, startTime, lastModified, [syncStatus+lastModified]',
       syncQueue: '++id, action, store, timestamp'
     });
 
-    // Add hooks to ensure IDs are strings
-    this.tasks.hook('creating', (primKey, obj) => {
-      obj.id = obj.id || crypto.randomUUID();
-      return obj;
-    });
-
-    this.journal.hook('creating', (primKey, obj) => {
-      obj.id = obj.id || crypto.randomUUID();
-      return obj;
-    });
-
-    this.folders.hook('creating', (primKey, obj) => {
-      obj.id = obj.id || crypto.randomUUID();
-      return obj;
-    });
-
-    this.notes.hook('creating', (primKey, obj) => {
-      obj.id = obj.id || crypto.randomUUID();
-      return obj;
-    });
-
-    this.pomodoro.hook('creating', (primKey, obj) => {
-      obj.id = obj.id || crypto.randomUUID();
-      return obj;
-    });
+    this.tasks = this.table('tasks');
+    this.journal = this.table('journal');
+    this.folders = this.table('folders');
+    this.notes = this.table('notes');
+    this.pomodoro = this.table('pomodoro');
+    this.syncQueue = this.table('syncQueue');
   }
 }
 
 const db = new NekayDatabase();
 
-type StoreNames = 'tasks' | 'journal' | 'folders' | 'notes' | 'pomodoro' | 'syncQueue';
-
-interface BaseItem {
-  id?: string;
-  syncStatus?: 'synced' | 'pending' | 'failed';
-  lastModified?: number;
-  timestamp?: number;
-}
+export type StoreNames = 'tasks' | 'journal' | 'folders' | 'notes' | 'pomodoro' | 'syncQueue';
 
 class IndexedDBService {
   private readonly validStores: StoreNames[] = ['tasks', 'journal', 'folders', 'notes', 'pomodoro', 'syncQueue'];
+  private isInitialized = false;
 
   private validateStore(store: string): asserts store is StoreNames {
     if (!this.validStores.includes(store as StoreNames)) {
@@ -131,264 +98,193 @@ class IndexedDBService {
     const timestamp = Date.now();
     return {
       ...item,
-      syncStatus: 'pending',
+      id: item.id || crypto.randomUUID(),
+      syncStatus: item.syncStatus || 'pending',
       lastModified: timestamp,
-      timestamp
+      timestamp: timestamp
     };
   }
 
   async init(): Promise<void> {
+    if (this.isInitialized) return;
+
     try {
       await db.open();
-      console.log('Database opened successfully');
+      this.isInitialized = true;
     } catch (error) {
-      const err = error as Error;
-      console.error('Failed to open database:', err);
-      
-      if (err.name === 'UpgradeError') {
-        // Delete the old database and try again
-        await Dexie.delete('NekayOfflineDB');
-        try {
-          await db.open();
-          console.log('Database recreated successfully');
-          return;
-        } catch (retryError) {
-          throw {
-            code: 'INDEXEDDB_INIT_ERROR',
-            message: 'Failed to initialize database after cleanup',
-            details: retryError instanceof Error ? retryError.message : String(retryError)
-          };
+      console.error('Failed to open database:', error);
+      throw error;
+    }
+  }
+
+  // Add retry and cleanup mechanisms
+  private async retryOnQuotaError<T>(operation: () => Promise<T>, maxRetries = 3): Promise<T> {
+    let attempts = 0;
+    while (attempts < maxRetries) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        attempts++;
+        if (error.name === 'QuotaExceededError') {
+          console.warn('Storage quota exceeded, attempting cleanup...');
+          await this.cleanup();
+          if (attempts === maxRetries) throw error;
+        } else {
+          throw error;
         }
       }
+    }
+    throw new Error('Max retry attempts reached');
+  }
 
-      if (err.name === 'BulkError') {
-        throw {
-          code: 'INDEXEDDB_BULK_ERROR',
-          message: 'Failed to process multiple items',
-          details: err.message
-        };
-      }
-
-      if (err.name === 'DatabaseClosedError') {
-        throw {
-          code: 'INDEXEDDB_BLOCKED',
-          message: 'Database is blocked. Please close other tabs or refresh the page.',
-          details: err.message
-        };
-      }
-
-      throw {
-        code: 'INDEXEDDB_INIT_ERROR',
-        message: 'Failed to initialize database',
-        details: err.message
-      };
+  private async cleanup(): Promise<void> {
+    console.log('Starting storage cleanup...');
+    const oldestTimestamp = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30 days
+    try {
+      await db.transaction('rw', this.validStores, async () => {
+        await Promise.all(
+          this.validStores.map(store => 
+            db.table(store).where('timestamp').below(oldestTimestamp).delete()
+          )
+        );
+      });
+      console.log('Cleanup completed successfully');
+    } catch (error) {
+      console.error('Cleanup failed:', error);
+      throw error;
     }
   }
 
   async addItem<T extends BaseItem>(store: StoreNames, item: T): Promise<string> {
-    try {
-      this.validateStore(store);
-      const table = db.table(store);
-      const itemWithMeta = this.addMetadata(item);
-      
-      const id = await db.transaction('rw', table, async () => {
-        const id = await table.add(itemWithMeta);
-        await db.syncQueue.add({
-          action: 'create',
-          store,
-          data: { ...itemWithMeta, id },
-          timestamp: Date.now(),
-          attempts: 0
-        });
-        return id;
-      });
-      
-      return id.toString();
-    } catch (error) {
-      const msg = `Failed to add item to ${store}`;
-      console.error(msg, error);
-      throw new Error(`${msg}: ${error}`);
+    if (!this.isInitialized) {
+      await this.init();
     }
+
+    this.validateStore(store);
+    const itemWithMetadata = this.addMetadata(item);
+    
+    return await this.retryOnQuotaError(async () => {
+      try {
+        await db.table(store).add(itemWithMetadata);
+        return itemWithMetadata.id!;
+      } catch (error: any) {
+        if (error.name === 'ConstraintError') {
+          // Handle duplicate key by updating instead
+          await db.table(store).put(itemWithMetadata);
+          return itemWithMetadata.id!;
+        }
+        throw error;
+      }
+    });
   }
 
   async updateItem<T extends BaseItem>(store: StoreNames, id: string, updates: Partial<T>): Promise<void> {
-    try {
-      this.validateStore(store);
-      const table = db.table(store);
-      const updatesWithMeta = this.addMetadata(updates);
-      
-      await db.transaction('rw', table, async () => {
-        await table.update(id, updatesWithMeta);
-        await db.syncQueue.add({
-          action: 'update',
-          store,
-          data: { id, ...updatesWithMeta },
-          timestamp: Date.now(),
-          attempts: 0
-        });
-      });
-    } catch (error) {
-      const msg = `Failed to update item in ${store}`;
-      console.error(msg, error);
-      throw new Error(`${msg}: ${error}`);
+    if (!this.isInitialized) {
+      await this.init();
     }
-  }
 
-  async deleteItem(store: StoreNames, id: string): Promise<void> {
     try {
       this.validateStore(store);
       const table = db.table(store);
-      
-      await db.transaction('rw', [table, db.syncQueue], async () => {
-        await table.delete(id);
-        await db.syncQueue.add({
-          action: 'delete',
-          store,
-          data: { id },
-          timestamp: Date.now(),
-          attempts: 0
-        });
-      });
+      await table.update(id, { ...updates, lastModified: Date.now() });
     } catch (error) {
-      const msg = `Failed to delete item from ${store}`;
-      console.error(msg, error);
-      throw new Error(`${msg}: ${error}`);
+      console.error(`Failed to update item in ${store}:`, error);
+      throw error;
     }
   }
 
   async getAllItems<T extends BaseItem>(store: StoreNames): Promise<T[]> {
+    if (!this.isInitialized) {
+      await this.init();
+    }
+
     try {
       this.validateStore(store);
       const table = db.table(store);
-      return await table.toArray();
+      return await table.toArray() as T[];
     } catch (error) {
-      const msg = `Failed to get items from ${store}`;
-      console.error(msg, error);
-      throw new Error(`${msg}: ${error}`);
+      console.error(`Failed to get items from ${store}:`, error);
+      throw error;
     }
   }
 
   async getItem<T extends BaseItem>(store: StoreNames, id: string): Promise<T | undefined> {
+    if (!this.isInitialized) {
+      await this.init();
+    }
+
     try {
       this.validateStore(store);
       const table = db.table(store);
-      return await table.get(id);
+      return await table.get(id) as T;
     } catch (error) {
-      const msg = `Failed to get item from ${store}`;
-      console.error(msg, error);
-      throw new Error(`${msg}: ${error}`);
+      console.error(`Failed to get item from ${store}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteItem(store: StoreNames, id: string): Promise<void> {
+    if (!this.isInitialized) {
+      await this.init();
+    }
+
+    try {
+      this.validateStore(store);
+      const table = db.table(store);
+      await table.delete(id);
+    } catch (error) {
+      console.error(`Failed to delete item from ${store}:`, error);
+      throw error;
     }
   }
 
   async clearItems(store: StoreNames): Promise<void> {
+    if (!this.isInitialized) {
+      await this.init();
+    }
+
     try {
       this.validateStore(store);
       const table = db.table(store);
       await table.clear();
     } catch (error) {
-      const msg = `Failed to clear items from ${store}`;
-      console.error(msg, error);
-      throw new Error(`${msg}: ${error}`);
+      console.error(`Failed to clear items from ${store}:`, error);
+      throw error;
     }
   }
 
-  async getPendingSyncItems<T extends BaseItem>(store: StoreNames): Promise<T[]> {
+  async clearStore(store: StoreNames): Promise<void> {
+    if (!this.isInitialized) {
+      await this.init();
+    }
+
     try {
       this.validateStore(store);
       const table = db.table(store);
-      return await table.where('syncStatus').equals('pending').toArray();
+      await table.clear();
     } catch (error) {
-      const msg = `Failed to get pending sync items from ${store}`;
-      console.error(msg, error);
-      throw new Error(`${msg}: ${error}`);
+      console.error(`Failed to clear store ${store}:`, error);
+      throw error;
     }
   }
 
-  async updateSyncStatus(store: StoreNames, id: string, status: 'pending' | 'synced' | 'failed'): Promise<void> {
-    try {
-      this.validateStore(store);
-      const table = db.table(store);
-      await table.update(id, { syncStatus: status, lastModified: Date.now() });
-    } catch (error) {
-      const msg = `Failed to update sync status in ${store}`;
-      console.error(msg, error);
-      throw new Error(`${msg}: ${error}`);
+  async getPendingSyncItems<T extends BaseItem>(store: StoreNames, batchSize: number, offset: number): Promise<T[]> {
+    if (!this.isInitialized) {
+      await this.init();
     }
-  }
 
-  async bulkAdd<T extends BaseItem>(store: StoreNames, items: T[]): Promise<string[]> {
-    try {
-      this.validateStore(store);
-      const table = db.table(store);
-      const timestamp = Date.now();
-      const itemsWithMeta = items.map(item => this.addMetadata(item));
-      
-      const ids = await db.transaction('rw', [table, db.syncQueue], async () => {
-        const ids = await table.bulkAdd(itemsWithMeta, { allKeys: true });
-        await Promise.all(
-          itemsWithMeta.map((item, index) =>
-            db.syncQueue.add({
-              action: 'create',
-              store,
-              data: { ...item, id: ids[index] },
-              timestamp: Date.now(),
-              attempts: 0
-            })
-          )
-        );
-        return ids;
-      });
-      
-      return ids.map(id => id.toString());
-    } catch (error) {
-      const msg = `Failed to bulk add items to ${store}`;
-      console.error(msg, error);
-      throw new Error(`${msg}: ${error}`);
-    }
-  }
-
-  async bulkUpdate<T extends BaseItem>(store: StoreNames, items: { id: string; changes: Partial<T> }[]): Promise<void> {
-    try {
-      this.validateStore(store);
-      const table = db.table(store);
-      
-      await db.transaction('rw', [table, db.syncQueue], async () => {
-        await Promise.all(
-          items.map(async ({ id, changes }) => {
-            const updatesWithMeta = this.addMetadata(changes);
-            await table.update(id, updatesWithMeta);
-            await db.syncQueue.add({
-              action: 'update',
-              store,
-              data: { id, ...updatesWithMeta },
-              timestamp: Date.now(),
-              attempts: 0
-            });
-          })
-        );
-      });
-    } catch (error) {
-      const msg = `Failed to bulk update items in ${store}`;
-      console.error(msg, error);
-      throw new Error(`${msg}: ${error}`);
-    }
-  }
-
-  async searchItems<T extends BaseItem>(store: StoreNames, query: string): Promise<T[]> {
     try {
       this.validateStore(store);
       const table = db.table(store);
       return await table
-        .filter(item => 
-          Object.values(item).some(value => 
-            String(value).toLowerCase().includes(query.toLowerCase())
-          )
-        )
-        .toArray();
+        .where('[syncStatus+lastModified]')
+        .between(['pending', Dexie.minKey], ['pending', Dexie.maxKey])
+        .offset(offset)
+        .limit(batchSize)
+        .toArray() as T[];
     } catch (error) {
-      const msg = `Failed to search items in ${store}`;
-      console.error(msg, error);
-      throw new Error(`${msg}: ${error}`);
+      console.error(`Failed to get pending sync items from ${store}:`, error);
+      throw error;
     }
   }
 }
