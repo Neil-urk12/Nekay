@@ -2,15 +2,17 @@
 import { ref, computed, onMounted } from 'vue'
 import { useNotesStore } from '../stores/notes'
 import { storeToRefs } from 'pinia'
+import type { Folder } from '../stores/notes'
 
 const store = useNotesStore()
-const { journalEntries, folders, loading } = storeToRefs(store)
+const { journalEntries, folders, loading, error } = storeToRefs(store)
 
 const newEntryTitle = ref('')
 const newEntryContent = ref('')
 const newFolderName = ref('')
 const selectedFolderId = ref<string | null>(null)
 const showNewEntryForm = ref(false)
+const displayHiddenLetter = ref(false)
 
 const addEntry = () => {
   if (newEntryTitle.value.trim() && newEntryContent.value.trim()) {
@@ -34,8 +36,8 @@ const addFolder = () => {
 
 const filteredEntries = computed(() => {
   if (!selectedFolderId.value) return journalEntries.value
-  return journalEntries.value.filter(entry => entry.folderId === selectedFolderId.value)
-})
+  return journalEntries.value.filter((entry) => entry.folderId === selectedFolderId.value);
+});
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -45,11 +47,13 @@ const formatDate = (dateString: string) => {
   })
 }
 
-let displayHiddenLetter = ref(false)
-
-onMounted(() => {
-  store.fetchJournalEntries();
-  store.fetchFolders();
+onMounted(async () => {
+  try {
+    await store.fetchJournalEntries()
+    await store.fetchFolders()
+  } catch (e) {
+    console.error("Error fetching data:", e);
+  }
 })
 </script>
 
@@ -57,14 +61,14 @@ onMounted(() => {
   <div class="journal-container">
     <div class="popup" v-if="displayHiddenLetter">
       <div class="modal-content">
-        <span @click="displayHiddenLetter=!displayHiddenLetter" class="close">&times;</span>
+        <span @click="displayHiddenLetter = !displayHiddenLetter" class="close">&times;</span>
         <p>ksjdfkjsdfjsdlfjsdkl</p>
       </div>
     </div>
     <div class="content-card">
       <h1 class="page-title" @click="displayHiddenLetter = !displayHiddenLetter">
-        <button class="displayLetter" @click="displayHiddenLetter=!displayHiddenLetter" style="width: 5px; height: 5px;">K</button>
-        <img src="/public/assets/melody2.gif" alt="My Melody" />
+        <button class="displayLetter" @click="displayHiddenLetter = !displayHiddenLetter" style="width: 5px; height: 5px;">K</button>
+        <img src="/public/assets/melody2.gif" alt="My Melody" loading="lazy" />
         My Journal
       </h1>
 
@@ -79,11 +83,11 @@ onMounted(() => {
             All Entries
           </button>
           <button
-            v-for="folder in folders.filter(f => f.type === 'journal')"
-            :key="folder.id"
+            v-for="folder in folders.filter((f): f is Folder => f.type === 'journal')"
+            :key="folder.id ?? ''"
             class="folder-item"
             :class="{ active: selectedFolderId === folder.id }"
-            @click="selectedFolderId = folder.id"
+            @click="selectedFolderId = folder.id ?? null"
           >
             {{ folder.name }}
           </button>
@@ -122,10 +126,11 @@ onMounted(() => {
 
         <div class="entries-list">
           <div v-if="loading">Loading...</div>
+          <div v-else-if="error">Error loading entries.</div>
           <div
             v-else
             v-for="entry in filteredEntries"
-            :key="entry.id"
+            :key="entry.id" 
             class="entry-item"
           >
             <div class="entry-header">
@@ -135,7 +140,7 @@ onMounted(() => {
             <p class="entry-content">{{ entry.content }}</p>
             <button
               class="delete-button"
-              @click="store.deleteJournalEntry(entry.id)"
+              @click="entry.id && store.deleteJournalEntry(entry.id)"
             >
               Delete
             </button>
@@ -145,142 +150,267 @@ onMounted(() => {
     </div>
   </div>
 </template>
-
 <style scoped>
 .journal-container {
-  min-height: 100vh;
-  background-color: #fce7f3;
-  padding: 1rem;
-  padding-bottom: 5rem;
-}
-
-.content-card {
-  background-color: white;
-  border-radius: 1.5rem;
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  max-width: 24rem;
+  max-width: 1200px;
   margin: 0 auto;
+  padding: 20px;
+  min-height: 100vh;
+  background-color: #fef6f6;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
-
+.content-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  width: 100%;
+}
 .page-title {
-  font-size: 1.875rem;
-  color: #db2777;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  gap: 12px;
+  font-size: 2rem;
+  color: #ff69b4;
+  margin-bottom: 24px;
+  position: relative;
 }
-
 .page-title img {
-  width: 2rem;
-  height: 2rem;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
 }
-
-.folders-section {
-  margin-bottom: 2rem;
+.displayLetter {
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: transparent;
+  cursor: pointer;
 }
-
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+.modal-content {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  position: relative;
+  max-width: 90%;
+  width: 400px;
+}
+.close {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+}
+.folders-section {margin-bottom: 32px}
 .folders-section h2 {
-  color: #db2777;
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
+  color: #333;
+  margin-bottom: 16px;
+  font-size: 1.5rem;
 }
-
 .folder-list {
   display: flex;
+  gap: 12px;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  margin-bottom: 16px;
 }
-
 .folder-item {
-  background-color: #fdf2f8;
+  padding: 8px 16px;
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 1rem;
+  background: #f0f0f0;
+  border-radius: 20px;
   cursor: pointer;
-  color: #db2777;
+  transition: all 0.2s ease;
+  color: #666;
 }
-
+.folder-item:hover {background: #e0e0e0}
 .folder-item.active {
-  background-color: #db2777;
+  background: #ff69b4;
   color: white;
 }
-
 .add-folder {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 12px;
 }
-
-input,
-textarea {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #fbcfe8;
-  border-radius: 0.5rem;
-  margin-bottom: 0.5rem;
+.add-folder input {
+  flex: 1;
+  padding: 8px 16px;
+  border: 2px solid #eee;
+  border-radius: 8px;
+  font-size: 1rem;
 }
-
-textarea {
-  min-height: 8rem;
-  resize: vertical;
-}
-
-button {
-  background-color: #f472b6;
+.add-folder button {
+  padding: 8px 16px;
+  background: #ff69b4;
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
+  border-radius: 8px;
   cursor: pointer;
+  transition: background 0.2s ease;
 }
-
+.add-folder button:hover {background: #ff4da6}
+.journal-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+}
 .new-entry-button {
   width: 100%;
-  margin-bottom: 1rem;
+  padding: 12px;
+  background: #ff69b4;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin-bottom: 20px;
 }
-
+.new-entry-button:hover {background: #ff4da6}
+.new-entry-form {
+  background: #f9f9f9;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+.entry-title-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #eee;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 1rem;
+}
+.entry-content-input {
+  min-height: 120px;
+  padding: 12px;
+  border: 2px solid #eee;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 1rem;
+  resize: vertical;
+}
+.save-button {
+  padding: 12px 24px;
+  background: #ff69b4;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.save-button:hover {background: #ff4da6}
 .entries-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 16px;
+  height: calc(100vh - 200px);
+  overflow-y: auto;
 }
-
 .entry-item {
-  background-color: #fdf2f8;
-  padding: 1rem;
-  border-radius: 0.5rem;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-
+.entry-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
 .entry-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: 12px;
 }
-
 .entry-header h3 {
-  color: #db2777;
+  color: #333;
   margin: 0;
+  font-size: 1.2rem;
 }
-
 .entry-date {
-  font-size: 0.875rem;
-  color: #9ca3af;
+  color: #666;
+  font-size: 0.9rem;
 }
-
 .entry-content {
-  margin-bottom: 1rem;
-  white-space: pre-wrap;
+  color: #444;
+  line-height: 1.6;
+  margin-bottom: 16px;
 }
-
-.delete-button, .displayLetter {
-  background-color: #fb7185;
-  font-size: 0.875rem;
+.delete-button {
+  padding: 6px 12px;
+  background: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-size: 0.9rem;
 }
-.delete-button:hover {
-  background-color: #e11d48;
+.delete-button:hover {background: #ff2020}
+@media (max-width: 768px) {
+  .journal-container {padding: 12px}
+  .content-card {
+    padding: 16px;
+    border-radius: 12px;
+  }
+  .page-title {
+    font-size: 1.5rem;
+    margin-bottom: 16px;
+  }
+  .page-title img {
+    width: 30px;
+    height: 30px;
+  }
+  .folder-list {gap: 8px}
+  .folder-item {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+  }
+  .add-folder {flex-direction: column}
+  .add-folder input,
+  .add-folder button {width: 100%}
+  .new-entry-form {padding: 16px}
+  .entry-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .entry-date {font-size: 0.8rem}
+}
+@media (max-width: 480px) {
+  .journal-container {padding: 8px}
+  .content-card {padding: 12px}
+  .page-title {font-size: 1.2rem}
+  .folder-item {
+    font-size: 0.8rem;
+    padding: 4px 10px;
+  }
+  .entry-header h3 {font-size: 1rem}
+  .entry-content {font-size: 0.9rem}
+  .delete-button {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+  }
 }
 </style>

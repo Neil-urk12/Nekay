@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useNotesStore, Task, Folder } from '../stores/notes'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useNotesStore } from '../stores/notes'
 import { storeToRefs } from 'pinia'
+import type { Task, Folder } from '../stores/notes'
 
 const store = useNotesStore()
-const { tasks, folders } = storeToRefs(store)
+const { tasks, folders, loading, error } = storeToRefs(store)
 
 const newTaskTitle = ref('')
 const newFolderName = ref('')
@@ -12,11 +13,12 @@ const selectedFolderId = ref<string | null>(null)
 const backgroundImage = ref('')
 const timeOfDay = ref('')
 const editingTaskId = ref<string | null>(null)
-const editingFolderId = ref<string | null>(null)
 const editingTaskTitle = ref('')
+const editingFolderId = ref<string | null>(null)
 const editingFolderName = ref('')
 const itemToDelete = ref<{ id: string; type: 'task' | 'folder'; name: string } | null>(null)
 const showDeleteModal = ref(false)
+const localError = ref<string | null>(null)
 
 const determineTimeOfDay = () => {
   const hour = new Date().getHours()
@@ -39,38 +41,77 @@ const determineTimeOfDay = () => {
   }
 }
 
+watch(() => error.value, (newError) => {
+  if (newError) {
+    localError.value = newError
+    setTimeout(() => {
+      localError.value = null
+      store.$patch({ error: null })
+    }, 5000)
+  }
+})
+
 const confirmDelete = (id: string, type: 'task' | 'folder', name: string) => {
   itemToDelete.value = { id, type, name }
   showDeleteModal.value = true
 }
 
-const addTask = () => {
-  if (newTaskTitle.value.trim()) {
-    store.addTask(newTaskTitle.value, selectedFolderId.value)
-    newTaskTitle.value = ''
+const handleDelete = async () => {
+  if (!itemToDelete.value) return
+  
+  try {
+    const { id, type } = itemToDelete.value
+    if (type === 'task') {
+      await store.deleteTask(id)
+    } else {
+      await store.deleteFolder(id)
+    }
+    showDeleteModal.value = false
+    itemToDelete.value = null
+  } catch (error) {
+    localError.value = error instanceof Error ? error.message : 'An error occurred'
   }
 }
 
-const addFolder = () => {
-  if (newFolderName.value.trim()) {
-    store.addFolder(newFolderName.value, 'task')
+const addTask = async () => {
+  if (!newTaskTitle.value.trim()) return
+  
+  try {
+    await store.addTask(newTaskTitle.value, selectedFolderId.value)
+    newTaskTitle.value = ''
+  } catch (error) {
+    localError.value = error instanceof Error ? error.message : 'Failed to add task'
+  }
+}
+
+const addFolder = async () => {
+  if (!newFolderName.value.trim()) return
+  
+  try {
+    await store.addFolder(newFolderName.value, 'task')
     newFolderName.value = ''
+  } catch (error) {
+    localError.value = error instanceof Error ? error.message : 'Failed to add folder'
   }
 }
 
 const editTask = (taskId: string) => {
-  const task = tasks.value.find((t: Task) => t.id === taskId)
+  const task = tasks.value.find((t): t is Task => t.id === taskId)
   if (task) {
     editingTaskId.value = taskId
     editingTaskTitle.value = task.title
   }
 }
 
-const saveEditedTask = () => {
-  if (editingTaskId.value && editingTaskTitle.value.trim()) {
-    store.editTask(editingTaskId.value, editingTaskTitle.value)
+const saveEditedTask = async () => {
+  if (!editingTaskId.value || !editingTaskTitle.value.trim()) return
+  
+  try {
+    await store.editTask(editingTaskId.value, { title: editingTaskTitle.value })
     editingTaskId.value = null
     editingTaskTitle.value = ''
+  } catch (error) {
+    localError.value = error instanceof Error ? error.message : 'Failed to edit task'
   }
 }
 
@@ -79,20 +120,25 @@ const cancelEditTask = () => {
   editingTaskTitle.value = ''
 }
 
-
 const editFolder = (folderId: string) => {
-  const folder = folders.value.find((f: Folder) => f.id === folderId)
+  const folder = folders.value.find((f): f is Folder => f.id === folderId)
   if (folder) {
     editingFolderId.value = folderId
     editingFolderName.value = folder.name
   }
 }
 
-const saveEditedFolder = () => {
-  if (editingFolderId.value && editingFolderName.value.trim()) {
-    store.editFolder(editingFolderId.value, editingFolderName.value)
+const saveEditedFolder = async () => {
+  if (!editingFolderId.value || !editingFolderName.value.trim()) return
+  try {
+    await store.editFolder(editingFolderId.value, { 
+      name: editingFolderName.value.trim(),
+      type: 'task' // Preserve the folder type
+    })
     editingFolderId.value = null
     editingFolderName.value = ''
+  } catch (error) {
+    localError.value = error instanceof Error ? error.message : 'Failed to edit folder'
   }
 }
 
@@ -101,32 +147,87 @@ const cancelEditFolder = () => {
   editingFolderName.value = ''
 }
 
-
 const filteredTasks = computed(() => {
-  if (!selectedFolderId.value) return tasks.value
-  return tasks.value.filter((task: Task) => task.folderId === selectedFolderId.value)
+  const nonDeletedTasks = tasks.value.filter(task => !task.deleted);
+  if (!selectedFolderId.value) return nonDeletedTasks;
+  return nonDeletedTasks.filter((task): task is Task => task.folderId === selectedFolderId.value);
 })
 
-// let store: ReturnType<typeof useNotesStore>
-// let tasks: Ref<Task[]>
-// let folders: Ref<Folder[]>
-onMounted(() => {
+onMounted(async () => {
   setInterval(determineTimeOfDay, 60000)
   determineTimeOfDay()
-  store.fetchTasks();
-  store.fetchFolders();
+  try {
+    await Promise.all([
+      store.fetchTasks(),
+      store.fetchFolders()
+    ])
+  } catch (error) {
+    localError.value = error instanceof Error ? error.message : 'Failed to fetch data'
+  }
 })
-
 </script>
 
 <template>
-  <div class="tasks-container" :style="{ backgroundImage: backgroundImage }">
-    <div class="content-card">
-      <h1 class="page-title">
-        <img src="/public/assets/melody.gif" alt="My Melody" />
-        My Tasks
-      </h1>
+  <div class="tasks-container" :style="{ backgroundImage }">
+    <div v-if="localError" class="error-toast">
+      {{ localError }}
+    </div>
 
+    <div v-if="loading" class="loading-overlay">
+      <div class="spinner"></div>
+      Loading...
+    </div>
+
+    <div v-if="showDeleteModal" class="modal-overlay">
+      <div class="modal-content">
+        <h3>Confirm Delete</h3>
+        <p>Are you sure you want to delete "{{ itemToDelete?.name }}"?</p>
+        <div class="modal-actions">
+          <button class="primary-button" @click="handleDelete">Yes, Delete</button>
+          <button class="secondary-button" @click="showDeleteModal = false">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="editingTaskId" class="modal-overlay">
+      <div class="modal-content edit-modal">
+        <h3>Edit Task</h3>
+        <input
+          v-model="editingTaskTitle"
+          @keyup.enter="saveEditedTask"
+          @keyup.esc="cancelEditTask"
+          class="edit-input"
+          placeholder="Task title"
+          ref="editTaskInput"
+          autofocus
+        />
+        <div class="modal-actions">
+          <button class="primary-button" @click="saveEditedTask">Save</button>
+          <button class="secondary-button" @click="cancelEditTask">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="editingFolderId" class="modal-overlay">
+      <div class="modal-content edit-modal">
+        <h3>Edit Folder</h3>
+        <input
+          v-model="editingFolderName"
+          @keyup.enter="saveEditedFolder"
+          @keyup.esc="cancelEditFolder"
+          class="edit-input"
+          placeholder="Folder name"
+          ref="editFolderInput"
+          autofocus
+        />
+        <div class="modal-actions">
+          <button class="primary-button" @click="saveEditedFolder">Save</button>
+          <button class="secondary-button" @click="cancelEditFolder">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
       <div class="folders-section">
         <h2>Folders</h2>
         <div class="folder-list">
@@ -135,55 +236,42 @@ onMounted(() => {
             :class="{ active: !selectedFolderId }"
             @click="selectedFolderId = null"
           >
-            All Tasks
+            <p>All Tasks</p>
           </button>
           <button
-            v-for="folder in folders.filter((f: Folder) => f.type === 'task')"
-            :key="folder.id"
-            :data-folder-id="folder.id"
+            v-for="folder in folders.filter((f): f is Folder => f.type === 'task')"
+            :key="folder.id ?? ''"
             class="folder-item"
             :class="{ active: selectedFolderId === folder.id }"
-            @click="selectedFolderId = folder.id"
+            @click="selectedFolderId = folder.id ?? null"
           >
-            {{ folder.name }}
-            <button
-              class="edit-button"
-              @click="editFolder(folder.id)"
-              v-if="!editingFolderId"
-            >
-              ✏️
-            </button>
-            <!-- Update the folder edit buttons section -->
-            <div class="folder-edit-buttons" v-if="editingFolderId === folder.id">
-              <input
-                v-model="editingFolderName"
-                @keyup.enter="saveEditedFolder"
-              />
-              <div class="stacked-buttons">
-                <button @click="saveEditedFolder">
-                  Save
-                </button>
-                <button @click="cancelEditFolder">
-                  Cancel
-                </button>
-              </div>
+            <p>{{ folder.name }}</p>
+            <div class="folder-actions">
+              <button 
+                class="icon-button edit-button"
+                @click.stop="editFolder(folder.id ?? '')"
+                v-if="folder.id"
+              >
+                ✏️
+              </button>
+              <button 
+                class="icon-button delete-button"
+                @click.stop="folder.id && confirmDelete(folder.id, 'folder', folder.name)"
+                v-if="folder.id"
+              >
+                🗑️
+              </button>
             </div>
-            <button
-              class="delete-button"
-              @click.stop="confirmDelete(folder.id, 'folder', folder.name)"
-              v-if="!editingFolderId"
-            >
-              ❌
-            </button>
           </button>
         </div>
+
         <div class="add-folder">
           <input
             v-model="newFolderName"
             placeholder="New folder name"
             @keyup.enter="addFolder"
           />
-          <button @click="addFolder">Add Folder</button>
+          <button class="primary-button" @click="addFolder">Add Folder</button>
         </div>
       </div>
 
@@ -194,55 +282,37 @@ onMounted(() => {
             placeholder="New task"
             @keyup.enter="addTask"
           />
-          <button @click="addTask">Add Task</button>
+          <button class="primary-button" @click="addTask">Add Task</button>
         </div>
 
-        <div class="task-list">
+        <div class="tasks-list">
           <div
             v-for="task in filteredTasks"
-            :key="task.id"
+            :key="task.id ?? ''"
             class="task-item"
+            :class="{ completed: task.completed }"
           >
-            <label class="task-label">
+            <div class="task-content">
               <input
                 type="checkbox"
                 :checked="task.completed"
-                @change="store.toggleTask(task.id)"
+                @change="task.id && store.editTask(task.id, { completed: !task.completed })"
               />
-              <span :class="{ completed: task.completed }">{{ task.title }}</span>
-            </label>
-            <div class="icon-buttons">
-              <button
-                class="edit-button"
-                @click="editTask(task.id)"
-                v-if="!editingTaskId"
-              >
-                ✏️
-              </button>
-              <input
-                v-model="editingTaskTitle"
-                v-if="editingTaskId === task.id"
-                @keyup.enter="saveEditedTask"
-              />
-              <button
-                @click="saveEditedTask"
-                v-if="editingTaskId === task.id"
-              >
-                Save
-              </button>
-              <button
-                @click="cancelEditTask"
-                v-if="editingTaskId === task.id"
-              >
-                Cancel
-              </button>
-              <button
-                class="delete-button"
-                @click.stop="confirmDelete(task.id, 'task', task.title)"
-                v-if="!editingTaskId"
+              <span class="task-title">{{ task.title }}</span>
+              <div class="task-actions">
+                <button
+                  class="icon-button edit-button"
+                  @click="task.id && editTask(task.id)"
                 >
-                ❌
-              </button>
+                  ✏️
+                </button>
+                <button
+                  class="icon-button delete-button"
+                  @click="task.id && confirmDelete(task.id, 'task', task.title)"
+                >
+                  🗑️
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -251,181 +321,206 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped>
+<style scope>
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 .tasks-container {
+  padding: clamp(0.5rem, 3vw, 2rem);
   min-height: 100vh;
-  background-color: #fce7f3;
-  padding: 0.5rem;
-  padding-bottom: 5rem;
   background-size: cover;
-}
-
-.content-card {
-  background-color: white;
-  border-radius: 1.5rem;
-  padding: 1rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  max-width: 100%;
+  background-position: center;
+  background-attachment: fixed;
+  color: var(--text-color);
   width: 100%;
-  margin: 0 auto;
+  box-sizing: border-box;
 }
-
-.page-title {
-  font-size: 1.875rem;
-  color: #db2777;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.page-title img {
-  width: 2rem;
-  height: 2rem;
-}
-
-.folders-section {
-  margin-bottom: 2rem;
-}
-
 .folders-section h2 {
-  color: #db2777;
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
+  margin: 0 0 1rem 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--text-color);
+  text-align: center
 }
-.folder-list {
+.folder-item{padding: 0.5rem 1rem;}
+.folder-actions{
   display: flex;
-  flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 1rem;
-  max-width: 100%;
+  margin-left: auto;
 }
-.folder-edit-buttons {
+.content {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(200px, 3fr);
+  gap: clamp(0.5rem, 3vw, 2rem);
+  position: relative;
+}
+.tasks-section {
+  background: var(--bg-color);
+  padding: clamp(0.75rem, 2vw, 1.5rem);
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.39);
+  backdrop-filter: blur(20px);
+  width: 100%;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  width: 100%;
-  align-items: center;
 }
-.stacked-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.stacked-buttons button {
-  width: 100%;
-  min-width: 5rem;
-}
-.folder-item {
-  max-width: calc(100% - 1rem);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  background-color: rgb(253, 242, 248);
-  display: flex;
-  align-items: center;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 1rem;
-  cursor: pointer;
-  color: #db2777;
-}
-
-.folder-item.active {
-  background-color: #db2777;
-  color: white;
-}
-
-.add-folder,
 .add-task {
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
   margin-bottom: 1rem;
-}
-
-input {
-  flex: 1;
-  padding: 0.5rem;
-  border: 1px solid #fbcfe8;
-  border-radius: 0.5rem;
-  max-width: calc(100% - 1rem);
-  box-sizing: border-box;
   width: 100%;
 }
-button {
-  background-color: #f472b6;
-  color: black;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
+.add-task input {
+  flex: 1;
+  min-width: 0; 
+  padding: 0.75rem;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 8px;
+  font-size: 0.95rem;
 }
-.task-list {
+.tasks-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  color: black;
+  gap: 0.75rem;
+  max-height: 65vh;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 0;
+  height: calc(100vh - 10rem);
 }
 .task-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem;
-  background-color: #f8e7f1; 
-  border-radius: 0.5rem;
-  font-size: 1rem; 
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.task-label {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  gap: 0.5rem;
-  flex: 1;
-}
-.task-label span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.completed {
-  text-decoration: line-through;
-  color: #9ca3af;
-}
-.delete-button {
-  background: none;
-  border: none;
-  padding: 0.25rem;
-  cursor: pointer;
-  font-size: 1.2rem; /* Increase font size */
-}
-.edit-button {
-  background: none;
-  border: none;
-  padding: 0.25rem;
-  cursor: pointer;
-  font-size: 1.2rem; /* Increase font size */
-}
-.task-label input {
-  margin-right: 0.5rem; /* Add margin to the right of the checkbox */
-}
-
-.icon-buttons {
-  display: flex;
-  flex-direction: column; /* Stack buttons vertically */
-  gap: 0.5rem;
-}
-.modal-content {
-  background-color: white;
-  padding: 1.5rem;
-  border-radius: 1rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  width: calc(100% - 2rem);
-  max-width: 20rem;
-  margin: 0 1rem;
-  text-align: center;
+  background: var(--item-bg);
+  border-radius: 8px;
+  padding: 0.75rem;
+  width: 100%;
   box-sizing: border-box;
 }
+.task-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+.task-title {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+.task-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
 
+/* Responsive Design */
+@media (max-width: 768px) {
+  .content {
+    grid-template-columns: 1fr;
+    padding: 0.5rem;
+  }
+
+  .add-task {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .add-task input,
+  .add-task button {
+    width: 100%;
+  }
+
+  .task-content {
+    gap: 8px;
+  }
+
+  .task-actions {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+
+  .icon-button {
+    padding: 8px;
+    min-width: 36px; /* Better touch target */
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .tasks-container {
+    padding: 0.5rem;
+  }
+  .tasks-section {
+    padding: 0.75rem;
+  }
+  .task-item {
+    padding: 0.625rem;
+  }
+  .task-content {
+    flex-direction: row;
+    flex-wrap: nowrap;
+  }
+  .task-title {
+    font-size: 0.9rem;
+  }
+  input[type="checkbox"] {
+    min-width: 20px;
+    min-height: 20px;
+  }
+}
+.primary-button,
+.secondary-button {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  width: auto;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-content {
+  width: min(90vw, 400px);
+  margin: 1rem;
+  box-sizing: border-box;
+}
+.modal-actions{
+  display: flex;
+  gap: 1rem;
+}
+.edit-modal {
+  width: min(90vw, 300px);
+}
+.edit-modal input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.tasks-list::-webkit-scrollbar {
+  width: 6px;
+}
+.tasks-list::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 3px;
+}
+.error-toast {
+  max-width: 90vw;
+  box-sizing: border-box;
+  word-break: break-word;
+  right: 50%;
+  transform: translateX(50%);
+}
 </style>

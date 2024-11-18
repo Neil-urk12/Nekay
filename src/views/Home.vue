@@ -2,7 +2,6 @@
 import { ref, onMounted, watchEffect, computed } from "vue";
 import { useNotesStore } from "../stores/notes";
 
-// Types
 interface WeatherData {
   temp_c: number;
   condition: {
@@ -23,14 +22,12 @@ interface AirQuality {
 
 type TimeOfDay = 'morning' | 'noon' | 'afternoon' | 'evening' | 'night';
 
-// Constants
-const WEATHER_REFRESH_INTERVAL = 1800000; // 30 minutes
-const TIME_REFRESH_INTERVAL = 60000; // 1 minute
+const WEATHER_REFRESH_INTERVAL = 1800000;
+const TIME_REFRESH_INTERVAL = 60000; 
 const API_KEY = import.meta.env.VITE_API_KEY;
 const WEATHER_API_URL = `http://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=Liloan,Cebu&days=1&aqi=yes&alerts=yes`;
 
-// State
-const timeOfDay = ref<TimeOfDay>('morning'); // Initialize with a default value
+const timeOfDay = ref<TimeOfDay>('morning'); 
 const backgroundImage = ref("");
 const currentWeather = ref<WeatherData>({
   temp_c: 0,
@@ -48,7 +45,6 @@ const isLoading = ref(true);
 const imageLoadError = ref(false);
 const weatherError = ref<string>("");
 
-// Computed
 const greetingMessage = computed(() => {
   const messages: Record<TimeOfDay, string> = {
     morning: "Rise and shine! Have a wonderful morning! ",
@@ -68,7 +64,6 @@ const airQualityStatus = computed(() => {
   return { text: "Unhealthy", color: "text-red-500" };
 });
 
-// Methods
 const determineTimeOfDay = () => {
   const hour = new Date().getHours();
 
@@ -114,7 +109,6 @@ const handleImageError = (event: Event) => {
   imgElement.src = '/public/assets/melodysticker.gif';
 };
 
-// Lifecycle
 watchEffect(() => {
   const weatherInterval = setInterval(fetchWeather, WEATHER_REFRESH_INTERVAL);
   return () => clearInterval(weatherInterval);
@@ -157,6 +151,7 @@ onMounted(() => {
                 :src="currentWeather.condition.icon" 
                 :alt="currentWeather.condition.text"
                 class="inline-block w-8 h-8 mr-2"
+                loading="lazy"
               />
               {{ currentWeather.condition.text }} • {{ currentWeather.temp_c }}°C
             </h3>
@@ -200,29 +195,22 @@ onMounted(() => {
   padding: 1rem;
   transition: background-image 1s ease-in-out;
 }
-
 .melody-header {
   display: flex;
   justify-content: center;
   margin-bottom: 2rem;
 }
-
 .homeMelody {
   width: 8rem;
   height: 8rem;
   transition: transform 0.3s ease;
 }
-
-.homeMelody:hover {
-  transform: scale(1.1);
-}
-
+.homeMelody:hover {transform: scale(1.1)}
 .message-container {
   max-width: 32rem;
   margin: 0 auto;
   z-index: 3;
 }
-
 .message-box {
   background-color: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
@@ -236,11 +224,7 @@ onMounted(() => {
   margin-bottom: 2rem;
   transition: transform 0.3s ease;
 }
-
-.message-box:hover {
-  transform: translateY(-5px);
-}
-
+.message-box:hover {transform: translateY(-5px)}
 .cloud-icon {
   position: absolute;
   top: -1rem;
@@ -249,14 +233,12 @@ onMounted(() => {
   height: 4rem;
   z-index: -1;
 }
-
 .greeting {
   font-size: 1.5rem;
   color: #db2777;
   font-weight: bold;
   margin-bottom: 1rem;
 }
-
 .weather {
   background-color: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
@@ -265,40 +247,27 @@ onMounted(() => {
   margin-bottom: 1.5rem;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
-
 .current-weather {
   display: flex;
   align-items: center;
   font-size: 1.1rem;
   margin-bottom: 0.5rem;
 }
-
 .weather-details {
   display: flex;
   gap: 1rem;
   justify-content: space-between;
   font-size: 0.9rem;
 }
-
-.forecast, .air-quality {
-  flex: 1;
-}
-
-.forecast p, .air-quality p {
-  margin: 0.25rem 0;
-}
-
+.forecast, .air-quality {flex: 1}
+.forecast p, .air-quality p {margin: 0.25rem 0}
 .forecast, .air-quality {
   background-color: rgba(255, 255, 255, 0.5);
   padding: 1rem;
   border-radius: 1rem;
   transition: background-color 0.3s ease;
 }
-
-.forecast:hover, .air-quality:hover {
-  background-color: rgba(255, 255, 255, 0.8);
-}
-
+.forecast:hover, .air-quality:hover {background-color: rgba(255, 255, 255, 0.8)}
 .loading-spinner {
   border: 4px solid rgba(0, 0, 0, 0.1);
   border-left-color: #db2777;
@@ -308,58 +277,32 @@ onMounted(() => {
   animation: spin 1s linear infinite;
   margin: 0 auto;
 }
-
-/* Animations */
 @keyframes spin {
-  to { transform: rotate(360deg); }
+to { transform: rotate(360deg); }
 }
-
-.animate-bounce {
-  animation: bounce 2s infinite;
-}
-
+.animate-bounce {animation: bounce 2s infinite}
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
 }
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
+.animate-float {animation: float 3s ease-in-out infinite}
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
 }
-
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out;
-}
-
+.animate-fade-in {animation: fadeIn 0.5s ease-out}
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
-
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
-}
-
-/* Responsive Design */
+.fade-enter-active, .fade-leave-active {transition: opacity 0.5s ease}
+.fade-enter-from, .fade-leave-to {opacity: 0}
 @media (max-width: 640px) {
   .message-box, .weather {
     margin: 1rem;
     padding: 1rem;
   }
-
-  .weather-details {
-    flex-direction: column;
-  }
-
+  .weather-details {flex-direction: column}
   .homeMelody {
     width: 6rem;
     height: 6rem;
