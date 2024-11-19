@@ -69,19 +69,19 @@ const determineTimeOfDay = () => {
 
   if (hour >= 5 && hour < 12) {
     timeOfDay.value = "morning";
-    backgroundImage.value = "url(/src/assets/bgsky.jpg)";
+    backgroundImage.value = "url(/assets/bgsky.jpg)";
   } else if (hour >= 12 && hour < 13) {
     timeOfDay.value = "noon";
-    backgroundImage.value = "url(/src/assets/bgsky.jpg)";
+    backgroundImage.value = "url(/assets/bgsky.jpg)";
   } else if (hour >= 13 && hour < 15) {
     timeOfDay.value = "afternoon";
-    backgroundImage.value = "url(/src/assets/background.jpg)";
+    backgroundImage.value = "url(/assets/background.jpg)";
   } else if (hour >= 16 && hour < 17) {
     timeOfDay.value = "evening";
-    backgroundImage.value = "url(/src/assets/sunsetbg.jpg)";
+    backgroundImage.value = "url(/assets/sunsetbg.jpg)";
   } else {
     timeOfDay.value = "night";
-    backgroundImage.value = "url(/src/assets/moonbg.gif)";
+    backgroundImage.value = "url(/assets/moonbg.gif)";
   }
 };
 
@@ -105,7 +105,7 @@ const fetchWeather = async () => {
 const handleImageError = (event: Event) => {
   imageLoadError.value = true;
   const imgElement = event.target as HTMLImageElement;
-  imgElement.src = '/src/assets/melodysticker.gif';
+  imgElement.src = '/assets/melodysticker.gif';
 };
 
 watchEffect(() => {
@@ -126,7 +126,7 @@ onMounted(() => {
     <div class="melody-header">
       <img
         class="homeMelody animate-bounce"
-        src="/src/assets/melodysticker.gif"
+        src="/assets/melodysticker.gif"
         alt="My Melody"
         loading="eager"
         @error="handleImageError"
