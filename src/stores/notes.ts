@@ -1,7 +1,6 @@
 import { defineStore } from "pinia";
 import { syncService } from "../services/syncService";
 import { indexedDBService, type StoreNames } from "../services/indexedDB";
-import { useOffline } from "../composables/useOffline";
 import { getChangedItems } from '../firebase/firestore-service';
 
 // Helper function to generate UUID using Web Crypto API
@@ -165,7 +164,6 @@ export const useNotesStore = defineStore("notes", {
           storeName: StoreNames,
           stateArray: T[]
         ) => {
-          console.log(`Processing ${items.length} items for ${storeName}`);
           
           // Clear existing items from IndexedDB first
           await indexedDBService.clearStore(storeName);

@@ -69,19 +69,19 @@ const determineTimeOfDay = () => {
 
   if (hour >= 5 && hour < 12) {
     timeOfDay.value = "morning";
-    backgroundImage.value = "url(/public/assets/bgsky.jpg)";
+    backgroundImage.value = "url(/src/assets/bgsky.jpg)";
   } else if (hour >= 12 && hour < 13) {
     timeOfDay.value = "noon";
-    backgroundImage.value = "url(/public/assets/bgsky.jpg)";
-  } else if (hour >= 13 && hour < 17) {
+    backgroundImage.value = "url(/src/assets/bgsky.jpg)";
+  } else if (hour >= 13 && hour < 15) {
     timeOfDay.value = "afternoon";
-    backgroundImage.value = "url(/public/assets/background.jpg)";
-  } else if (hour >= 17 && hour < 21) {
+    backgroundImage.value = "url(/src/assets/background.jpg)";
+  } else if (hour >= 16 && hour < 17) {
     timeOfDay.value = "evening";
-    backgroundImage.value = "url(/public/assets/sunsetbg.jpg)";
+    backgroundImage.value = "url(/src/assets/sunsetbg.jpg)";
   } else {
     timeOfDay.value = "night";
-    backgroundImage.value = "url(/public/assets/moonbg.gif)";
+    backgroundImage.value = "url(/src/assets/moonbg.gif)";
   }
 };
 
@@ -97,7 +97,6 @@ const fetchWeather = async () => {
     weatherError.value = "";
   } catch (error) {
     weatherError.value = "Unable to fetch weather data";
-    console.error("Error fetching weather:", error);
   } finally {
     isLoading.value = false;
   }
@@ -106,7 +105,7 @@ const fetchWeather = async () => {
 const handleImageError = (event: Event) => {
   imageLoadError.value = true;
   const imgElement = event.target as HTMLImageElement;
-  imgElement.src = '/public/assets/melodysticker.gif';
+  imgElement.src = '/src/assets/melodysticker.gif';
 };
 
 watchEffect(() => {
@@ -127,9 +126,9 @@ onMounted(() => {
     <div class="melody-header">
       <img
         class="homeMelody animate-bounce"
-        src="/public/assets/melodysticker.gif"
+        src="/src/assets/melodysticker.gif"
         alt="My Melody"
-        loading="lazy"
+        loading="eager"
         @error="handleImageError"
       />
     </div>

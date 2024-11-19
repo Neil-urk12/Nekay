@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia'
 import { onMounted, onUnmounted } from 'vue'
 
 const store = usePomodoro()
-const { timeLeft, isRunning, stats, error, isLoading, mode, progress } = storeToRefs(store)
+const { isRunning, stats, error, isLoading, mode, progress } = storeToRefs(store)
 
 onMounted(async () => {
   await store.init()
