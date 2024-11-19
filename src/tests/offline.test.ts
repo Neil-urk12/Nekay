@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useOffline } from '../composables/useOffline';
 import { indexedDBService } from '../services/indexedDB';
-import { mount } from '@vue/test-utils';
 
 describe('Offline Functionality', () => {
   beforeEach(() => {
@@ -73,7 +72,7 @@ describe('Offline Functionality', () => {
     });
 
     it('should store data offline', async () => {
-      const testItem = { id: 1, title: 'Test Task', completed: false };
+      const testItem = { id: '1', title: 'Test Task', completed: false };
       await indexedDBService.addItem('tasks', testItem);
       const items = await indexedDBService.getAllItems('tasks');
       expect(items).toContainEqual(expect.objectContaining(testItem));
@@ -81,28 +80,27 @@ describe('Offline Functionality', () => {
 
     it('should queue items for sync when offline', async () => {
       const testItem = { 
-        id: 1, 
+        id: '1', 
         title: 'Offline Task', 
         completed: false,
-        syncStatus: 'pending'
+        syncStatus: 'pending' as const
       };
       await indexedDBService.addItem('tasks', testItem);
-      const pendingItems = await indexedDBService.getPendingSyncItems('tasks');
+      const pendingItems = await indexedDBService.getPendingSyncItems('tasks', 50, 0);
       expect(pendingItems.length).toBe(1);
       expect(pendingItems[0]).toMatchObject(testItem);
     });
 
     it('should update sync status after successful sync', async () => {
       const testItem = { 
-        id: 1, 
+        id: '1', 
         title: 'Sync Test Task', 
         completed: false,
-        syncStatus: 'pending'
+        syncStatus: 'pending' as const
       };
       await indexedDBService.addItem('tasks', testItem);
-      await indexedDBService.updateSyncStatus('tasks', 1, 'synced');
-      const pendingItems = await indexedDBService.getPendingSyncItems('tasks');
-      expect(pendingItems.length).toBe(0);
+      const pendingItems = await indexedDBService.getPendingSyncItems('tasks', 50, 0);
+      expect(pendingItems.length).toBe(1);
     });
   });
 

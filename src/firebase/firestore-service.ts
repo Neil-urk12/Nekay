@@ -54,8 +54,6 @@ export const storeTask = async (task: WithMetadata<Task>) => {
       ...task,
       lastModified: Timestamp.fromMillis(task.lastModified)
     }, { merge: true });
-    console.log('Task stored successfully!');
-    return task.id;
   } catch (error) {
     console.error('Error storing task:', error);
     throw error;
@@ -72,8 +70,6 @@ export const storeJournalEntry = async (entry: WithMetadata<JournalEntry>) => {
       ...entry,
       lastModified: Timestamp.fromMillis(entry.lastModified)
     }, { merge: true });
-    console.log('Journal entry stored successfully!');
-    return entry.id;
   } catch (error) {
     console.error('Error storing journal entry:', error);
     throw error;
@@ -87,7 +83,6 @@ export const updateTask = async (taskId: string, updates: Partial<Task>) => {
       ...updates,
       lastModified: Timestamp.now()
     });
-    console.log('Task updated successfully!');
   } catch (error) {
     console.error('Error updating task:', error);
     throw error;
@@ -101,7 +96,6 @@ export const updateJournalEntry = async (entryId: string, updates: Partial<Journ
       ...updates,
       lastModified: Timestamp.now()
     });
-    console.log('Journal entry updated successfully!');
   } catch (error) {
     console.error('Error updating journal entry:', error);
     throw error;
@@ -115,7 +109,6 @@ export const deleteTask = async (taskId: string) => {
       deleted: true,
       lastModified: Timestamp.now()
     });
-    console.log('Task marked as deleted successfully!');
   } catch (error) {
     console.error('Error deleting task:', error);
     throw error;
@@ -129,7 +122,6 @@ export const deleteJournalEntry = async (entryId: string) => {
       deleted: true,
       lastModified: Timestamp.now()
     });
-    console.log('Journal entry marked as deleted successfully!');
   } catch (error) {
     console.error('Error deleting journal entry:', error);
     throw error;
@@ -146,8 +138,6 @@ export const storeFolder = async (folder: WithMetadata<Folder>) => {
       ...folder,
       lastModified: Timestamp.fromMillis(folder.lastModified)
     }, { merge: true });
-    console.log('Folder stored successfully!');
-    return folder.id;
   } catch (error) {
     console.error('Error storing folder:', error);
     throw error;
@@ -161,7 +151,6 @@ export const updateFolder = async (folderId: string, updates: Partial<Folder>) =
       ...updates,
       lastModified: Timestamp.now()
     });
-    console.log('Folder updated successfully!');
   } catch (error) {
     console.error('Error updating folder:', error);
     throw error;
@@ -175,7 +164,6 @@ export const deleteFolder = async (folderId: string) => {
       deleted: true,
       lastModified: Timestamp.now()
     });
-    console.log('Folder marked as deleted successfully!');
   } catch (error) {
     console.error('Error deleting folder:', error);
     throw error;
@@ -192,8 +180,6 @@ export const storePomodoroStats = async (stats: WithMetadata<PomodoroStats>) => 
       ...stats,
       lastModified: Timestamp.fromMillis(stats.lastModified)
     }, { merge: true });
-    console.log('Pomodoro stats stored successfully!');
-    return stats.id;
   } catch (error) {
     console.error('Error storing pomodoro stats:', error);
     throw error;
@@ -207,7 +193,6 @@ export const updatePomodoroStats = async (statsId: string, updates: Partial<Pomo
       ...updates,
       lastModified: Timestamp.now()
     });
-    console.log('Pomodoro stats updated successfully!');
   } catch (error) {
     console.error('Error updating pomodoro stats:', error);
     throw error;
@@ -378,7 +363,6 @@ export const batchUpdate = async (operations: BatchUpdateOperations) => {
     });
 
     await batch.commit();
-    console.log('Batch update completed successfully');
   } catch (error) {
     console.error('Error in batch update:', error);
     throw error;

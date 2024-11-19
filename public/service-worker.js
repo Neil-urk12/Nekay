@@ -308,6 +308,39 @@ self.addEventListener('sync', (event) => {
   }
 });
 
+// Periodic Sync for regular background updates
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag === 'regular-update') {
+    event.waitUntil(syncData());
+  }
+});
+
+// Handle push notifications
+self.addEventListener('push', (event) => {
+  const options = {
+    body: event.data.text(),
+    icon: '/img/icons/android-chrome-192x192.png',
+    badge: '/img/icons/android-chrome-192x192.png',
+    vibrate: [100, 50, 100],
+    data: {
+      dateOfArrival: Date.now(),
+      primaryKey: 1
+    }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification('Nekay Update', options)
+  );
+});
+
+// Handle notification clicks
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.openWindow('/')
+  );
+});
+
 async function syncData() {
   const MAX_RETRY_ATTEMPTS = 5;
   const clients = await self.clients.matchAll();
