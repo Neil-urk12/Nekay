@@ -1,250 +1,377 @@
-<template>
-    <div class="login-container">
-      <div class="login-box">
-        <div class="melody-header">
-          <div class="melody-ears">
-            <div class="ear left"></div>
-            <div class="ear right"></div>
-          </div>
-          <div class="melody-face">
-            <div class="eyes"></div>
-            <div class="nose"></div>
-          </div>
-        </div>
-        
-        <h1>Welcome!</h1>
-        <form @submit.prevent="handleSubmit" class="login-form">
-          <div class="input-group">
-            <input
-              type="password"
-              v-model="secretKey"
-              placeholder="Enter Secret Key"
-              :class="{ 'error': hasError }"
-              aria-label="Secret Key"
-              aria-describedby="secretKeyError"
-            />
-            <span id="secretKeyError" class="error-message" v-if="hasError">{{ errorMessage }}</span>
-          </div>
-          
-          <button type="submit" :disabled="!secretKey">
-            Login
-          </button>
-        </form>
-      </div>
-    </div>
-  </template>
 <script lang="ts" setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const secretKey = ref('')
 const hasError = ref(false)
 const errorMessage = ref('')
-const envSecretKey = Number(import.meta.env.VITE_SECRET_KEY)
 
-watch(secretKey, () => {
-  hasError.value = false
-  errorMessage.value = ''
+const currentTime = ref('')
+const currentDate = ref('')
+// const interval = ref(null)
+let timer
+
+const updateTime = () => {
+  const date = new Date()
+  currentTime.value = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit'})
+}
+
+onMounted(() => {
+  const date = new Date()
+  currentDate.value = date.toLocaleDateString('en-US', { weekday: 'long', mont: 'long', day: 'numeric'})
+  // updateTime()
+  timer = setInterval(updateTime, 1000);
 })
 
-const handleSubmit = async () => {
-  hasError.value = false
-  errorMessage.value = ''
-  console.log('User clicked')
-  
-  if (secretKey.value.length < 6) {
-    hasError.value = true
-    errorMessage.value = 'Secret key must be at least 6 characters'
-    return
-  }
-  
-  if (!/^\d+$/.test(secretKey.value)) {
-    hasError.value = true
-    errorMessage.value = 'Secret key must only contain numbers'
-    return
-  }
+onBeforeUnmount(() => {
+  clearInterval(timer)
+})
 
-  try {
-    if (Number(secretKey.value.trim()) !== envSecretKey) {
-      hasError.value = true
-      errorMessage.value = 'Incorrect secret key'
-      return
-    }
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    localStorage.setItem('isAuthenticated', 'true')
-    router.push('/')
-  } catch (error) {
-    hasError.value = true
-    console.log('user clicked')
-    errorMessage.value = 'An error occurred during login'
-  }
-}
+const inputValue = ref('')
+const buttons = ref([
+    { number: '1', label: '' },
+    { number: '2', label: 'ABC' },
+    { number: '3', label: 'DEF' },
+    { number: '4', label: 'GHI' },
+    { number: '5', label: 'JKL' },
+    { number: '6', label: 'MNO' },
+    { number: '7', label: 'PQRS' },
+    { number: '8', label: 'TUV' },
+    { number: '9', label: 'WXYZ' },
+    { number: '', label: '' },
+    { number: '0', label: '' },
+    { number: '', label: '' },
+])
+
+watch (inputValue, (newVal) => {
+  if (inputValue === import.meta.env.motmotkey)
+    router.push('/home')
+})
 </script>
-  <style scoped>
-  .login-container {
-    min-height: 100vh;
+
+<template>
+  <div class='login-container'>
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-bar-left">{{ currentTime }}</div>
+        <div class="status-bar-center"></div>
+        <div class="status-bar-right">
+            <span class="battery">🔋</span>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="datetime">{{ currentDate }}</div>
+        <div class="title">Touch ID or Enter Passcode</div>
+    </div>
+
+    <!-- Display for pressed numbers -->
+    <div class="input-display">
+        <span v-for="n in inputValue.length" :key="n" class="dot"></span>
+    </div>
+
+    <!-- Number Buttons -->
+    <div class="button-container">
+        <div class="button-box" v-for="(button, index) in buttons" :key="index">
+            <button 
+                v-if="button.number"
+                class="number-button"
+                @click="handleButtonClick(button)"
+            >
+                <div class="number">{{ button.number }}</div>
+                <div class="label">{{ button.label }}</div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom Buttons -->
+    <div class="bottom-buttons">
+        <button class="text-button emergency" @click="handleButtonClick({action: 'emergency'})">
+            Emergency
+        </button>
+        <button class="text-button cancel" @click="handleButtonClick({action: 'delete'})">
+            Cancel
+        </button>
+    </div>
+</div>    
+</template>
+
+<style scoped>
+.login-container {
+    background: linear-gradient(
+        0deg,
+        #ffe6eb 0%,
+        #ffd1dc 25%,
+        #f8bbd0 50%,
+        #e6c3df 75%,
+        #e0b0ff 100%
+    );
+    border-radius: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    overflow-x: hidden;
+    padding-top: 44px; /* Increased padding for status bar */
+}
+
+.status-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 44px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    background-color: transparent;
+    font-size: 14px;
+    color: #333;
+}
+
+.status-bar-left {
+    font-weight: bold;
+}
+
+.status-bar-right {
+    display: flex;
+    gap: 5px;
+}
+
+.header {
+    margin-top: 60px; /* Add space after status bar */
+    margin-bottom: 40px; /* Increased space before input display */
+}
+
+.title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.input-display {
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #fff5f7;
-    font-family: 'Arial Rounded MT Bold', Arial, sans-serif;
-  }
-  
-  .login-box {
-    background: white;
-    padding: 2rem;
-    border-radius: 20px;
-    box-shadow: 0 8px 24px rgba(255, 182, 193, 0.2);
-    width: 90%;
-    max-width: 400px;
-    text-align: center;
-  }
-  
-  .melody-header {
-    position: relative;
-    height: 120px;
-    margin-bottom: 1rem;
-  }
-  
-  .melody-ears {
-    position: relative;
-    height: 60px;
-  }
-  
-  .ear {
-    position: absolute;
-    width: 40px;
-    height: 60px;
-    background: #FFB6C1;
-    border-radius: 20px;
-    top: 0;
-  }
-  
-  .ear.left {
-    left: 50%;
-    transform: translateX(-50px) rotate(-15deg);
-  }
-  
-  .ear.right {
-    right: 50%;
-    transform: translateX(50px) rotate(15deg);
-  }
-  
-  .melody-face {
-    width: 100px;
-    height: 100px;
-    background: #FFB6C1;
+    margin-bottom: 20px; /* Increased space before buttons */
+    padding: 10px;
+    width: 80%;
+    max-width: 300px;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
-    position: relative;
-    margin: -30px auto 0;
-  }
-  
-  .eyes {
-    position: relative;
-    top: 40%;
+    background-color: #333;
+    margin: 0 5px;
+    opacity: 0;
+    transform: scale(0.5);
+    animation: dotAppear 0.3s ease forwards;
+}
+
+@keyframes dotAppear {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.button-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px; /* Reduced gap between buttons */
+    justify-content: center;
+    max-width: 300px;
+    margin: 20px auto; /* Added vertical margin */
+}
+
+.button-box {
     display: flex;
     justify-content: center;
-    gap: 20px;
-  }
-  
-  .eyes::before,
-  .eyes::after {
-    content: '';
-    width: 8px;
-    height: 8px;
-    background: #000;
+    align-items: center;
+}
+
+.number-button {
+    width: 70px;
+    height: 70px;
     border-radius: 50%;
-    position: absolute;
-  }
-  
-  .eyes::before {
-    left: 30px;
-  }
-  
-  .eyes::after {
-    right: 30px;
-  }
-  
-  .nose {
-    width: 10px;
-    height: 10px;
-    background: #FF69B4;
-    border-radius: 50%;
-    position: absolute;
-    left: 50%;
-    top: 55%;
-    transform: translateX(-50%);
-  }
-  
-  h1 {
-    color: #FF69B4;
-    margin-bottom: 2rem;
-    font-size: 2rem;
-  }
-  
-  .login-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-  
-  .input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
-  input {
-    padding: 1rem;
-    border: 2px solid #FFB6C1;
-    border-radius: 25px;
-    font-size: 1rem;
-    outline: none;
-    transition: all 0.3s ease;
-  }
-  
-  input:focus {
-    border-color: #FF69B4;
-    box-shadow: 0 0 0 3px rgba(255, 105, 180, 0.2);
-  }
-  
-  input.error {
-    border-color: #ff4466;
-  }
-  
-  .error-message {
-    color: #ff4466;
-    font-size: 0.875rem;
-  }
-  
-  button {
-    background: #FF69B4;
-    color: white;
     border: none;
-    padding: 1rem;
-    border-radius: 25px;
-    font-size: 1rem;
+    background-color: #ffd6e0;
+    color: #333;
+    font-size: 2rem;
+    font-weight: bold;
     cursor: pointer;
-    transition: all 0.3s ease;
-  }
-  
-  button:hover:not(:disabled) {
-    background: #ff4499;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.number-button::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: scale(0);
+    transition: transform 0.3s ease-out;
+}
+
+.number-button:active::after {
+    transform: scale(1);
+    transition: 0s;
+}
+
+.number-button:active {
+    transform: scale(0.95);
+    background-color: #ffb3c1;
+}
+
+.number-button:hover {
     transform: translateY(-2px);
-  }
-  
-  button:disabled {
-    background: #ffb6c1;
-    cursor: not-allowed;
-  }
-  
-  @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
-  }
-  
-  button:hover:not(:disabled) {
-    animation: bounce 0.5s ease infinite;
-  }
-  </style>
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Update emergency and delete buttons */
+.number-button.emergency:active,
+.number-button.delete:active {
+    transform: scale(0.95);
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.number-button.delete {
+    background-color: transparent;
+    color: #333;
+    font-size: 1rem;
+}
+
+.number-button.delete::before {
+    content: none;
+}
+
+.number-button.emergency {
+    background-color: transparent;
+    font-weight: normal;
+}
+
+.number-button.emergency:hover {
+    background-color: rgba(255, 59, 48, 0.1);
+    transform: translateY(-2px);
+}
+
+.number-button.cancel {
+    background-color: transparent; /* Transparent for cancel button */
+    color: #333;
+    font-size: 1rem;
+}
+
+.label {
+    font-size: 0.8rem;
+    margin-top: 5px;
+    color: #666;
+}
+
+.datetime {
+    font-size: 1.2rem;
+    color: #666;
+    margin-bottom: 15px; /* Increased space between date and title */
+}
+
+.emergency-text {
+    display: none;
+}
+
+.emergency-icon {
+    display: none;
+}
+
+.text-button {
+    background-color: transparent !important;
+    font-size: 1rem !important;
+    font-weight: bolder !important;
+    color: black !important;
+}
+
+.text-button:hover {
+    background-color: rgba(255, 59, 48, 0.1) !important;
+}
+
+.bottom-buttons {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 300px;
+    margin-top: 20px;
+    padding: 0 20px;
+}
+
+.text-button {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    font-weight: normal;
+    cursor: pointer;
+    padding: 10px;
+    transition: all 0.2s ease;
+}
+
+.text-button.emergency {
+    color: #ff3b30;
+}
+
+.text-button.cancel {
+    color: #007AFF;
+}
+
+.text-button:hover {
+    opacity: 0.7;
+}
+
+.text-button:active {
+    transform: scale(0.95);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .number-button {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
+
+    .title {
+        font-size: 1.2rem;
+    }
+
+    .input-display {
+        font-size: 1.5rem;
+    }
+
+    .label {
+        font-size: 0.7rem;
+    }
+
+    .header {
+        margin-top: 40px;
+        margin-bottom: 30px;
+    }
+
+    .button-container {
+        gap: 40px;
+    }
+}
+</style>
