@@ -15,27 +15,27 @@ const router = createRouter({
     { 
       path: '/',
       component: () => import('../views/Home.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: false }
     },
     { 
       path: '/home', 
       redirect: '/',
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: false }
     },
     { 
-      path: '/pomodoro', 
+      path: '/pomodoro',
       component: () => import('../views/Pomodoro.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: false }
     },
     { 
       path: '/tasks', 
       component: () => import('../views/Tasks.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: false }
     },
     { 
       path: '/journal', 
       component: () => import('../views/Journal.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: false }
     }
   ]
 })
