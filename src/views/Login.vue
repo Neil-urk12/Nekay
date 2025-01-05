@@ -3,13 +3,19 @@ import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const hasError = ref(false)
-const errorMessage = ref('')
+// const hasError = ref(false)
+// const errorMessage = ref('')
 
 const currentTime = ref('')
 const currentDate = ref('')
 // const interval = ref(null)
-let timer
+let timer : NodeJS.Timeout
+
+interface Button {
+    number: string
+    label: string
+    action?: string
+}
 
 const updateTime = () => {
   const date = new Date()
@@ -18,7 +24,7 @@ const updateTime = () => {
 
 onMounted(() => {
   const date = new Date()
-  currentDate.value = date.toLocaleDateString('en-US', { weekday: 'long', mont: 'long', day: 'numeric'})
+  currentDate.value = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric'})
   // updateTime()
   timer = setInterval(updateTime, 1000);
 })
@@ -43,10 +49,32 @@ const buttons = ref([
     { number: '', label: '' },
 ])
 
-watch (inputValue, (newVal) => {
+watch (inputValue, (inputValue) => {
   if (inputValue === import.meta.env.motmotkey)
     router.push('/home')
 })
+
+// const handleButtonClick = (button : {number: number, label: string}) => {
+//     if (button.action === 'delete') {
+//         inputValue.value = inputValue.value.slice(0, -1)
+//     } else if (number.action === 'emergency') {
+//         router.push('/emergency')
+//     } else {
+//         inputValue.value += number.number
+//     }
+// }
+
+const handleButtonClick = (button : Button) => {
+    if (button.action === 'delete') {
+        inputValue.value = inputValue.value.slice(0, -1); // Remove last character
+    } else if (button.action === 'emergency') {
+        alert('Emergency clicked'); // Handle emergency action
+    } else if (button.action === 'cancel') {
+        alert('Cancel clicked'); // Handle cancel action
+    } else {
+        inputValue.value += button.number; // Append the pressed number
+    }
+};
 </script>
 
 <template>
@@ -87,10 +115,10 @@ watch (inputValue, (newVal) => {
 
     <!-- Bottom Buttons -->
     <div class="bottom-buttons">
-        <button class="text-button emergency" @click="handleButtonClick({action: 'emergency'})">
+        <button class="text-button emergency" @click="handleButtonClick({number: '', label: '', action: 'emergency'})">
             Emergency
         </button>
-        <button class="text-button cancel" @click="handleButtonClick({action: 'delete'})">
+        <button class="text-button cancel" @click="handleButtonClick({number: '', label: '', action: 'cancel'})">
             Cancel
         </button>
     </div>
