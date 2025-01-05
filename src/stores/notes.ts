@@ -1,5 +1,5 @@
 import { defineStore } from "pinia"
-import { syncService } from "../services/syncService"
+// import { syncService } from "../services/syncService"
 // import { type StoreNames } from "../services/indexedDB"
 // import { getChangedItems } from '../firebase/firestore-service'
 import { Task, JournalEntry, Folder } from '../composables/interfaces'
@@ -179,7 +179,7 @@ export const useNotesStore = defineStore("notes", {
         console.log('Offline, skipping sync');
         return;
       }
-      await syncService.syncData();
+      // await syncService.syncData();
     },
 
     async addTask(title: string, folderId: string | undefined) {
@@ -210,7 +210,7 @@ export const useNotesStore = defineStore("notes", {
         
         // If offline, sync when back online
         if (!navigator.onLine) {
-          await syncService.syncData();
+          // await syncService.syncData();
         }
         
         this.error = null;
@@ -242,7 +242,7 @@ export const useNotesStore = defineStore("notes", {
         this.tasks[taskIndex] = updatedTask;
         
         // Trigger sync
-        await syncService.syncData();
+        // await syncService.syncData();
         
         this.error = null;
       } catch (error) {
@@ -274,7 +274,7 @@ export const useNotesStore = defineStore("notes", {
         this.tasks.splice(taskIndex, 1);
         
         // Trigger sync
-        await syncService.syncData();
+        // await syncService.syncData();
         
         this.error = null;
       } catch (error) {
@@ -307,7 +307,7 @@ export const useNotesStore = defineStore("notes", {
         this.folders.push(newFolder);
         
         // Trigger sync
-        await syncService.syncData();
+        // await syncService.syncData();
         
         this.error = null;
       } catch (error) {
@@ -338,7 +338,7 @@ export const useNotesStore = defineStore("notes", {
         this.folders[folderIndex] = updatedFolder;
         
         // Trigger sync
-        await syncService.syncData();
+        // await syncService.syncData();
         
         this.error = null;
       } catch (error) {
@@ -368,7 +368,7 @@ export const useNotesStore = defineStore("notes", {
         this.folders.splice(folderIndex, 1);
         
         // Trigger sync
-        await syncService.syncData();
+        // await syncService.syncData();
         
         this.error = null;
       } catch (error) {
@@ -399,7 +399,7 @@ export const useNotesStore = defineStore("notes", {
         this.journalEntries.push(newEntry);
         try {
           // await indexedDBService.addItem<JournalEntry>('journal', newEntry);
-          await syncService.syncData();
+          // await syncService.syncData();
         } catch (error) {
           this.setError(error);
         }
@@ -427,7 +427,7 @@ export const useNotesStore = defineStore("notes", {
         this.journalEntries[entryIndex] = updatedEntry;
         
         // Trigger sync
-        await syncService.syncData();
+        // await syncService.syncData();
         
         this.error = null;
       } catch (error) {
@@ -456,7 +456,7 @@ export const useNotesStore = defineStore("notes", {
         this.journalEntries.splice(entryIndex, 1);
         
         // Trigger sync immediately
-        await syncService.syncData();
+        // await syncService.syncData();
         
         this.error = null;
       } catch (error) {
