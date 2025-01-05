@@ -1,5 +1,5 @@
 export interface BaseItem {
-    taskId: string
+    id: string
     folderId?: string
     syncStatus: 'synced' | 'pending' | 'failed'
     lastModified: number
@@ -23,6 +23,6 @@ export interface Folder {
 export interface JournalEntry extends BaseItem {
     title: string
     content: string
-    status: 'deleted | archived | active'
+    status: 'deleted' | 'archived' | 'active'
     date: string
   }
