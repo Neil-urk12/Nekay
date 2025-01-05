@@ -1,45 +1,11 @@
-import { defineStore } from "pinia";
-import { syncService } from "../services/syncService";
-import { indexedDBService, type StoreNames } from "../services/indexedDB";
-import { getChangedItems } from '../firebase/firestore-service';
-
-// Helper function to generate UUID using Web Crypto API
-function generateUUID(): string {
-  return crypto.randomUUID();
-}
-
-export interface Task {
-  id?: string;
-  title: string;
-  completed: boolean;
-  folderId?: string | null;
-  syncStatus: 'synced' | 'pending' | 'failed';
-  lastModified: number;
-  timestamp: number;
-  deleted?: boolean;
-}
-
-export interface JournalEntry {
-  id?: string;
-  title: string;
-  content: string;
-  date: string;
-  folderId?: string | null;
-  syncStatus: 'synced' | 'pending' | 'failed';
-  lastModified: number;
-  timestamp: number;
-  deleted?: boolean;
-}
-
-export interface Folder {
-  id?: string;
-  name: string;
-  type: "task" | "journal";
-  syncStatus: 'synced' | 'pending' | 'failed';
-  lastModified: number;
-  timestamp: number;
-  deleted?: boolean;
-}
+import { defineStore } from "pinia"
+import { syncService } from "../services/syncService"
+// import { type StoreNames } from "../services/indexedDB"
+// import { getChangedItems } from '../firebase/firestore-service'
+import { Task, JournalEntry, Folder } from '../composables/interfaces'
+import { generateUUID } from '../utils/functions'
+import { addDoc, collection } from "firebase/firestore"
+import { db } from "../firebase/firebase-config"
 
 export const useNotesStore = defineStore("notes", {
   state: () => ({
@@ -58,7 +24,7 @@ export const useNotesStore = defineStore("notes", {
       return state.tasks.filter((task) => task.folderId === folderId);
     },
     entriesByFolder: (state) => (folderId: string | null) => {
-      return state.journalEntries.filter((entry) => entry.folderId === folderId && !entry.deleted);
+      return state.journalEntries.filter((entry) => entry.folderId === folderId);
     },
     pendingChanges: (state) => {
       const pendingTasks = state.tasks.filter(t => t.syncStatus === 'pending');
@@ -74,139 +40,139 @@ export const useNotesStore = defineStore("notes", {
       console.error('Store error:', error);
     },
 
-    async fetchTasks() {
-      try {
-        this.loading = true;
-        const tasks = await indexedDBService.getAllItems<Task>('tasks');
-        // Sort by lastModified to show newest first and filter out duplicates by id
-        this.tasks = tasks
-          .sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0))
-          .filter((task, index, self) => 
-            index === self.findIndex(t => t.id === task.id)
-          );
-        this.error = null;
-      } catch (error) {
-        console.error('Error fetching tasks:', error);
-        this.setError(error);
-      } finally {
-        this.loading = false;
-      }
-    },
+    // async fetchTasks() {
+    //   try {
+    //     this.loading = true
+    //     // const tasks = await indexedDBService.getAllItems<Task>('tasks')
+    //     // Sort by lastModified to show newest first and filter out duplicates by id
+    //     this.tasks = tasks
+    //       .sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0))
+    //       .filter((task, index, self) => 
+    //         index === self.findIndex(t => t.taskId === task.taskId)
+    //       )
+    //     this.error = null
+    //   } catch (error) {
+    //     console.error('Error fetching tasks:', error)
+    //     this.setError(error)
+    //   } finally {
+    //     this.loading = false
+    //   }
+    // },
 
-    async fetchJournalEntries(): Promise<void> {
-      try {
-        this.loading = true;
-        const entries = await indexedDBService.getAllItems<JournalEntry>('journal');
-        // Filter out deleted entries
-        this.journalEntries = entries.filter(entry => !entry.deleted);
-        this.error = null;
-      } catch (error) {
-        console.error('Error fetching journal entries:', error);
-        this.setError(error);
-      } finally {
-        this.loading = false;
-      }
-    },
+    // async fetchJournalEntries(): Promise<void> {
+    //   try {
+    //     this.loading = true
+    //     const entries = await indexedDBService.getAllItems<JournalEntry>('journal')
+    //     // Filter out deleted entries
+    //     this.journalEntries = entries.filter(entry => !entry.status.includes('deleted'))
+    //     this.error = null
+    //   } catch (error) {
+    //     console.error('Error fetching journal entries:', error)
+    //     this.setError(error)
+    //   } finally {
+    //     this.loading = false
+    //   }
+    // },
 
-    async fetchFolders() {
-      try {
-        this.loading = true;
-        const folders = await indexedDBService.getAllItems<Folder>('folders');
-        // Sort by lastModified to show newest first and filter out duplicates by id
-        this.folders = folders
-          .sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0))
-          .filter((folder, index, self) => 
-            index === self.findIndex(f => f.id === folder.id)
-          );
-        this.error = null;
-      } catch (error) {
-        console.error('Error fetching folders:', error);
-        this.setError(error);
-      } finally {
-        this.loading = false;
-      }
-    },
+    // async fetchFolders() {
+    //   try {
+    //     this.loading = true;
+    //     const folders = await indexedDBService.getAllItems<Folder>('folders');
+    //     // Sort by lastModified to show newest first and filter out duplicates by id
+    //     this.folders = folders
+    //       .sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0))
+    //       .filter((folder, index, self) => 
+    //         index === self.findIndex(f => f.id === folder.id)
+    //       )
+    //     this.error = null
+    //   } catch (error) {
+    //     console.error('Error fetching folders:', error)
+    //     this.setError(error)
+    //   } finally {
+    //     this.loading = false
+    //   }
+    // },
 
-    async initialise() {
-      if (this.initialized) return;
+    // async initialise() {
+    //   if (this.initialized) return
 
-      try {
-        console.log('Initializing store...');
-        await indexedDBService.init();
+    //   try {
+    //     console.log('Initializing store...')
+    //     await indexedDBService.init()
         
-        // Fetch all data in parallel
-        await Promise.all([
-          this.fetchTasks(),
-          this.fetchJournalEntries(),
-          this.fetchFolders()
-        ]);
+    //     // Fetch all data in parallel
+    //     await Promise.all([
+    //       this.fetchTasks(),
+    //       this.fetchJournalEntries(),
+    //       this.fetchFolders()
+    //     ])
         
-        this.initialized = true;
-      } catch (error) {
-        console.error('Failed to initialize store:', error);
-        this.setError(error);
-        throw error;
-      }
-    },
+    //     this.initialized = true
+    //   } catch (error) {
+    //     console.error('Failed to initialize store:', error)
+    //     this.setError(error)
+    //     throw error
+    //   }
+    // },
 
-    async fetchFromFirebase() {
-      try {
-        console.log('Fetching data from Firebase...');
-        const [remoteTasks, remoteEntries, remoteFolders] = await Promise.all([
-          getChangedItems<Task>('tasks', 0), 
-          getChangedItems<JournalEntry>('journalEntries', 0),
-          getChangedItems<Folder>('folders', 0)
-        ]);
+    // async fetchFromFirebase() {
+    //   try {
+    //     console.log('Fetching data from Firebase...');
+    //     const [remoteTasks, remoteEntries, remoteFolders] = await Promise.all([
+    //       getChangedItems<Task>('tasks', 0), 
+    //       getChangedItems<JournalEntry>('journalEntries', 0),
+    //       getChangedItems<Folder>('folders', 0)
+    //     ]);
 
-        // Process items one store at a time to avoid transaction conflicts
-        const processItems = async <T extends { id?: string; deleted?: boolean }>(
-          items: T[],
-          storeName: StoreNames,
-          stateArray: T[]
-        ) => {
+    //     // Process items one store at a time to avoid transaction conflicts
+    //     const processItems = async <T extends { id?: string; deleted?: boolean }>(
+    //       items: T[],
+    //       storeName: StoreNames,
+    //       stateArray: T[]
+    //     ) => {
           
-          // Clear existing items from IndexedDB first
-          await indexedDBService.clearStore(storeName);
+    //       // Clear existing items from IndexedDB first
+    //       // await indexedDBService.clearStore(storeName);
           
-          // Clear state array
-          stateArray.length = 0;
+    //       // Clear state array
+    //       stateArray.length = 0;
           
-          // Process non-deleted items
-          for (const item of items) {
-            if (!item.deleted && item.id) {
-              try {
-                // Add to IndexedDB
-                await indexedDBService.addItem(storeName, {
-                  ...item,
-                  syncStatus: 'synced'
-                });
+    //       // Process non-deleted items
+    //       for (const item of items) {
+    //         if (!item.deleted && item.id) {
+    //           try {
+    //             // Add to IndexedDB
+    //             // await indexedDBService.addItem(storeName, {
+    //             //   ...item,
+    //             //   syncStatus: 'synced'
+    //             // });
                 
-                // Add to state
-                stateArray.push({ ...item, syncStatus: 'synced' });
-              } catch (error) {
-                console.error(`Failed to process item ${item.id}:`, error);
-                // Continue with next item instead of failing completely
-              }
-            }
-          }
-        };
+    //             // Add to state
+    //             stateArray.push({ ...item, syncStatus: 'synced' });
+    //           } catch (error) {
+    //             console.error(`Failed to process item ${item.id}:`, error);
+    //             // Continue with next item instead of failing completely
+    //           }
+    //         }
+    //       }
+    //     };
 
-        // Process each store sequentially to avoid conflicts
-        await processItems(remoteTasks, 'tasks', this.tasks);
-        await processItems(remoteEntries, 'journal', this.journalEntries);
-        await processItems(remoteFolders, 'folders', this.folders);
+    //     // Process each store sequentially to avoid conflicts
+    //     await processItems(remoteTasks, 'tasks', this.tasks);
+    //     await processItems(remoteEntries, 'journal', this.journalEntries);
+    //     await processItems(remoteFolders, 'folders', this.folders);
 
-        console.log('Firebase data fetched and stored:', {
-          tasks: this.tasks.length,
-          entries: this.journalEntries.length,
-          folders: this.folders.length
-        });
-      } catch (error) {
-        console.error('Error fetching from Firebase:', error);
-        this.setError(error);
-        throw error;
-      }
-    },
+    //     console.log('Firebase data fetched and stored:', {
+    //       tasks: this.tasks.length,
+    //       entries: this.journalEntries.length,
+    //       folders: this.folders.length
+    //     });
+    //   } catch (error) {
+    //     console.error('Error fetching from Firebase:', error);
+    //     this.setError(error);
+    //     throw error;
+    //   }
+    // },
 
     async syncWithServer() {
       if (!navigator.onLine) {
@@ -216,38 +182,47 @@ export const useNotesStore = defineStore("notes", {
       await syncService.syncData();
     },
 
-    async addTask(title: string, folderId: string | null = null) {
+    async addTask(title: string, folderId: string | undefined) {
       try {
-        const timestamp = Date.now();
+        const timestamp = Date.now()
         const newTask: Task = {
           id: generateUUID(),
-          title,
-          completed: false,
+          taskContent: title,
+          status: 'pending',
           folderId,
           syncStatus: 'pending',
           lastModified: timestamp,
           timestamp
-        };
+        }
 
-        // Store in IndexedDB first
-        await indexedDBService.addItem<Task>("tasks", newTask);
+        if (navigator.onLine) {
+          // Create in Firestore first
+          newTask.syncStatus = 'synced'
+          await addDoc(collection(db, 'tasks'), newTask);          
+        }
+
+        // Store in IndexedDB
+        // await indexedDBService.addItem<Task>("tasks", newTask);
         
         // Update local state
         this.tasks.push(newTask);
         
-        // Trigger sync
-        await syncService.syncData();
+        
+        // If offline, sync when back online
+        if (!navigator.onLine) {
+          await syncService.syncData();
+        }
         
         this.error = null;
       } catch (error) {
         this.setError(error);
       }
-    },
-
-    async editTask(taskId: string, updates: Partial<Task>) {
+    },    
+    
+    async editTask(id: string, updates: Partial<Task>) {
       try {
         const timestamp = Date.now();
-        const taskIndex = this.tasks.findIndex(t => t.id === taskId);
+        const taskIndex = this.tasks.findIndex(t => t.id === id);
         
         if (taskIndex === -1) {
           throw new Error('Task not found');
@@ -261,7 +236,7 @@ export const useNotesStore = defineStore("notes", {
         };
 
         // Update in IndexedDB
-        await indexedDBService.updateItem<Task>("tasks", taskId, updatedTask);
+        // await indexedDBService.updateItem<Task>("tasks", id, updatedTask);
         
         // Update local state
         this.tasks[taskIndex] = updatedTask;
@@ -277,7 +252,7 @@ export const useNotesStore = defineStore("notes", {
 
     async deleteTask(taskId: string) {
       try {
-        const timestamp = Date.now();
+        // const timestamp = Date.now();
         const taskIndex = this.tasks.findIndex(t => t.id === taskId);
         
         if (taskIndex === -1) {
@@ -285,15 +260,15 @@ export const useNotesStore = defineStore("notes", {
         }
 
         // Remove from local state first
-        const deletedTask = {
-          ...this.tasks[taskIndex],
-          deleted: true,
-          syncStatus: 'pending' as const,
-          lastModified: timestamp
-        };
+        // const deletedTask = {
+        //   ...this.tasks[taskIndex],
+        //   deleted: true,
+        //   syncStatus: 'pending' as const,
+        //   lastModified: timestamp
+        // };
         
         // Update in IndexedDB
-        await indexedDBService.updateItem<Task>("tasks", taskId, deletedTask);
+        // await indexedDBService.updateItem<Task>("tasks", taskId, deletedTask);
         
         // Update local state
         this.tasks.splice(taskIndex, 1);
@@ -326,7 +301,7 @@ export const useNotesStore = defineStore("notes", {
         };
 
         // Store in IndexedDB first
-        await indexedDBService.addItem<Folder>("folders", newFolder);
+        // await indexedDBService.addItem<Folder>("folders", newFolder);
         
         // Update local state
         this.folders.push(newFolder);
@@ -357,7 +332,7 @@ export const useNotesStore = defineStore("notes", {
         };
 
         // Update in IndexedDB
-        await indexedDBService.updateItem<Folder>("folders", folderId, updatedFolder);
+        // await indexedDBService.updateItem<Folder>("folders", folderId, updatedFolder);
         
         // Update local state
         this.folders[folderIndex] = updatedFolder;
@@ -379,15 +354,15 @@ export const useNotesStore = defineStore("notes", {
           throw new Error('Folder not found');
         }
 
-        const deletedFolder = {
-          ...this.folders[folderIndex],
-          deleted: true,
-          syncStatus: 'pending' as const,
-          lastModified: Date.now()
-        };
+        // const deletedFolder = {
+        //   ...this.folders[folderIndex],
+        //   deleted: true,
+        //   syncStatus: 'pending' as const,
+        //   lastModified: Date.now()
+        // };
         
         // Update in IndexedDB
-        await indexedDBService.updateItem<Folder>("folders", folderId, deletedFolder);
+        // await indexedDBService.updateItem<Folder>("folders", folderId, deletedFolder);
         
         // Update local state
         this.folders.splice(folderIndex, 1);
@@ -407,12 +382,13 @@ export const useNotesStore = defineStore("notes", {
       }
     },
 
-    async addJournalEntry(title: string, content: string, folderId: string | null = null): Promise<void> {
+    async addJournalEntry(title: string, content: string, folderId: string | undefined): Promise<void> {
         const timestamp = Date.now();
         const newEntry: JournalEntry = {
           id: generateUUID(),
           title,
           content,
+          status: 'active',
           date: new Date().toISOString(),
           folderId,
           syncStatus: 'pending',
@@ -422,7 +398,7 @@ export const useNotesStore = defineStore("notes", {
 
         this.journalEntries.push(newEntry);
         try {
-          await indexedDBService.addItem<JournalEntry>('journal', newEntry);
+          // await indexedDBService.addItem<JournalEntry>('journal', newEntry);
           await syncService.syncData();
         } catch (error) {
           this.setError(error);
@@ -445,7 +421,7 @@ export const useNotesStore = defineStore("notes", {
         };
 
         // Update in IndexedDB
-        await indexedDBService.updateItem<JournalEntry>('journal', entryId, updatedEntry);
+        // await indexedDBService.updateItem<JournalEntry>('journal', entryId, updatedEntry);
         
         // Update local state
         this.journalEntries[entryIndex] = updatedEntry;
@@ -466,15 +442,15 @@ export const useNotesStore = defineStore("notes", {
           throw new Error('Journal entry not found');
         }
 
-        const deletedEntry = {
-          ...this.journalEntries[entryIndex],
-          deleted: true,
-          syncStatus: 'pending' as const,
-          lastModified: Date.now()
-        };
+        // const deletedEntry = {
+        //   ...this.journalEntries[entryIndex],
+        //   deleted: true,
+        //   syncStatus: 'pending' as const,
+        //   lastModified: Date.now()
+        // };
 
         // Update in IndexedDB
-        await indexedDBService.updateItem<JournalEntry>('journal', entryId, deletedEntry);
+        // await indexedDBService.updateItem<JournalEntry>('journal', entryId, deletedEntry);
         
         // Update local state - remove from array
         this.journalEntries.splice(entryIndex, 1);
