@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import { defineAsyncComponent, onMounted, ref } from 'vue';
 const BottomNav = defineAsyncComponent(() => import('./components/BottomNav.vue'))
-import { useNotesStore } from './stores/notes';
-import { storeToRefs } from 'pinia';
+// import { useNotesStore } from './stores/notes';
+// import { storeToRefs } from 'pinia';
 
-const notesStore = useNotesStore();
-const { initialized } = storeToRefs(notesStore);
+// const notesStore = useNotesStore();
+// const { initialized } = storeToRefs(notesStore);
 const isLoading = ref(true);
 const error = ref<Error | null>(null);
 
 onMounted(async () => {
   try {
-    if (!initialized.value) 
-      await notesStore.initialise()
-    await notesStore.fetchFromFirebase()
+    // if (!initialized.value) 
+    //   await notesStore.initialise()
+    // await notesStore.fetchFromFirebase()
   } catch (err) {
     console.error('Failed to initialize app:', err)
     error.value = err as Error

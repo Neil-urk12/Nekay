@@ -3,7 +3,6 @@ import { createPinia } from "pinia";
 import router from "./router";
 import "./style.css";
 import App from "./App.vue";
-import { indexedDBService } from "./services/indexedDB";
 import { registerServiceWorker } from "./utils/serviceWorker";
 
 interface IndexedDBError {
@@ -13,16 +12,12 @@ interface IndexedDBError {
 }
 
 const initApp = async () => {
-  // Create app instance and plugins first
-  const app = createApp(App);
-  const pinia = createPinia();
-  app.use(pinia);
-  app.use(router);
+  const app = createApp(App)
+  const pinia = createPinia()
+  app.use(pinia)
+  app.use(router)
 
   try {
-    // Initialize IndexedDB first
-    await indexedDBService.init();
-    
     // Register service worker after IndexedDB is ready
     await registerServiceWorker();
     
