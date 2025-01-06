@@ -1,46 +1,53 @@
-<script setup lang="ts">
-import { ref, onMounted, watchEffect, computed } from "vue";
-import { useNotesStore } from "../stores/notes";
+<!-- <script setup lang="ts">
+import { ref, onMounted, watchEffect, computed } from "vue"
+import { useNotesStore } from "../stores/notes"
 
 interface WeatherData {
-  temp_c: number;
+  temp_c: number
   condition: {
-    text: string;
-    icon: string;
-  };
+    text: string
+    icon: string
+  }
 }
 
 interface Forecast {
-  maxtemp_c: number;
-  mintemp_c: number;
+  maxtemp_c: number
+  mintemp_c: number
 }
 
 interface AirQuality {
-  pm2_5: number;
-  pm10: number;
+  pm2_5: number
+  pm10: number
 }
 
-type TimeOfDay = 'morning' | 'noon' | 'afternoon' | 'evening' | 'night';
+type TimeOfDay = 'morning' | 'noon' | 'afternoon' | 'evening' | 'night'
 
-const WEATHER_REFRESH_INTERVAL = 1800000;
-const TIME_REFRESH_INTERVAL = 60000; 
-const API_KEY = import.meta.env.VITE_API_KEY;
-const WEATHER_API_URL = `http://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=Liloan,Cebu&days=1&aqi=yes&alerts=yes`;
+const WEATHER_REFRESH_INTERVAL = 1800000
+const TIME_REFRESH_INTERVAL = 60000
+const API_KEY = import.meta.env.VITE_API_KEY
+const weatherkey = import.meta.env.VITE_WEATHER_KEY
 
-const timeOfDay = ref<TimeOfDay>('morning'); 
-const backgroundImage = ref("");
+const url = `https://api.openweathermap.org/data/2.5/weather?q=${Liloan, Cebu}&appid=${weatherkey}&units=metric`
+// const WEATHER_API_URL = `http://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=Liloan,Cebu&days=1&aqi=yes&alerts=yes`;
+
+const timeOfDay = ref<TimeOfDay>('morning')
+const backgroundImage = ref("")
+
 const currentWeather = ref<WeatherData>({
   temp_c: 0,
   condition: { text: "", icon: "" }
-});
+})
+
 const forecast = ref<Forecast>({
   maxtemp_c: 0,
   mintemp_c: 0,
-});
+})
+
 const airQuality = ref<AirQuality>({
   pm2_5: 0,
   pm10: 0,
-});
+})
+
 const isLoading = ref(true);
 const imageLoadError = ref(false);
 const weatherError = ref<string>("");
@@ -87,20 +94,20 @@ const determineTimeOfDay = () => {
 
 const fetchWeather = async () => {
   try {
-    const response = await fetch(WEATHER_API_URL);
-    if (!response.ok) throw new Error('Weather API request failed');
+    const response = await fetch(url)
+    if (!response.ok) throw new Error('Weather API request failed')
     
-    const data = await response.json();
-    currentWeather.value = data.current;
-    forecast.value = data.forecast.forecastday[0].day;
-    airQuality.value = data.current.air_quality;
-    weatherError.value = "";
+    const data = await response.json()
+    currentWeather.value = data.current
+    forecast.value = data.forecast.forecastday[0].day
+    airQuality.value = data.current.air_quality
+    weatherError.value = ""
   } catch (error) {
-    weatherError.value = "Unable to fetch weather data";
+    weatherError.value = "Unable to fetch weather data"
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 
 const handleImageError = (event: Event) => {
   imageLoadError.value = true;
@@ -119,6 +126,90 @@ onMounted(() => {
   determineTimeOfDay();
   fetchWeather();
 });
+</script> -->
+
+<script lang="ts" setup>
+import { ref, onMounted, computed } from "vue"
+// import { useNotesStore } from '../stores/notes.ts' 
+
+const isLoading = ref(false)
+
+// interface WeatherData {
+//   temp_c?: number
+//   condition?: {
+//     text: string
+//     icon: string
+//   }
+// }
+
+const forecast = ref<Forecast>({
+  maxtemp_c: 0,
+  mintemp_c: 0,
+})
+
+interface Forecast {
+  maxtemp_c: number
+  mintemp_c: number
+}
+
+const airQuality = ref<AirQuality>({
+  pm2_5: 0,
+  pm10: 0,
+})
+
+
+interface AirQuality {
+  pm2_5: number
+  pm10: number
+}
+
+type TimeOfDay = 'morning' | 'noon' | 'afternoon' | 'evening' | 'night'
+const timeOfDay = ref<TimeOfDay>('morning')
+
+const greetingMessage = computed(() => {
+  const messages: Record<TimeOfDay, string> = {
+    morning: "Rise and shine! Have a wonderful morning! ",
+    noon: "Hope you're having a great lunch! ",
+    afternoon: "Keep going strong this afternoon! ",
+    evening: "Winding down for a peaceful evening! ",
+    night: "Sweet dreams ahead! "
+  }
+  return messages[timeOfDay.value as TimeOfDay] || "Have a great day!"
+})
+
+const backgroundImage = ref("")
+// const currentWeather = ref<WeatherData>({
+//   temp_c: 0,
+//   condition: { text: "", icon: ""}
+// })
+
+const determineTimeOfDay = () => {
+  const hour = new Date().getHours()
+
+  if (hour >= 5 && hour < 12) {
+    timeOfDay.value = "morning"
+    backgroundImage.value = "url(/assets/bgsky.jpg)"
+  } else if (hour >= 12 && hour < 13) {
+    timeOfDay.value = "noon"
+    backgroundImage.value = "url(/assets/bgsky.jpg)"
+  } else if (hour >= 13 && hour < 15) {
+    timeOfDay.value = "afternoon"
+    backgroundImage.value = "url(/assets/background.jpg)"
+  } else if (hour >= 16 && hour < 17) {
+    timeOfDay.value = "evening"
+    backgroundImage.value = "url(/assets/sunsetbg.jpg)"
+  } else {
+    timeOfDay.value = "night"
+    backgroundImage.value = "url(/assets/moonbg.gif)"
+  }
+}
+
+onMounted(() => {
+  // useNotesStore().initialise()
+  setInterval(determineTimeOfDay, 60000)
+  determineTimeOfDay()
+  // fetchWeather()
+})
 </script>
 
 <template>
@@ -129,14 +220,13 @@ onMounted(() => {
         src="/assets/melodysticker.gif"
         alt="My Melody"
         loading="eager"
-        @error="handleImageError"
       />
     </div>
 
     <div class="message-container">
       <div class="message-box animate-fade-in">
         <div class="cloud-icon animate-float">
-          <img src="/assets/cloud.png" alt="Cloud" loading="lazy" />
+          <!-- <img src="/assets/cloud.png" alt="Cloud" loading="lazy" /> -->
         </div>
         <p class="greeting">Hi Kaykayy! </p>
         <p>{{ greetingMessage }}</p>
@@ -144,16 +234,16 @@ onMounted(() => {
 
       <transition name="fade">
         <div v-if="!isLoading" class="weather animate-fade-in">
-          <template v-if="!weatherError">
-            <h3 class="current-weather">
-              <img 
+          <!-- <template v-if="!weatherError"> -->
+            <!-- <h3 class="current-weather"> -->
+              <!-- <img 
                 :src="currentWeather.condition.icon" 
                 :alt="currentWeather.condition.text"
                 class="inline-block w-8 h-8 mr-2"
                 loading="lazy"
-              />
-              {{ currentWeather.condition.text }} • {{ currentWeather.temp_c }}°C
-            </h3>
+              /> -->
+              <!-- {{ currentWeather.condition.text }} • {{ currentWeather.temp_c }}°C -->
+            <!-- </h3> -->
 
             <div class="weather-details">
               <div class="forecast">
@@ -166,15 +256,15 @@ onMounted(() => {
 
               <div class="air-quality">
                 <p class="text-lg font-semibold">Air Quality</p>
-                <p :class="airQualityStatus.color">{{ airQualityStatus.text }}</p>
+                <!-- <p :class="airQualityStatus.color">{{ airQualityStatus.text }}</p> -->
                 <div class="text-sm">
                   <p>PM2.5: {{ airQuality.pm2_5.toFixed(1) }}</p>
                   <p>PM10: {{ airQuality.pm10.toFixed(1) }}</p>
                 </div>
               </div>
             </div>
-          </template>
-          <p v-else class="text-red-500">{{ weatherError }}</p>
+          <!-- </template> -->
+          <!-- <p v-else class="text-red-500">{{ weatherError }}</p> -->
         </div>
         <div v-else class="weather-loading">
           <div class="loading-spinner"></div>
@@ -211,11 +301,11 @@ onMounted(() => {
   z-index: 3;
 }
 .message-box {
-  background-color: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(10px);
-  border-radius: 1.5rem;
-  padding: 1.5rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background-color: rgba(30, 30, 30, 0.239);
+  backdrop-filter: blur(5px);
+  border-radius: 1rem;
+  padding: 1rem;
+  box-shadow: 0 4px 40px rgba(0, 0, 0, 0.1);
   font-weight: 800;
   color: blueviolet;
   text-align: center;
