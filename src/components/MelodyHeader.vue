@@ -5,7 +5,6 @@
 <template>
   <div class="text-container">
     <div>
-      <span class="my">MY </span>
       <span class="hello">MELODY<div class="bow"></div></span>
     </div>
   </div>
@@ -14,22 +13,15 @@
 <style scoped>
   .text-container {
     position: relative;
+    text-align: center;
     display: flex;
-    flex-direction: column;
     align-items: center;
-  }
-
-  .my {
-    font-size: 50px;
-    color: #ff69b4;
-    font-family: 'Comic Sans MS', cursive, sans-serif;
-    font-weight: bold;
-    text-shadow: 3px 3px 0 white;
-    display: inline-block;
+    justify-content: center;
+    width: 100%;
   }
 
   .hello {
-    font-size: 80px;
+    font-size: 60px;
     color: #ff69b4;
     font-family: 'Comic Sans MS', cursive, sans-serif;
     font-weight: bold;
@@ -73,15 +65,6 @@
 
   .bow::after {
     right: -4px;
-  }
-
-  .kitty {
-    font-size: 80px;
-    color: #ff69b4;
-    font-family: 'Comic Sans MS', cursive, sans-serif;
-    font-weight: bold;
-    text-shadow: 3px 3px 0 white;
-    display: inline-block;
   }
 </style>
 
