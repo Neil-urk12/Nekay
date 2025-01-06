@@ -5,7 +5,7 @@
 <template>
   <div class="text-container">
     <div>
-      <span class="hello">MELODY<div class="bow"></div></span>
+      <span class="hello">Kane's Space<div class="bow"></div></span>
     </div>
   </div>
 </template>
