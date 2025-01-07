@@ -39,7 +39,6 @@ const determineTimeOfDay = () => {
   }
 }
 
-
 onMounted(() => {
   setInterval(determineTimeOfDay, 60000)
   determineTimeOfDay()
@@ -67,7 +66,7 @@ onMounted(() => {
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  padding: 1rem;
+  padding: 0rem;
   transition: background-image 1s ease-in-out;
 }
 .message-container {
