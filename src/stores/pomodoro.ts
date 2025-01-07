@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { indexedDBService, PomodoroStats, PomodoroSession } from '../services/indexedDB'
+import { PomodoroStats, PomodoroSession } from '../services/indexedDB'
 
 const WORK_DURATION = 25 * 60 // 25 minutes in seconds
 const BREAK_DURATION = 5 * 60 // 5 minutes in seconds
@@ -64,20 +64,20 @@ export const usePomodoro = defineStore('pomodoro', {
         // Setup periodic sync
         setInterval(this.syncTime, SYNC_INTERVAL)
 
-        const stats = await indexedDBService.getItem<PomodoroStats>('pomodoro', 'stats')
-        if (!stats) {
-          const newStats: PomodoroStats = {
-            id: 'stats',
-            completedSessions: 0,
-            totalFocusTime: 0,
-            lastModified: Date.now(),
-            syncStatus: 'pending'
-          }
-          await indexedDBService.addItem('pomodoro', newStats)
-          this.stats = newStats
-        } else {
-          this.stats = stats
-        }
+        // const stats = await indexedDBService.getItem<PomodoroStats>('pomodoro', 'stats')
+        // if (!stats) {
+        //   const newStats: PomodoroStats = {
+        //     id: 'stats',
+        //     completedSessions: 0,
+        //     totalFocusTime: 0,
+        //     lastModified: Date.now(),
+        //     syncStatus: 'pending'
+        //   }
+        //   await indexedDBService.addItem('pomodoro', newStats)
+        //   this.stats = newStats
+        // } else {
+        //   this.stats = stats
+        // }
 
         // Request notification permission
         if ('Notification' in window) {
@@ -137,16 +137,16 @@ export const usePomodoro = defineStore('pomodoro', {
       
       this.isRunning = true
       if (this.mode === 'work') {
-        this.currentSession = {
-          id: crypto.randomUUID(),
-          startTime: Date.now(),
-          endTime: 0,
-          duration: 0,
-          type: 'work',
-          completed: false,
-          lastModified: Date.now(),
-          syncStatus: 'pending'
-        }
+        // this.currentSession = {
+        //   id: crypto.randomUUID(),
+        //   startTime: Date.now(),
+        //   endTime: 0,
+        //   duration: 0,
+        //   type: 'work',
+        //   completed: false,
+        //   lastModified: Date.now(),
+        //   syncStatus: 'pending'
+        // }
       }
       
       this.worker.postMessage({
@@ -204,14 +204,14 @@ export const usePomodoro = defineStore('pomodoro', {
           this.currentSession.duration = durationInSeconds
           this.currentSession.completed = true
           
-          await indexedDBService.addItem('pomodoro', this.currentSession)
+          // await indexedDBService.addItem('pomodoro', this.currentSession)
           
           this.stats.completedSessions++
           this.stats.totalFocusTime += durationInSeconds
           this.stats.lastModified = Date.now()
           this.stats.syncStatus = 'pending'
           
-          await indexedDBService.updateItem('pomodoro', 'stats', this.stats)
+          // await indexedDBService.updateItem('pomodoro', 'stats', this.stats)
         }
 
         this.mode = this.mode === 'work' ? 'break' : 'work'
