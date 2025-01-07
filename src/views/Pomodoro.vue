@@ -110,9 +110,8 @@ onUnmounted(() => {
 .pomodoro-container {
   min-height: 100vh;
   background-color: #fce7f3;
-  padding: 1rem;
+  padding: 1rem 1rem 0rem 1rem;
   max-width: 600px;
-  margin: 2rem auto;
 }
 .mode-indicator {
   text-align: center;
