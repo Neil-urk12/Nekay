@@ -1,7 +1,4 @@
 import { defineStore } from "pinia";
-// import { syncService } from "../services/syncService"
-// import { type StoreNames } from "../services/indexedDB"
-// import { getChangedItems } from '../firebase/firestore-service'
 import { Task, JournalEntry, Folder } from "../composables/interfaces";
 import { generateUUID } from "../utils/functions";
 import { addDoc, collection } from "firebase/firestore";
@@ -23,6 +20,9 @@ export const useNotesStore = defineStore("notes", {
   getters: {
     getFolders(state) {
       return state.folders;
+    },
+    getTasks(state) {
+      return state.tasks;
     },
     tasksByFolder: (state) => (folderId: string | null) => {
       return state.tasks.filter((task) => task.folderId === folderId);
@@ -54,152 +54,13 @@ export const useNotesStore = defineStore("notes", {
       console.error("Store error:", error);
     },
 
-    async fetchFolderTasks(folderId: string) {
-      this.loading = true;
+    async loadTasks() {
       try {
-        // const tasks = await getTasks(folderId)
-        // this.tasks = tasks
-      } catch (error) {
-        this.error = "Failed to fetch tasks";
-        throw error;
-      } finally {
-        this.loading = false;
+        this.tasks = await db.getTasks();
+      } catch (err) {
+        console.error(err);
       }
     },
-
-    // async fetchTasks() {
-    //   try {
-    //     this.loading = true
-    //     // const tasks = await indexedDBService.getAllItems<Task>('tasks')
-    //     // Sort by lastModified to show newest first and filter out duplicates by id
-    //     this.tasks = tasks
-    //       .sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0))
-    //       .filter((task, index, self) =>
-    //         index === self.findIndex(t => t.taskId === task.taskId)
-    //       )
-    //     this.error = null
-    //   } catch (error) {
-    //     console.error('Error fetching tasks:', error)
-    //     this.setError(error)
-    //   } finally {
-    //     this.loading = false
-    //   }
-    // },
-
-    // async fetchJournalEntries(): Promise<void> {
-    //   try {
-    //     this.loading = true
-    //     const entries = await indexedDBService.getAllItems<JournalEntry>('journal')
-    //     // Filter out deleted entries
-    //     this.journalEntries = entries.filter(entry => !entry.status.includes('deleted'))
-    //     this.error = null
-    //   } catch (error) {
-    //     console.error('Error fetching journal entries:', error)
-    //     this.setError(error)
-    //   } finally {
-    //     this.loading = false
-    //   }
-    // },
-
-    // async fetchFolders() {
-    //   try {
-    //     this.loading = true;
-    //     const folders = await indexedDBService.getAllItems<Folder>('folders');
-    //     // Sort by lastModified to show newest first and filter out duplicates by id
-    //     this.folders = folders
-    //       .sort((a, b) => (b.lastModified || 0) - (a.lastModified || 0))
-    //       .filter((folder, index, self) =>
-    //         index === self.findIndex(f => f.id === folder.id)
-    //       )
-    //     this.error = null
-    //   } catch (error) {
-    //     console.error('Error fetching folders:', error)
-    //     this.setError(error)
-    //   } finally {
-    //     this.loading = false
-    //   }
-    // },
-
-    // async initialise() {
-    //   if (this.initialized) return
-
-    //   try {
-    //     console.log('Initializing store...')
-    //     await indexedDBService.init()
-
-    //     // Fetch all data in parallel
-    //     await Promise.all([
-    //       this.fetchTasks(),
-    //       this.fetchJournalEntries(),
-    //       this.fetchFolders()
-    //     ])
-
-    //     this.initialized = true
-    //   } catch (error) {
-    //     console.error('Failed to initialize store:', error)
-    //     this.setError(error)
-    //     throw error
-    //   }
-    // },
-
-    // async fetchFromFirebase() {
-    //   try {
-    //     console.log('Fetching data from Firebase...');
-    //     const [remoteTasks, remoteEntries, remoteFolders] = await Promise.all([
-    //       getChangedItems<Task>('tasks', 0),
-    //       getChangedItems<JournalEntry>('journalEntries', 0),
-    //       getChangedItems<Folder>('folders', 0)
-    //     ]);
-
-    //     // Process items one store at a time to avoid transaction conflicts
-    //     const processItems = async <T extends { id?: string; deleted?: boolean }>(
-    //       items: T[],
-    //       storeName: StoreNames,
-    //       stateArray: T[]
-    //     ) => {
-
-    //       // Clear existing items from IndexedDB first
-    //       // await indexedDBService.clearStore(storeName);
-
-    //       // Clear state array
-    //       stateArray.length = 0;
-
-    //       // Process non-deleted items
-    //       for (const item of items) {
-    //         if (!item.deleted && item.id) {
-    //           try {
-    //             // Add to IndexedDB
-    //             // await indexedDBService.addItem(storeName, {
-    //             //   ...item,
-    //             //   syncStatus: 'synced'
-    //             // });
-
-    //             // Add to state
-    //             stateArray.push({ ...item, syncStatus: 'synced' });
-    //           } catch (error) {
-    //             console.error(`Failed to process item ${item.id}:`, error);
-    //             // Continue with next item instead of failing completely
-    //           }
-    //         }
-    //       }
-    //     };
-
-    //     // Process each store sequentially to avoid conflicts
-    //     await processItems(remoteTasks, 'tasks', this.tasks);
-    //     await processItems(remoteEntries, 'journal', this.journalEntries);
-    //     await processItems(remoteFolders, 'folders', this.folders);
-
-    //     console.log('Firebase data fetched and stored:', {
-    //       tasks: this.tasks.length,
-    //       entries: this.journalEntries.length,
-    //       folders: this.folders.length
-    //     });
-    //   } catch (error) {
-    //     console.error('Error fetching from Firebase:', error);
-    //     this.setError(error);
-    //     throw error;
-    //   }
-    // },
 
     async syncWithServer() {
       if (!navigator.onLine) {
@@ -209,35 +70,25 @@ export const useNotesStore = defineStore("notes", {
       // await syncService.syncData();
     },
 
-    async addTask(title: string, folderId: string | undefined) {
+    async addTask(taskContent: string, folderId: string | undefined) {
       try {
         const timestamp = Date.now();
         const newTask: Task = {
           id: generateUUID(),
-          taskContent: title,
-          status: "pending",
-          folderId,
+          taskContent: taskContent.trim(),
+          completed: false,
+          folderId: folderId,
           syncStatus: "pending",
           lastModified: timestamp,
-          timestamp,
+          timestamp: timestamp,
         };
 
         if (navigator.onLine) {
           // Create in Firestore first
           newTask.syncStatus = "synced";
-          await addDoc(collection(fireDb, "tasks"), newTask);
+          // await addDoc(collection(fireDb, "tasks"), newTask);
         }
-
-        // Store in IndexedDB
-        // await indexedDBService.addItem<Task>("tasks", newTask);
-
-        // Update local state
-        this.tasks.push(newTask);
-
-        // If offline, sync when back online
-        if (!navigator.onLine) {
-          // await syncService.syncData();
-        }
+        await db.createTask(newTask);
 
         this.error = null;
       } catch (error) {
@@ -278,23 +129,12 @@ export const useNotesStore = defineStore("notes", {
 
     async deleteTask(taskId: string) {
       try {
-        // const timestamp = Date.now();
+        const timestamp = Date.now();
         const taskIndex = this.tasks.findIndex((t) => t.id === taskId);
 
-        if (taskIndex === -1) {
-          throw new Error("Task not found");
-        }
+        if (taskIndex === -1) throw new Error("Task not found");
 
-        // Remove from local state first
-        // const deletedTask = {
-        //   ...this.tasks[taskIndex],
-        //   deleted: true,
-        //   syncStatus: 'pending' as const,
-        //   lastModified: timestamp
-        // };
-
-        // Update in IndexedDB
-        // await indexedDBService.updateItem<Task>("tasks", taskId, deletedTask);
+        await db.deleteTask(taskId);
 
         // Update local state
         this.tasks.splice(taskIndex, 1);
@@ -354,9 +194,7 @@ export const useNotesStore = defineStore("notes", {
       try {
         const folderIndex = this.folders.findIndex((f) => f.id === folderId);
 
-        if (folderIndex === -1) {
-          throw new Error("Folder not found");
-        }
+        if (folderIndex === -1) throw new Error("Folder not found");
 
         const timestamp = Date.now();
         const updatedFolder = {
@@ -366,11 +204,7 @@ export const useNotesStore = defineStore("notes", {
           lastModified: timestamp,
         };
 
-        // Update in IndexedDB
-        // await indexedDBService.updateItem<Folder>("folders", folderId, updatedFolder);
-
-        // Update local state
-        await db.updateFolder(updatedFolder);
+        await db.updateFolder(folderId, updatedFolder);
         this.folders[folderIndex] = updatedFolder;
 
         if (navigator.onLine) {
@@ -391,9 +225,7 @@ export const useNotesStore = defineStore("notes", {
       try {
         const folderIndex = this.folders.findIndex((f) => f.id === folderId);
 
-        if (folderIndex === -1) {
-          throw new Error("Folder not found");
-        }
+        if (folderIndex === -1) throw new Error("Folder not found");
 
         await db.deleteFolder(folderId);
 
@@ -402,13 +234,6 @@ export const useNotesStore = defineStore("notes", {
         if (navigator.onLine) {
           // something like await deleteDoc(doc(fireDb, "folders", folderId))
         }
-
-        // const deletedFolder = {
-        //   ...this.folders[folderIndex],
-        //   deleted: true,
-        //   syncStatus: 'pending' as const,
-        //   lastModified: Date.now()
-        // };
 
         // Update in IndexedDB
         // await indexedDBService.updateItem<Folder>("folders", folderId, deletedFolder);
