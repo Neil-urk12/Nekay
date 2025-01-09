@@ -76,7 +76,8 @@ body {
 }
 .app-container {
   min-height: 100vh;
-  background-color: #fce7f3;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 .loading {
   display: flex;
