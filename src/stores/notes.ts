@@ -89,7 +89,7 @@ export const useNotesStore = defineStore("notes", {
           // await addDoc(collection(fireDb, "tasks"), newTask);
         }
         await db.createTask(newTask);
-
+        this.loadTasks();
         this.error = null;
       } catch (error) {
         this.setError(error);
@@ -190,7 +190,7 @@ export const useNotesStore = defineStore("notes", {
       } catch (err) {}
     },
 
-    async editFolder(folderId: string, updates: Partial<Folder>) {
+    async editFolder(folderId: string, updates: Partial<Folder> | undefined) {
       try {
         const folderIndex = this.folders.findIndex((f) => f.id === folderId);
 
