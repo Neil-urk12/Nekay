@@ -60,14 +60,12 @@ const cancelDelete = () => {
 };
 
 onMounted(() => {
-  if (noteStore.getFolders.length == 0) {
-    noteStore.loadFolders();
-  }
+  if (folders.value.length === 0) noteStore.loadFolders();
 });
 </script>
 
 <template>
-  <div class="folders-view" :style="{}">
+  <div class="folders-view">
     <header class="page-header">
       <h1>My Folders</h1>
       <div class="add-folder">

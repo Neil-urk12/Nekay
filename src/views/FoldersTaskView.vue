@@ -21,10 +21,17 @@ const folderTasks = computed(() =>
 );
 
 const addTask = async () => {
-  if (!newTask.value.trim()) return;
+  try {
+    if (!newTask.value.trim() || !currentFolder.value) return;
 
-  await taskStore.addTask(newTask.value, currentFolder.value?.id);
-  newTask.value = "";
+    await taskStore.addTask(newTask.value, currentFolder.value.id);
+    await taskStore.editFolder(currentFolder.value.id, {
+      numOfItems: ++currentFolder.value.numOfItems,
+    });
+    newTask.value = "";
+  } catch (err) {
+    console.error(err);
+  }
 };
 
 const editTask = async (task: Task) => {
@@ -39,17 +46,19 @@ const toggleTask = async (task: Task) => {
 
 const deleteTask = async (taskId: string) => {
   try {
-    if (!taskId) return;
+    if (!taskId || !currentFolder.value) return;
     await taskStore.deleteTask(taskId);
+    await taskStore.editFolder(currentFolder.value?.id, {
+      numOfItems: --currentFolder.value.numOfItems,
+    });
   } catch (err) {
     console.error(err);
   }
 };
 
 onMounted(async () => {
-  if (!currentFolder.value) {
-    router.push("/folders");
-  }
+  if (!currentFolder.value) router.push("/folders");
+  if (tasks.value.length === 0) taskStore.loadTasks();
 });
 </script>
 
