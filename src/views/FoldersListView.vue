@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useNotesStore } from "../stores/notes";
+import { TimeOfDay } from "../views/Home.vue";
 
 const router = useRouter();
 const noteStore = useNotesStore();
@@ -12,6 +13,31 @@ const deleteConfirm = ref<{ id: string; name: string } | null>(null);
 
 const folders = computed(() => noteStore.getFolders);
 // const folders = computed(() => noteStore.folders);
+
+const backgroundImage = ref("");
+
+const timeOfDay = ref<TimeOfDay>("morning");
+
+const determineTimeOfDay = () => {
+  const hour = new Date().getHours();
+
+  if (hour >= 5 && hour < 12) {
+    timeOfDay.value = "morning";
+    backgroundImage.value = "url(/assets/bgsky.png)";
+  } else if (hour >= 12 && hour < 13) {
+    timeOfDay.value = "noon";
+    backgroundImage.value = "url(src/assets/noonbg.jpg)";
+  } else if (hour >= 13 && hour < 15) {
+    timeOfDay.value = "afternoon";
+    backgroundImage.value = "url(src/assets/newsunset.jpg)";
+  } else if (hour >= 16 && hour < 17) {
+    timeOfDay.value = "evening";
+    backgroundImage.value = "url(/assets/sunsetbg.jpg)";
+  } else {
+    timeOfDay.value = "night";
+    backgroundImage.value = "url(/assets/moonbg.gif)";
+  }
+};
 
 const navigateToFolder = (folderId: string) => {
   router.push(`/folders/${folderId}`);
@@ -63,11 +89,13 @@ onMounted(() => {
   if (noteStore.getFolders.length == 0) {
     noteStore.loadFolders();
   }
+  setInterval(determineTimeOfDay, 60000);
+  determineTimeOfDay();
 });
 </script>
 
 <template>
-  <div class="folders-view">
+  <div class="folders-view" :style="{}">
     <header class="page-header">
       <h1>My Folders</h1>
       <div class="add-folder">

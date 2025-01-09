@@ -1,9 +1,11 @@
 <script lang="ts" setup>
-import { ref, onMounted, computed, defineAsyncComponent } from "vue"
-const MelodyHeader = defineAsyncComponent(() => import("../components/MelodyHeader.vue"))
+import { ref, onMounted, computed, defineAsyncComponent } from "vue";
+const MelodyHeader = defineAsyncComponent(
+  () => import("../components/MelodyHeader.vue")
+);
 
-type TimeOfDay = 'morning' | 'noon' | 'afternoon' | 'evening' | 'night'
-const timeOfDay = ref<TimeOfDay>('morning')
+export type TimeOfDay = "morning" | "noon" | "afternoon" | "evening" | "night";
+const timeOfDay = ref<TimeOfDay>("morning");
 
 const greetingMessage = computed(() => {
   const messages: Record<TimeOfDay, string> = {
@@ -11,39 +13,38 @@ const greetingMessage = computed(() => {
     noon: "Hope you're having a great lunch! ",
     afternoon: "Keep going strong this afternoon! ",
     evening: "Winding down for a peaceful evening! ",
-    night: "Sweet dreams ahead! "
-  }
-  return messages[timeOfDay.value as TimeOfDay] || "Have a great day!"
-})
+    night: "Sweet dreams ahead! ",
+  };
+  return messages[timeOfDay.value as TimeOfDay] || "Have a great day!";
+});
 
-const backgroundImage = ref("")
+const backgroundImage = ref("");
 
 const determineTimeOfDay = () => {
-  const hour = new Date().getHours()
+  const hour = new Date().getHours();
 
   if (hour >= 5 && hour < 12) {
-    timeOfDay.value = "morning"
-    backgroundImage.value = "url(/assets/bgsky.png)"
+    timeOfDay.value = "morning";
+    backgroundImage.value = "url(/assets/bgsky.png)";
   } else if (hour >= 12 && hour < 13) {
-    timeOfDay.value = "noon"
-    backgroundImage.value = "url(src/assets/noonbg.jpg)"
-  } else if (hour >= 13 && hour < 15) {
-    timeOfDay.value = "afternoon"
-    backgroundImage.value = "url(src/assets/newsunset.jpg)"
-  } else if (hour >= 16 && hour < 17) {
-    timeOfDay.value = "evening"
-    backgroundImage.value = "url(/assets/sunsetbg.jpg)"
+    timeOfDay.value = "noon";
+    backgroundImage.value = "url(src/assets/noonbg.jpg)";
+  } else if (hour >= 13 && hour < 18) {
+    timeOfDay.value = "afternoon";
+    backgroundImage.value = "url(src/assets/newsunset.jpg)";
+  } else if (hour >= 18 && hour < 20) {
+    timeOfDay.value = "evening";
+    backgroundImage.value = "url(/assets/sunsetbg.jpg)";
   } else {
-    timeOfDay.value = "night"
-    backgroundImage.value = "url(/assets/moonbg.gif)"
+    timeOfDay.value = "night";
+    backgroundImage.value = "url(/assets/moonbg.gif)";
   }
-}
-
+};
 
 onMounted(() => {
-  setInterval(determineTimeOfDay, 60000)
-  determineTimeOfDay()
-})
+  setInterval(determineTimeOfDay, 60000);
+  determineTimeOfDay();
+});
 </script>
 
 <template>
@@ -54,7 +55,7 @@ onMounted(() => {
     </div>
     <div class="message-container animate-float">
       <div class="message-box animate-fade-in">
-        <p class="greeting">Hi Kaykayy! </p>
+        <p class="greeting">Hi Kaykayy!</p>
         <p class="greetingMessage">{{ greetingMessage }}</p>
       </div>
     </div>
@@ -75,7 +76,8 @@ onMounted(() => {
   margin: 0 auto;
   z-index: 3;
 }
-.message-box, .greetingMessage {
+.message-box,
+.greetingMessage {
   z-index: 2;
   margin: 0px;
   font-weight: 800;
@@ -95,15 +97,30 @@ onMounted(() => {
   font-weight: bold;
 }
 
-.animate-float {animation: float 3s ease-in-out infinite}
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
-.animate-fade-in {animation: fadeIn 0.5s ease-out}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 @media (max-width: 640px) {
   .message-box {
