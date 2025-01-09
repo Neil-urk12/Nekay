@@ -26,7 +26,7 @@ const determineTimeOfDay = () => {
     backgroundImage.value = "url(/assets/bgsky.png)"
   } else if (hour >= 12 && hour < 13) {
     timeOfDay.value = "noon"
-    backgroundImage.value = "url(/assets/noonbg.jpg)"
+    backgroundImage.value = "url(src/assets/noonbg.jpg)"
   } else if (hour >= 13 && hour < 15) {
     timeOfDay.value = "afternoon"
     backgroundImage.value = "url(src/assets/newsunset.jpg)"
@@ -38,6 +38,7 @@ const determineTimeOfDay = () => {
     backgroundImage.value = "url(/assets/moonbg.gif)"
   }
 }
+
 
 onMounted(() => {
   setInterval(determineTimeOfDay, 60000)
