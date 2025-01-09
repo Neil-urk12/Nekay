@@ -16,7 +16,7 @@ export interface Folder {
   name: string;
   type: "task" | "journal";
   syncStatus: "synced" | "pending" | "failed";
-  numOfItems?: number;
+  numOfItems: number;
   lastModified: number;
   timestamp: number;
 }
