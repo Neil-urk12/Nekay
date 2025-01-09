@@ -8,7 +8,7 @@ export interface BaseItem {
 
 export interface Task extends BaseItem {
   taskContent: string;
-  status: "pending" | "completed";
+  completed: boolean;
 }
 
 export interface Folder {
