@@ -54,20 +54,47 @@ class NekayDatabase extends Dexie {
   }
 
   async createFolder(folderObj: Folder) {
-    if (!folderObj) return { success: false };
+    if (!folderObj) throw new Error("Error creating folder!");
     this.folders.add(folderObj);
-    return { success: true };
   }
 
   async getFolders() {
     return this.folders.toArray();
   }
 
-  async updateFolder(folder: Folder) {
-    if (!folder) {
-      throw new Error("Folder to delete doesn't exist");
-    }
-    await db.folders.delete(folder);
+  async deleteFolder(folderId: string) {
+    if (!folderId) throw new Error("Folder to delete doesn't exist");
+
+    await this.folders.delete(folderId);
+  }
+
+  async updateFolder(folderId: string, changes: Folder) {
+    if (!changes && !folderId)
+      throw new Error("Folder to update doesn't exist");
+
+    await this.folders.update(folderId, changes);
+  }
+
+  async createTask(task: Task) {
+    if (!task) throw new Error("Failed to create task");
+
+    await this.tasks.add(task);
+  }
+
+  async getTasks() {
+    return await this.tasks.toArray();
+  }
+
+  async updateTask(taskId: string, changes: Task) {
+    if (!taskId && !changes) throw new Error("Failed to update task!");
+
+    await this.tasks.update(taskId, changes);
+  }
+
+  async deleteTask(taskId: string) {
+    if (!taskId) throw new Error("Failed to delete task!");
+
+    await this.tasks.delete(taskId);
   }
 }
 export const db = new NekayDatabase();
