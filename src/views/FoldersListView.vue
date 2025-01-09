@@ -1,30 +1,69 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { storeToRefs } from 'pinia'
-import { useNotesStore } from '../stores/notes'
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { useNotesStore } from "../stores/notes";
 
-const router = useRouter()
-const store = useNotesStore()
-const { folders, loading } = storeToRefs(store)
+const router = useRouter();
+const noteStore = useNotesStore();
 
-const newFolderName = ref('')
-const editingFolder = ref<{ id: string; name: string } | null>(null)
-const deleteConfirm = ref<{ id: string; name: string } | null>(null)
+const newFolderName = ref("");
+const editingFolder = ref<{ id: string; name: string } | null>(null);
+const deleteConfirm = ref<{ id: string; name: string } | null>(null);
+
+const folders = computed(() => noteStore.getFolders);
+// const folders = computed(() => noteStore.folders);
 
 const navigateToFolder = (folderId: string) => {
-  router.push(`/folders/${folderId}`)
-}
+  router.push(`/folders/${folderId}`);
+};
 
 const addFolder = async () => {
-  if (!newFolderName.value.trim()) return
+  if (!newFolderName.value.trim()) return;
   try {
-    await store.addFolder(newFolderName.value, 'task')
-    newFolderName.value = ''
+    await noteStore.addFolder(newFolderName.value, "task");
+    newFolderName.value = "";
   } catch (error) {
-    console.error('Failed to add folder:', error)
+    console.error("Failed to add folder:", error);
   }
-}
+};
+
+const saveEdit = async () => {
+  if (!editingFolder.value) return;
+
+  try {
+    await noteStore.editFolder(editingFolder.value.id, {
+      name: editingFolder.value.name,
+    });
+    editingFolder.value = null;
+  } catch (err) {
+    console.error("Failed to edit folder: ", err);
+  }
+};
+
+const cancelEdit = () => {
+  editingFolder.value = null;
+};
+
+const confirmDelete = async () => {
+  if (!deleteConfirm.value) return;
+
+  try {
+    await noteStore.deleteFolder(deleteConfirm.value.id);
+    deleteConfirm.value = null;
+  } catch (err) {
+    console.error("Failed to delete folder: ", err);
+  }
+};
+
+const cancelDelete = () => {
+  deleteConfirm.value = null;
+};
+
+onMounted(() => {
+  if (noteStore.getFolders.length == 0) {
+    noteStore.loadFolders();
+  }
+});
 </script>
 
 <template>
@@ -59,25 +98,52 @@ const addFolder = async () => {
         @click="navigateToFolder(folder.id)"
       >
         <div class="folder-info">
-          <h2>{{ folder.name }}</h2>
-          <p>{{ folder.taskCount || 0 }} tasks</p>
+          <template v-if="editingFolder?.id === folder.id">
+            <input
+              v-model="editingFolder.name"
+              @keyup.enter="saveEdit"
+              @keyup.esc="cancelEdit"
+              @click.stop
+              class="edit-input"
+            />
+          </template>
+          <template v-else>
+            <h2 class="folder-name">{{ folder.name }}</h2>
+            <p class="folder-count">{{ folder.numOfItems || 0 }} tasks</p>
+          </template>
         </div>
-        
+
         <div class="folder-actions">
-          <button 
-            class="icon-btn"
-            @click.stop="editingFolder = { id: folder.id, name: folder.name }"
-          >
-            ✏️
-          </button>
-          <button 
-            class="icon-btn"
-            @click.stop="deleteConfirm = { id: folder.id, name: folder.name }"
-          >
-            🗑️
-          </button>
+          <template v-if="editingFolder?.id === folder.id">
+            <button class="icon-btn" @click.stop="saveEdit">✅</button>
+            <button class="icon-btn" @click.stop="cancelEdit">❌</button>
+          </template>
+          <template v-else>
+            <button
+              class="icon-btn"
+              @click.stop="editingFolder = { id: folder.id, name: folder.name }"
+            >
+              ✏️
+            </button>
+            <button
+              class="icon-btn"
+              @click.stop="deleteConfirm = { id: folder.id, name: folder.name }"
+            >
+              🗑️
+            </button>
+          </template>
         </div>
         <span class="arrow">→</span>
+      </div>
+    </div>
+    <div v-if="deleteConfirm" @click="cancelDelete" class="modal-overlay">
+      <div class="modal-content" @click.stop>
+        <h3>Delete Folder</h3>
+        <p>Are you sure you want to delete " {{ deleteConfirm.name }} "</p>
+        <div class="modal-actions">
+          <button @click="cancelDelete" class="btn-secondary">Cancel</button>
+          <button class="btn-danger" @click="confirmDelete">Delete</button>
+        </div>
       </div>
     </div>
   </div>
@@ -89,24 +155,26 @@ const addFolder = async () => {
   max-width: 800px;
   margin: 0 auto;
 }
-
+.folder-name {
+  color: #1a1c1e;
+}
+.folder-count {
+  color: #5c5e61;
+}
 .page-header {
   margin-bottom: 2rem;
 }
-
 .add-folder {
   display: flex;
   gap: 0.5rem;
   margin-top: 1rem;
 }
-
 .folders-list {
   display: grid;
   gap: 1rem;
 }
-
 .folder-card {
-  background: var(--surface-color);
+  background: #f2f3f7;
   border-radius: 12px;
   padding: 1.5rem;
   display: flex;
@@ -116,30 +184,73 @@ const addFolder = async () => {
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-
 .folder-card:hover {
+  border-color: #2196f3;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
-
 .folder-info h2 {
   margin: 0;
   font-size: 1.25rem;
 }
-
 .folder-info p {
   margin: 0.25rem 0 0;
   color: var(--text-secondary);
 }
-
 .folder-actions {
   display: flex;
   gap: 0.5rem;
 }
-
 .arrow {
   font-size: 1.5rem;
   margin-left: 1rem;
   color: var(--primary-color);
+}
+.edit-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--primary-color);
+  border-radius: 4px;
+  font-size: 1rem;
+}
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 90%;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.btn-danger {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
 }
 </style>
