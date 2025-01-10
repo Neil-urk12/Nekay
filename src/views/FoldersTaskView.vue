@@ -3,7 +3,9 @@ import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useNotesStore } from "../stores/notes";
 import { Task } from "../composables/interfaces";
+import { useBackgroundStore } from "../stores/backgroundStore";
 
+const backgroundStore = useBackgroundStore();
 const route = useRoute();
 const router = useRouter();
 const taskStore = useNotesStore();
@@ -85,13 +87,18 @@ const deleteTask = async (taskId: string) => {
 };
 
 onMounted(async () => {
+  backgroundStore.determineTimeOfDay();
+  setInterval(() => backgroundStore.determineTimeOfDay(), 60000);
   if (!currentFolder.value) router.push("/folders");
   if (tasks.value.length === 0) taskStore.loadTasks();
 });
 </script>
 
 <template>
-  <div class="folder-tasks">
+  <div
+    class="folder-tasks"
+    :style="{ backgroundImage: backgroundStore.backgroundImage }"
+  >
     <div class="tasks-container">
       <header class="page-header">
         <button class="back-btn" @click="router.push('/folders')">
@@ -154,9 +161,10 @@ onMounted(async () => {
   padding: 1rem;
   max-width: 800px;
   margin: 0 auto;
-}
-.tasks-container {
-  background: rgba(255, 255, 255, 0.2);
+  min-height: 90vh;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: right;
 }
 .page-header {
   margin-bottom: 2rem;
@@ -170,24 +178,28 @@ onMounted(async () => {
   color: white;
 }
 .back-btn:hover {
-  color: peachpuff;
+  color: rgb(84, 84, 242);
 }
 .tasks-list {
   margin-top: 1.5rem;
 }
 .task-item {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.4);
   border-radius: 8px;
   padding: 1rem;
   border: 1px solid #e1e3e6;
   margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 .task-content {
   color: #1a1c1e;
   flex: 1;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
 }
 .task-actions {
   display: flex;
