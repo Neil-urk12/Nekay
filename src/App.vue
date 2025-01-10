@@ -4,11 +4,6 @@ import { TimeOfDay } from "./views/Home.vue";
 const BottomNav = defineAsyncComponent(
   () => import("./components/BottomNav.vue")
 );
-// import { useNotesStore } from './stores/notes';
-// import { storeToRefs } from 'pinia';
-
-// const notesStore = useNotesStore();
-// const { initialized } = storeToRefs(notesStore);
 const isLoading = ref(true);
 const error = ref<Error | null>(null);
 
