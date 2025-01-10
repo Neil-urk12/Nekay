@@ -172,8 +172,14 @@ onMounted(() => {
     </div>
     <div v-if="deleteConfirm" @click="cancelDelete" class="modal-overlay">
       <div class="modal-content" @click.stop>
-        <h3>Delete Folder</h3>
-        <p>Are you sure you want to delete " {{ deleteConfirm.name }} "</p>
+        <div class="modal-header">
+          <h3>Delete Folder</h3>
+          <button class="close-btn" @click="cancelDelete">×</button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to delete "<span class="folder-highlight">{{ deleteConfirm.name }}</span>"?</p>
+          <p class="warning-text">This action cannot be undone.</p>
+        </div>
         <div class="modal-actions">
           <button @click="cancelDelete" class="btn-secondary">Cancel</button>
           <button class="btn-danger" @click="confirmDelete">Delete</button>
@@ -265,42 +271,100 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.65);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  backdrop-filter: blur(2px);
 }
+
 .modal-content {
   background: white;
-  padding: 2rem;
-  border-radius: 8px;
+  padding: 0;
+  border-radius: 12px;
   max-width: 400px;
   width: 90%;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  animation: modal-in 0.3s ease-out;
 }
+
+.modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1a1c1e;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-body p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.warning-text {
+  margin-top: 0.75rem !important;
+  color: #dc3545;
+  font-size: 0.875rem !important;
+}
+
+.folder-highlight {
+  font-weight: 600;
+  color: #1a1c1e;
+}
+
 .modal-actions {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #eee;
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 0.75rem;
 }
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: #333;
+}
+
 .btn-danger {
   background: #dc3545;
   color: white;
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
+  padding: 0.625rem 1.25rem;
+  border-radius: 6px;
   cursor: pointer;
 }
 .btn-primary {
   color: white;
   font-weight: bold;
 }
+
 .btn-secondary {
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
+  background: #f8f9fa;
+  color: #1a1c1e;
+  border: 1px solid #dee2e6;
+  padding: 0.625rem 1.25rem;
+  border-radius: 6px;
   cursor: pointer;
 }
 .icon-btn {
