@@ -102,12 +102,13 @@ input {
   border: 1px solid #fbcfe8;
   border-radius: 0.5rem;
   max-width: calc(100% - 1rem);
+  outline: none;
+  text-align: center;
   box-sizing: border-box;
   width: 100%;
 }
 button {
   background-color: #f472b6;
-  color: black;
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
