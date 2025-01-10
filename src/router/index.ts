@@ -49,6 +49,11 @@ const router = createRouter({
       component: () => import("../views/Journal.vue"),
       meta: { requiresAuth: false },
     },
+    {
+      path: "/journal/:id",
+      component: () => import("../views/FolderView.vue"),
+      meta: { requiresAuth: false },
+    },
   ],
 });
 
