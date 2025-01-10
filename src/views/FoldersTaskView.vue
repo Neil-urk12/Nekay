@@ -187,7 +187,6 @@ onMounted(async () => {
 .page-header {
   margin-bottom: 2rem;
 }
-input { outline: none }
 .icon-btn {
   background: none;
   padding: 0.25rem 0.5rem
