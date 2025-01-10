@@ -8,7 +8,7 @@ const router = useRouter();
 
 const taskStore = useNotesStore();
 const folders = computed(() => taskStore.getFolders);
-const tasks = computed(() => taskStore.getTasks);
+const tasks = computed(() => [...taskStore.getTasks]);
 const newTask = ref("");
 const editingTask = ref<{ id: string; content: string } | null>(null);
 const deleteConfirm = ref<{ id: string; content: string } | null>(null);
