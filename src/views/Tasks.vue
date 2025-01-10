@@ -241,7 +241,6 @@ onMounted(() => {
 }
 
 .input-field {
-  outline: none;
   padding: 0.75rem;
   border: 1px solid #ddd;
   border-radius: 6px;
