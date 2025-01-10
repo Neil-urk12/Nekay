@@ -1,174 +1,161 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import { useNotesStore } from '../stores/notes'
-import { storeToRefs } from 'pinia'
-import type { Task, Folder } from '../stores/notes'
+import { ref, computed, onMounted } from "vue";
+import { useNotesStore } from "../stores/notes";
+// import { storeToRefs } from "pinia";
+import { Task, Folder } from "../composables/interfaces";
 
-const store = useNotesStore()
-const { tasks, folders, loading, error } = storeToRefs(store)
+const taskStore = useNotesStore();
+// const { tasks, folders, loading, error } = storeToRefs(taskStore);
 
-const newTaskTitle = ref('')
-const newFolderName = ref('')
-const selectedFolderId = ref<string | null>(null)
-const backgroundImage = ref('')
-const timeOfDay = ref('')
-const editingTaskId = ref<string | null>(null)
-const editingTaskTitle = ref('')
-const editingFolderId = ref<string | null>(null)
-const editingFolderName = ref('')
-const itemToDelete = ref<{ id: string; type: 'task' | 'folder'; name: string } | null>(null)
-const showDeleteModal = ref(false)
-const localError = ref<string | null>(null)
+const loading = computed(() => taskStore.loading);
+const tasks = computed(() => taskStore.getTasks);
+const folders = computed(() => taskStore.getFolders);
+const newTaskTitle = ref("");
+const newFolderName = ref("");
+const selectedFolderId = ref<string | null>(null);
+const editingTaskId = ref<string | null>(null);
+const editingTaskTitle = ref("");
+const editingFolderId = ref<string | null>(null);
+const editingFolderName = ref("");
+const itemToDelete = ref<{
+  id: string;
+  type: "task" | "folder";
+  name: string;
+} | null>(null);
+const showDeleteModal = ref(false);
+const localError = ref<string | null>(null);
 
-const determineTimeOfDay = () => {
-  const hour = new Date().getHours()
-  
-  if (hour >= 5 && hour < 12) {
-    timeOfDay.value = 'morning'
-    backgroundImage.value = 'url(/public/assets/bgsky.jpg)'
-  } else if (hour >= 12 && hour < 13) {
-    timeOfDay.value = 'noon'
-    backgroundImage.value = 'url(/public/assets/sunsetbg.jpg)'
-  } else if (hour >= 13 && hour < 17) {
-    timeOfDay.value = 'afternoon'
-    backgroundImage.value = 'url(/public/assets/bgsky.jpg)'
-  } else if (hour >= 17 && hour < 21) {
-    timeOfDay.value = 'evening'
-    backgroundImage.value = 'url(/public/assets/sunsetbg.jpg)'
-  } else {
-    timeOfDay.value = 'night'
-    backgroundImage.value = 'url(/public/assets/moonbg.gif)'
-  }
-}
-
-watch(() => error.value, (newError) => {
-  if (newError) {
-    localError.value = newError
-    setTimeout(() => {
-      localError.value = null
-      store.$patch({ error: null })
-    }, 5000)
-  }
-})
-
-const confirmDelete = (id: string, type: 'task' | 'folder', name: string) => {
-  itemToDelete.value = { id, type, name }
-  showDeleteModal.value = true
-}
+const confirmDelete = (id: string, type: "task" | "folder", name: string) => {
+  itemToDelete.value = { id, type, name };
+  showDeleteModal.value = true;
+};
 
 const handleDelete = async () => {
-  if (!itemToDelete.value) return
-  
+  if (!itemToDelete.value) return;
+
   try {
-    const { id, type } = itemToDelete.value
-    if (type === 'task') {
-      await store.deleteTask(id)
+    const { id, type } = itemToDelete.value;
+    if (type === "task") {
+      await taskStore.deleteTask(id);
     } else {
-      await store.deleteFolder(id)
+      await taskStore.deleteFolder(id);
     }
-    showDeleteModal.value = false
-    itemToDelete.value = null
+    showDeleteModal.value = false;
+    itemToDelete.value = null;
   } catch (error) {
-    localError.value = error instanceof Error ? error.message : 'An error occurred'
+    localError.value =
+      error instanceof Error ? error.message : "An error occurred";
   }
-}
+};
+
+// const addTask = async () => {
+//   if (!newTaskTitle.value.trim()) return;
+
+//   try {
+//     await taskStore.addTask(newTaskTitle.value, selectedFolderId.value);
+//     newTaskTitle.value = "";
+//   } catch (error) {
+//     localError.value =
+//       error instanceof Error ? error.message : "Failed to add task";
+//   }
+// };
 
 const addTask = async () => {
-  if (!newTaskTitle.value.trim()) return
-  
   try {
-    await store.addTask(newTaskTitle.value, selectedFolderId.value)
-    newTaskTitle.value = ''
-  } catch (error) {
-    localError.value = error instanceof Error ? error.message : 'Failed to add task'
+    if (!newTaskTitle.value.trim()) return;
+  } catch (err) {
+    console.error(err);
   }
-}
+};
 
 const addFolder = async () => {
-  if (!newFolderName.value.trim()) return
-  
+  if (!newFolderName.value.trim()) return;
+
   try {
-    await store.addFolder(newFolderName.value, 'task')
-    newFolderName.value = ''
+    await taskStore.addFolder(newFolderName.value, "task");
+    newFolderName.value = "";
   } catch (error) {
-    localError.value = error instanceof Error ? error.message : 'Failed to add folder'
+    localError.value =
+      error instanceof Error ? error.message : "Failed to add folder";
   }
-}
+};
 
 const editTask = (taskId: string) => {
-  const task = tasks.value.find((t): t is Task => t.id === taskId)
+  const task = tasks.value.find((t): t is Task => t.id === taskId);
   if (task) {
-    editingTaskId.value = taskId
-    editingTaskTitle.value = task.title
+    editingTaskId.value = taskId;
+    editingTaskTitle.value = task.title;
   }
-}
+};
 
 const saveEditedTask = async () => {
-  if (!editingTaskId.value || !editingTaskTitle.value.trim()) return
-  
+  if (!editingTaskId.value || !editingTaskTitle.value.trim()) return;
+
   try {
-    await store.editTask(editingTaskId.value, { title: editingTaskTitle.value })
-    editingTaskId.value = null
-    editingTaskTitle.value = ''
+    await taskStore.editTask(editingTaskId.value, {
+      title: editingTaskTitle.value,
+    });
+    editingTaskId.value = null;
+    editingTaskTitle.value = "";
   } catch (error) {
-    localError.value = error instanceof Error ? error.message : 'Failed to edit task'
+    localError.value =
+      error instanceof Error ? error.message : "Failed to edit task";
   }
-}
+};
 
 const cancelEditTask = () => {
-  editingTaskId.value = null
-  editingTaskTitle.value = ''
-}
+  editingTaskId.value = null;
+  editingTaskTitle.value = "";
+};
 
-const editFolder = (folderId: string) => {
-  const folder = folders.value.find((f): f is Folder => f.id === folderId)
-  if (folder) {
-    editingFolderId.value = folderId
-    editingFolderName.value = folder.name
-  }
-}
+// const editFolder = (folderId: string) => {
+//   const folder = folders.value.find((f): f is Folder => f.id === folderId);
+//   if (folder) {
+//     editingFolderId.value = folderId;
+//     editingFolderName.value = folder.name;
+//   }
+// };
 
-const saveEditedFolder = async () => {
-  if (!editingFolderId.value || !editingFolderName.value.trim()) return
-  try {
-    await store.editFolder(editingFolderId.value, { 
-      name: editingFolderName.value.trim(),
-      type: 'task' // Preserve the folder type
-    })
-    editingFolderId.value = null
-    editingFolderName.value = ''
-  } catch (error) {
-    localError.value = error instanceof Error ? error.message : 'Failed to edit folder'
-  }
-}
+// const saveEditedFolder = async () => {
+//   if (!editingFolderId.value || !editingFolderName.value.trim()) return;
+//   try {
+//     await taskStore.editFolder(editingFolderId.value, {
+//       name: editingFolderName.value.trim(),
+//       type: "task", // Preserve the folder type
+//     });
+//     editingFolderId.value = null;
+//     editingFolderName.value = "";
+//   } catch (error) {
+//     localError.value =
+//       error instanceof Error ? error.message : "Failed to edit folder";
+//   }
+// };
 
 const cancelEditFolder = () => {
-  editingFolderId.value = null
-  editingFolderName.value = ''
-}
+  editingFolderId.value = null;
+  editingFolderName.value = "";
+};
 
-const filteredTasks = computed(() => {
-  const nonDeletedTasks = tasks.value.filter(task => !task.deleted);
-  if (!selectedFolderId.value) return nonDeletedTasks;
-  return nonDeletedTasks.filter((task): task is Task => task.folderId === selectedFolderId.value);
-})
+// const filteredTasks = computed(() => {
+//   const nonDeletedTasks = tasks.value.filter((task) => !task.deleted);
+//   if (!selectedFolderId.value) return nonDeletedTasks;
+//   return nonDeletedTasks.filter(
+//     (task): task is Task => task.folderId === selectedFolderId.value
+//   );
+// });
 
 onMounted(async () => {
-  setInterval(determineTimeOfDay, 60000)
-  determineTimeOfDay()
   try {
-    await Promise.all([
-      store.fetchTasks(),
-      store.fetchFolders()
-    ])
+    // await Promise.all([taskStore.fetchTasks(), taskStore.fetchFolders()]);
   } catch (error) {
-    localError.value = error instanceof Error ? error.message : 'Failed to fetch data'
+    localError.value =
+      error instanceof Error ? error.message : "Failed to fetch data";
   }
-})
+});
 </script>
 
 <template>
-  <div class="tasks-container" :style="{ backgroundImage }">
+  <div class="tasks-container">
     <div v-if="localError" class="error-toast">
       {{ localError }}
     </div>
@@ -183,8 +170,12 @@ onMounted(async () => {
         <h3>Confirm Delete</h3>
         <p>Are you sure you want to delete "{{ itemToDelete?.name }}"?</p>
         <div class="modal-actions">
-          <button class="primary-button" @click="handleDelete">Yes, Delete</button>
-          <button class="secondary-button" @click="showDeleteModal = false">Cancel</button>
+          <button class="primary-button" @click="handleDelete">
+            Yes, Delete
+          </button>
+          <button class="secondary-button" @click="showDeleteModal = false">
+            Cancel
+          </button>
         </div>
       </div>
     </div>
@@ -203,7 +194,9 @@ onMounted(async () => {
         />
         <div class="modal-actions">
           <button class="primary-button" @click="saveEditedTask">Save</button>
-          <button class="secondary-button" @click="cancelEditTask">Cancel</button>
+          <button class="secondary-button" @click="cancelEditTask">
+            Cancel
+          </button>
         </div>
       </div>
     </div>
@@ -222,16 +215,18 @@ onMounted(async () => {
         />
         <div class="modal-actions">
           <button class="primary-button" @click="saveEditedFolder">Save</button>
-          <button class="secondary-button" @click="cancelEditFolder">Cancel</button>
+          <button class="secondary-button" @click="cancelEditFolder">
+            Cancel
+          </button>
         </div>
       </div>
     </div>
 
     <div class="content">
-      <div class="folders-section">
+      <!-- <div class="folders-section">
         <h2>Folders</h2>
         <div class="folder-list">
-          <button 
+          <button
             class="folder-item"
             :class="{ active: !selectedFolderId }"
             @click="selectedFolderId = null"
@@ -247,16 +242,18 @@ onMounted(async () => {
           >
             <p>{{ folder.name }}</p>
             <div class="folder-actions">
-              <button 
+              <button
                 class="icon-button edit-button"
                 @click.stop="editFolder(folder.id ?? '')"
                 v-if="folder.id"
               >
                 ✏️
               </button>
-              <button 
+              <button
                 class="icon-button delete-button"
-                @click.stop="folder.id && confirmDelete(folder.id, 'folder', folder.name)"
+                @click.stop="
+                  folder.id && confirmDelete(folder.id, 'folder', folder.name)
+                "
                 v-if="folder.id"
               >
                 🗑️
@@ -273,7 +270,7 @@ onMounted(async () => {
           />
           <button class="primary-button" @click="addFolder">Add Folder</button>
         </div>
-      </div>
+      </div> -->
 
       <div class="tasks-section">
         <div class="add-task">
@@ -296,7 +293,10 @@ onMounted(async () => {
               <input
                 type="checkbox"
                 :checked="task.completed"
-                @change="task.id && store.editTask(task.id, { completed: !task.completed })"
+                @change="
+                  task.id &&
+                    taskStore.editTask(task.id, { completed: !task.completed })
+                "
               />
               <span class="task-title">{{ task.title }}</span>
               <div class="task-actions">
@@ -322,7 +322,7 @@ onMounted(async () => {
 </template>
 
 <style scope>
-*{
+* {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -342,10 +342,12 @@ onMounted(async () => {
   font-size: 1.5rem;
   font-weight: bold;
   color: var(--text-color);
-  text-align: center
+  text-align: center;
 }
-.folder-item{padding: 0.5rem 1rem;}
-.folder-actions{
+.folder-item {
+  padding: 0.5rem 1rem;
+}
+.folder-actions {
   display: flex;
   gap: 0.5rem;
   margin-left: auto;
@@ -378,7 +380,7 @@ onMounted(async () => {
 }
 .add-task input {
   flex: 1;
-  min-width: 0; 
+  min-width: 0;
   padding: 0.75rem;
   border: 1px solid var(--border-color, #ddd);
   border-radius: 8px;
@@ -498,7 +500,7 @@ onMounted(async () => {
   margin: 1rem;
   box-sizing: border-box;
 }
-.modal-actions{
+.modal-actions {
   display: flex;
   gap: 1rem;
 }
