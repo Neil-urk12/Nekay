@@ -10,8 +10,7 @@ const newFolderName = ref("");
 const editingFolder = ref<{ id: string; name: string } | null>(null);
 const deleteConfirm = ref<{ id: string; name: string } | null>(null);
 
-const folders = computed(() => [...noteStore.getFolders]);
-// const folders = computed(() => noteStore.folders);
+const folders = computed(() => [...noteStore.getFolders.filter((folder) => folder.type === "task")]);
 
 const navigateToFolder = (folderId: string) => {
   router.push(`/folders/${folderId}`);
