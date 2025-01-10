@@ -289,7 +289,7 @@ onMounted(() => {
 }
 
 .modal-content {
-  background: white;
+  background: rgba(255, 245, 246, 0.594);
   padding: 0;
   border-radius: 12px;
   max-width: 400px;
@@ -300,7 +300,6 @@ onMounted(() => {
 
 .modal-header {
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #eee;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -318,14 +317,15 @@ onMounted(() => {
 
 .modal-body p {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.25rem;
   line-height: 1.5;
 }
 
 .warning-text {
   margin-top: 0.75rem !important;
   color: #dc3545;
-  font-size: 0.875rem !important;
+  font-size: 1rem !important;
+  font-weight: 600;
 }
 
 .folder-highlight {
@@ -335,7 +335,6 @@ onMounted(() => {
 
 .modal-actions {
   padding: 1rem 1.5rem;
-  border-top: 1px solid #eee;
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
