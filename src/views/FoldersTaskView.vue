@@ -134,8 +134,26 @@ onMounted(async () => {
               v-focus
             />
             <div class="task-actions">
-              <button class="icon-btn" @click="saveEdit(task)">✓</button>
-              <button class="icon-btn" @click="cancelEdit">✕</button>
+              <button class="icon-btn" @click="saveEdit(task)"><svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 448 512"
+                width="0.95rem"
+              >
+                <path
+                  fill="#63E6BE"
+                  d="M438.6 105.4c12.5 12.5 12.5 32.8 0 45.3l-256 256c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L160 338.7 393.4 105.4c12.5-12.5 32.8-12.5 45.3 0z"
+                />
+              </svg></button>
+              <button class="icon-btn" @click="cancelEdit"><svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 384 512"
+                width="0.95rem"
+              >
+                <path
+                  fill="#f66151"
+                  d="M378.4 71.4c8.5-10.1 7.2-25.3-2.9-33.8s-25.3-7.2-33.8 2.9L192 218.7 42.4 40.6C33.9 30.4 18.7 29.1 8.6 37.6S-2.9 61.3 5.6 71.4L160.7 256 5.6 440.6c-8.5 10.2-7.2 25.3 2.9 33.8s25.3 7.2 33.8-2.9L192 293.3 341.6 471.4c8.5 10.2 23.7 11.5 33.8 2.9s11.5-23.7 2.9-33.8L223.3 256l155-184.6z"
+                />
+              </svg></button>
             </div>
           </template>
           <template v-else>
@@ -170,6 +188,10 @@ onMounted(async () => {
   margin-bottom: 2rem;
 }
 input { outline: none }
+.icon-btn {
+  background: none;
+  padding: 0.25rem 0.5rem
+}
 .back-btn {
   margin-bottom: 1rem;
   padding: 0.5rem 1rem;
@@ -178,6 +200,7 @@ input { outline: none }
   cursor: pointer;
   color: white;
 }
+.btn-primary { font-weight: bold; color: white}
 .back-btn:hover {
   color: rgb(84, 84, 242);
 }
@@ -186,6 +209,7 @@ input { outline: none }
 }
 .task-item {
   background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
   border-radius: 8px;
   padding: 1rem;
   border: 1px solid #e1e3e6;
