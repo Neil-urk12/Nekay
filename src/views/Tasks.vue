@@ -63,7 +63,7 @@ onMounted(() => {
   <div class="tasks-container">
     <header class="page-header">
       <button class="back-btn" @click="router.push('/folders')">
-        <i class="fas fa-arrow-left"></i> Back to Folders
+        ← Back to Folders
       </button>
       <h1>All Tasks</h1>
       <div class="add-task">

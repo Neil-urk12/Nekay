@@ -255,6 +255,10 @@ onMounted(() => {
   border-radius: 4px;
   cursor: pointer;
 }
+.btn-primary {
+  color: white;
+  font-weight: bold;
+}
 .btn-secondary {
   background: #6c757d;
   color: white;
