@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
 import { Task, JournalEntry, Folder } from "../composables/interfaces";
 import { generateUUID } from "../utils/functions";
-import { addDoc, collection } from "firebase/firestore";
-import { db as fireDb } from "../firebase/firebase-config";
+// import { addDoc, collection } from "firebase/firestore";
+// import { db as fireDb } from "../firebase/firebase-config";
 import { db } from "../services/indexedDB";
 
 export const useNotesStore = defineStore("notes", {
@@ -18,12 +18,8 @@ export const useNotesStore = defineStore("notes", {
   }),
 
   getters: {
-    getFolders(state) {
-      return state.folders;
-    },
-    getTasks(state) {
-      return state.tasks;
-    },
+    getFolders: (state) => state.folders,
+    getTasks: (state) => state.tasks,
     tasksByFolder: (state) => (folderId: string | null) => {
       return state.tasks.filter((task) => task.folderId === folderId);
     },
@@ -89,7 +85,7 @@ export const useNotesStore = defineStore("notes", {
           // await addDoc(collection(fireDb, "tasks"), newTask);
         }
         await db.createTask(newTask);
-        this.loadTasks();
+        this.tasks = [...this.tasks, newTask];
         this.error = null;
       } catch (error) {
         this.setError(error);
@@ -129,16 +125,12 @@ export const useNotesStore = defineStore("notes", {
 
     async deleteTask(taskId: string) {
       try {
-        const timestamp = Date.now();
         const taskIndex = this.tasks.findIndex((t) => t.id === taskId);
 
         if (taskIndex === -1) throw new Error("Task not found");
 
         await db.deleteTask(taskId);
-
-        // Update local state
-        this.tasks.splice(taskIndex, 1);
-
+        this.loadTasks();
         // Trigger sync
         // await syncService.syncData();
 
@@ -174,7 +166,7 @@ export const useNotesStore = defineStore("notes", {
         }
 
         await db.createFolder(newFolder);
-
+        this.folders = [...this.folders, newFolder];
         this.error = null;
       } catch (error) {
         this.setError(error);
