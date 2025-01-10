@@ -1,8 +1,14 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import AddFolderModal from '../components/AddFolderModal.vue';
+import EditFolderModal from '../components/EditFolderModal.vue';
+import DeleteConfirmModal from '../components/DeleteConfirmModal.vue';
 
 const showAddFolderModal = ref(false);
+const showEditFolderModal = ref(false);
+const showDeleteModal = ref(false);
+const selectedFolder = ref(null);
+const folderToDelete = ref(null);
 const folders = ref([
   { id: 1, name: 'Personal' },
   { id: 2, name: 'Work' },
@@ -16,6 +22,29 @@ const addFolder = (name) => {
     ? Math.max(...folders.value.map(f => f.id)) + 1 
     : 1;
   folders.value.push({ id: newId, name });
+};
+
+const editFolder = (updatedFolder) => {
+  const index = folders.value.findIndex(f => f.id === updatedFolder.id);
+  if (index !== -1) {
+    folders.value[index] = { ...folders.value[index], ...updatedFolder };
+  }
+};
+
+const openDeleteModal = (folder) => {
+  folderToDelete.value = folder;
+  showDeleteModal.value = true;
+};
+
+const deleteFolder = () => {
+  folders.value = folders.value.filter(f => f.id !== folderToDelete.value.id);
+  showDeleteModal.value = false;
+  folderToDelete.value = null;
+};
+
+const openEditModal = (folder) => {
+  selectedFolder.value = folder;
+  showEditFolderModal.value = true;
 };
 
 </script>
@@ -35,7 +64,7 @@ const addFolder = (name) => {
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1rem"><path fill="#000000" d="M0 96C0 60.7 28.7 32 64 32l132.1 0c19.1 0 37.4 7.6 50.9 21.1L289.9 96 448 96c35.3 0 64 28.7 64 64l0 256c0 35.3-28.7 64-64 64L64 480c-35.3 0-64-28.7-64-64L0 96zM64 80c-8.8 0-16 7.2-16 16l0 320c0 8.8 7.2 16 16 16l384 0c8.8 0 16-7.2 16-16l0-256c0-8.8-7.2-16-16-16l-161.4 0c-10.6 0-20.8-4.2-28.3-11.7L213.1 87c-4.5-4.5-10.6-7-17-7L64 80z"/></svg>
         <h2>{{ folder.name }}</h2>
         <div class="folder-actions">
-          <button class="editFolder">
+          <button class="editFolder" @click="openEditModal(folder)">
             <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 512 512"
@@ -47,7 +76,7 @@ const addFolder = (name) => {
                 />
               </svg>
           </button>
-          <button class="deleteFolder">
+          <button class="deleteFolder" @click="openDeleteModal(folder)">
             <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 448 512"
@@ -66,6 +95,18 @@ const addFolder = (name) => {
       v-if="showAddFolderModal"
       @close="showAddFolderModal = false"
       @addFolder="addFolder"
+    />
+    <EditFolderModal
+      v-if="showEditFolderModal"
+      :folder="selectedFolder"
+      @close="showEditFolderModal = false"
+      @editFolder="editFolder"
+    />
+    <DeleteConfirmModal
+      v-if="showDeleteModal"
+      :folder-name="folderToDelete?.name"
+      @close="showDeleteModal = false"
+      @confirm="deleteFolder"
     />
   </div>
 </template>
