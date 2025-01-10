@@ -13,14 +13,6 @@ code {
     monospace;
 }
 
-.tasks-container {
-  min-height: 100vh;
-  background-color: #f8e7f1; /* Lighter shade of pink */
-  padding: 0.5rem;
-  padding-bottom: 5rem;
-  background-size: cover;
-}
-
 .content-card {
   background-color: white;
   border-radius: 1.5rem;

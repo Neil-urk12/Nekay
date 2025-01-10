@@ -14,7 +14,7 @@ export interface Task extends BaseItem {
 export interface Folder {
   id: string;
   name: string;
-  type: "task" | "journal";
+  type: "task" | "journal" | "allTasks";
   syncStatus: "synced" | "pending" | "failed";
   numOfItems: number;
   lastModified: number;
