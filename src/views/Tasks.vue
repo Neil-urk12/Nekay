@@ -9,15 +9,15 @@ const router = useRouter();
 const taskStore = useNotesStore();
 const folders = computed(() => taskStore.getFolders);
 const tasks = computed(() => taskStore.getTasks);
-const newTaskTitle = ref("");
+const newTask = ref("");
 const editingTask = ref<{ id: string; content: string } | null>(null);
 const deleteConfirm = ref<{ id: string; content: string } | null>(null);
 
 const addTask = async () => {
-  if (!newTaskTitle.value.trim()) return;
+  if (!newTask.value.trim()) return;
   try {
-    await taskStore.addTask(newTaskTitle.value, undefined);
-    newTaskTitle.value = "";
+    await taskStore.addTask(newTask.value, undefined);
+    newTask.value = "";
   } catch (error) {
     console.error("Failed to add task:", error);
   }
@@ -68,7 +68,7 @@ onMounted(() => {
       <h1>All Tasks</h1>
       <div class="add-task">
         <input
-          v-model="newTaskTitle"
+          v-model="newTask"
           placeholder="Add a new task..."
           @keyup.enter="addTask"
           class="input-field"
@@ -280,7 +280,15 @@ onMounted(() => {
 .task-content {
   display: flex;
   align-items: center;
+  min-width: 0;
   gap: 1rem;
+  flex: 1;
+}
+
+.task-content span {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
   flex: 1;
 }
 
