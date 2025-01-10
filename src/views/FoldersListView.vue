@@ -172,24 +172,33 @@ onMounted(() => {
   gap: 1rem;
 }
 .folder-card {
-  background: #f2f3f7;
+  background: rgba(242, 243, 247, 0.427);
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 0.75rem 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
+  backdrop-filter: blur(10px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex-wrap: wrap;
 }
 .folder-card:hover {
   border-color: #2196f3;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
+.folder-info {
+  flex: 1;
+  min-width: 0;
+  margin-right: 1rem;
+}
 .folder-info h2 {
   margin: 0;
   font-size: 1.25rem;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 .folder-info p {
   margin: 0.25rem 0 0;
@@ -198,11 +207,13 @@ onMounted(() => {
 .folder-actions {
   display: flex;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 .arrow {
   font-size: 1.5rem;
   margin-left: 1rem;
-  color: var(--primary-color);
+  color: black;
+  flex-shrink: 0;
 }
 .edit-input {
   width: 100%;
