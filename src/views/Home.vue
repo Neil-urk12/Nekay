@@ -1,11 +1,12 @@
 <script lang="ts" setup>
 import { ref, onMounted, computed, defineAsyncComponent } from "vue";
+import { TimeOfDay, useBackgroundStore } from "../stores/backgroundStore";
 const MelodyHeader = defineAsyncComponent(
   () => import("../components/MelodyHeader.vue")
 );
 
-export type TimeOfDay = "morning" | "noon" | "afternoon" | "evening" | "night";
 const timeOfDay = ref<TimeOfDay>("morning");
+const backgroundStore = useBackgroundStore();
 
 const greetingMessage = computed(() => {
   const messages: Record<TimeOfDay, string> = {
@@ -17,38 +18,13 @@ const greetingMessage = computed(() => {
   };
   return messages[timeOfDay.value as TimeOfDay] || "Have a great day!";
 });
-
-const backgroundImage = ref("");
-
-const determineTimeOfDay = () => {
-  const hour = new Date().getHours();
-
-  if (hour >= 5 && hour < 12) {
-    timeOfDay.value = "morning";
-    backgroundImage.value = "url(/assets/bgsky.png)";
-  } else if (hour >= 12 && hour < 13) {
-    timeOfDay.value = "noon";
-    backgroundImage.value = "url(src/assets/noonbg.jpg)";
-  } else if (hour >= 13 && hour < 18) {
-    timeOfDay.value = "afternoon";
-    backgroundImage.value = "url(src/assets/newsunset.jpg)";
-  } else if (hour >= 18 && hour < 20) {
-    timeOfDay.value = "evening";
-    backgroundImage.value = "url(/assets/sunsetbg.jpg)";
-  } else {
-    timeOfDay.value = "night";
-    backgroundImage.value = "url(/assets/moonbg.gif)";
-  }
-};
-
-onMounted(() => {
-  setInterval(determineTimeOfDay, 60000);
-  determineTimeOfDay();
-});
 </script>
 
 <template>
-  <div class="home-container" :style="{ backgroundImage: backgroundImage }">
+  <div
+    class="home-container"
+    :style="{ backgroundImage: backgroundStore.backgroundImage }"
+  >
     <MelodyHeader />
     <div class="cloud-icon animate-float">
       <img src="/assets/cloud.png" alt="Cloud" class="cloud" loading="lazy" />
