@@ -251,8 +251,7 @@ onMounted(() => {
 }
 
 .input-field:focus {
-  border-color: var(--primary-color);
-  outline: none;
+  border-color: rgb(206, 0, 158);
 }
 
 .tasks-list {

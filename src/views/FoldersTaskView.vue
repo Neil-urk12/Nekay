@@ -169,6 +169,7 @@ onMounted(async () => {
 .page-header {
   margin-bottom: 2rem;
 }
+input { outline: none }
 .back-btn {
   margin-bottom: 1rem;
   padding: 0.5rem 1rem;
