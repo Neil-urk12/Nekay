@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { TimeOfDay } from "../views/Home.vue";
+
+export type TimeOfDay = "morning" | "noon" | "afternoon" | "evening" | "night";
 
 export const useBackgroundStore = defineStore("background", () => {
   const backgroundImage = ref("");
@@ -26,7 +27,7 @@ export const useBackgroundStore = defineStore("background", () => {
     } else {
       timeOfDay.value = "night";
       setBackground("url(https://s6.imgcdn.dev/pSnuu.gif)");
-    }  
+    }
   };
 
   return { backgroundImage, setBackground, determineTimeOfDay, timeOfDay };
