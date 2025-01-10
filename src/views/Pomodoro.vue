@@ -107,6 +107,9 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+* {
+  font-family: "Concert One", "Montserrat", sans-serif;
+}
 .pomodoro-container {
   min-height: 100vh;
   background-color: #fce7f3;
