@@ -10,7 +10,7 @@ const newFolderName = ref("");
 const editingFolder = ref<{ id: string; name: string } | null>(null);
 const deleteConfirm = ref<{ id: string; name: string } | null>(null);
 
-const folders = computed(() => noteStore.getFolders);
+const folders = computed(() => [...noteStore.getFolders]);
 // const folders = computed(() => noteStore.folders);
 
 const navigateToFolder = (folderId: string) => {
