@@ -61,6 +61,9 @@ const route = useRoute();
 </template>
 
 <style scoped>
+* {
+  font-family: "Concert One", "Montserrat", sans-serif;
+}
 .bottom-nav {
   position: fixed;
   bottom: 0;

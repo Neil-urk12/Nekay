@@ -198,6 +198,12 @@ onMounted(() => {
 </template>
 
 <style scoped>
+* {
+  font-family: "Concert One", "Montserrat", sans-serif;
+}
+h1 {
+  color: white;
+}
 .folders-view {
   padding: 1rem;
   max-width: 800px;
@@ -208,6 +214,7 @@ onMounted(() => {
 }
 .folder-count {
   color: #5c5e61;
+  font-weight: 300;
 }
 .page-header {
   margin-bottom: 2rem;
