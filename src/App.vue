@@ -1,44 +1,17 @@
 <script setup lang="ts">
 import { defineAsyncComponent, onMounted, ref } from "vue";
-import { TimeOfDay } from "./views/Home.vue";
+import { useBackgroundStore } from "./stores/backgroundStore";
 const BottomNav = defineAsyncComponent(
   () => import("./components/BottomNav.vue")
 );
+const backgroundStore = useBackgroundStore();
 const isLoading = ref(true);
 const error = ref<Error | null>(null);
 
-const backgroundImage = ref("");
-
-const timeOfDay = ref<TimeOfDay>("morning");
-
-const determineTimeOfDay = () => {
-  const hour = new Date().getHours();
-
-  if (hour >= 5 && hour < 12) {
-    timeOfDay.value = "morning";
-    backgroundImage.value = "url(/assets/bgsky.png)";
-  } else if (hour >= 12 && hour < 13) {
-    timeOfDay.value = "noon";
-    backgroundImage.value = "url(src/assets/noonbg.jpg)";
-  } else if (hour >= 13 && hour < 18) {
-    timeOfDay.value = "afternoon";
-    backgroundImage.value = "url(src/assets/newsunset.jpg)";
-  } else if (hour >= 18 && hour < 20) {
-    timeOfDay.value = "evening";
-    backgroundImage.value = "url(/assets/sunsetbg.jpg)";
-  } else {
-    timeOfDay.value = "night";
-    backgroundImage.value = "url(/assets/moonbg.gif)";
-  }
-};
-
-onMounted(() => {
-  setInterval(determineTimeOfDay, 60000);
-  determineTimeOfDay();
-});
-
 onMounted(async () => {
   try {
+    backgroundStore.determineTimeOfDay();
+    setInterval(() => backgroundStore.determineTimeOfDay, 60000);
     // if (!initialized.value)
     //   await notesStore.initialise()
     // await notesStore.fetchFromFirebase()
@@ -52,7 +25,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="app-container" :style="{ backgroundImage }">
+  <div
+    class="app-container"
+    :style="{ backgroundImage: backgroundStore.backgroundImage }"
+  >
     <div v-if="error" class="error-message">
       {{ error.message }}
     </div>
