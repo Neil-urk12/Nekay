@@ -92,7 +92,12 @@ onMounted(() => {
     </div>
 
     <div class="journal-folder-list">
+      <div v-if="folders.length === 0" class="empty-state">
+        <p>No folders yet. Create your first journal folder!</p>
+      </div>
+
       <div
+        v-else
         class="journal-folder"
         v-for="folder in folders"
         :key="folder.id"
@@ -248,5 +253,12 @@ h1 {
 .folder-actions button:hover {
   opacity: 0.8;
   transform: scale(1.1);
+}
+
+.empty-state {
+  text-align: center;
+  background: pink;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
 }
 </style>
