@@ -74,8 +74,8 @@ const openEditModal = (folder: Folder) => {
   showEditFolderModal.value = true;
 };
 
-const navigateToFolder = (folder: Folder) =>
-  router.push(`/folder/${folder.id}`);
+const navigateToFolder = (folderId: string) =>
+  router.push(`/journal/${folderId}`);
 
 onMounted(() => {
   if (folders.value.length === 0) journalStore.loadFolders();
@@ -101,7 +101,7 @@ onMounted(() => {
         class="journal-folder"
         v-for="folder in folders"
         :key="folder.id"
-        @click="navigateToFolder(folder)"
+        @click="navigateToFolder(folder.id)"
       >
         <div class="folderInfo">
           <svg
