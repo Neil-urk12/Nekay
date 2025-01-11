@@ -18,30 +18,15 @@ export const useNotesStore = defineStore("notes", {
   }),
 
   getters: {
+    getEntries: (state) => state.journalEntries,
+    getJournalFolders: (state) => {
+      return state.folders.filter((f) => f.type === "journal");
+    },
+    getTaskFolders: (state) => {
+      return state.folders.filter((f) => f.type === "task");
+    },
     getFolders: (state) => state.folders,
     getTasks: (state) => state.tasks,
-    tasksByFolder: (state) => (folderId: string | null) => {
-      return state.tasks.filter((task) => task.folderId === folderId);
-    },
-    entriesByFolder: (state) => (folderId: string | null) => {
-      return state.journalEntries.filter(
-        (entry) => entry.folderId === folderId
-      );
-    },
-    pendingChanges: (state) => {
-      const pendingTasks = state.tasks.filter(
-        (t) => t.syncStatus === "pending"
-      );
-      const pendingEntries = state.journalEntries.filter(
-        (e) => e.syncStatus === "pending"
-      );
-      const pendingFolders = state.folders.filter(
-        (f) => f.syncStatus === "pending"
-      );
-      return (
-        pendingTasks.length + pendingEntries.length + pendingFolders.length
-      );
-    },
   },
 
   actions: {
@@ -56,14 +41,6 @@ export const useNotesStore = defineStore("notes", {
       } catch (err) {
         console.error(err);
       }
-    },
-
-    async syncWithServer() {
-      if (!navigator.onLine) {
-        console.log("Offline, skipping sync");
-        return;
-      }
-      // await syncService.syncData();
     },
 
     async addTask(taskContent: string, folderId: string | undefined) {
@@ -184,7 +161,7 @@ export const useNotesStore = defineStore("notes", {
 
     async editFolder(folderId: string, updates: Partial<Folder>) {
       try {
-        if (!folderId && !updates) 
+        if (!folderId && !updates)
           throw new Error("Folder ID and updates are required");
 
         const folderIndex = this.folders.findIndex((f) => f.id === folderId);
