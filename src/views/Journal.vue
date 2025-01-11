@@ -38,10 +38,15 @@ const addFolder = async (folderName: string) => {
   }
 };
 
-const editFolder = (updatedFolder) => {
-  const index = folders.value.findIndex((f) => f.id === updatedFolder.id);
-  if (index !== -1) {
-    folders.value[index] = { ...folders.value[index], ...updatedFolder };
+const editFolder = async (updatedFolder: Partial<Folder>) => {
+  try {
+    if (!updatedFolder || !updatedFolder.id) return;
+
+    await journalStore.editFolder(updatedFolder.id, {
+      name: updatedFolder.name,
+    });
+  } catch (err) {
+    console.error("Error editing folder", err);
   }
 };
 

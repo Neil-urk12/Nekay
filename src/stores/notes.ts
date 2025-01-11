@@ -182,8 +182,11 @@ export const useNotesStore = defineStore("notes", {
       } catch (err) {}
     },
 
-    async editFolder(folderId: string, updates: Partial<Folder> | undefined) {
+    async editFolder(folderId: string, updates: Partial<Folder>) {
       try {
+        if (!folderId && !updates) 
+          throw new Error("Folder ID and updates are required");
+
         const folderIndex = this.folders.findIndex((f) => f.id === folderId);
 
         if (folderIndex === -1) throw new Error("Folder not found");
