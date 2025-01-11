@@ -2,18 +2,18 @@
 const props = defineProps({
   folderName: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 });
 
-const emit = defineEmits(['close', 'confirm']);
+const emit = defineEmits(["close", "confirm"]);
 </script>
 
 <template>
   <div class="modal-overlay">
     <div class="modal-content">
       <h2>Delete Folder</h2>
-      <p>Are you sure you want to delete "{{ folderName }}"?</p>
+      <p>Are you sure you want to delete "{{ props.folderName }}"?</p>
       <div class="button-group">
         <button class="cancel-button" @click="$emit('close')">Cancel</button>
         <button class="delete-button" @click="$emit('confirm')">Delete</button>
@@ -62,7 +62,8 @@ p {
   justify-content: center;
 }
 
-.cancel-button, .delete-button {
+.cancel-button,
+.delete-button {
   padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
