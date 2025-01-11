@@ -96,5 +96,27 @@ class NekayDatabase extends Dexie {
 
     await this.tasks.delete(taskId);
   }
+
+  async createEntry(entry: JournalEntry) {
+    if (!entry) throw new Error("Failed to create journal entry!");
+
+    await this.journal.add(entry);
+  }
+
+  async getEntries() {
+    return await this.journal.toArray();
+  }
+
+  async updateEntry(entryId: string, changes: JournalEntry) {
+    if (!entryId && !changes) throw new Error("Failed to update entry!");
+
+    await this.journal.update(entryId, changes);
+  }
+
+  async deleteEntry(entryId: string) {
+    if (!entryId) throw new Error("Failed to delete entry!");
+
+    await this.journal.delete(entryId);
+  }
 }
 export const db = new NekayDatabase();

@@ -17,6 +17,19 @@ const currentFolder = computed(() =>
 const currentFolderEntries = computed(() =>
   entries.value.filter((task) => task.folderId === currentFolderId.value)
 );
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const year = date.getFullYear().toString().slice(-2); // Get last 2 digits of year
+  const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are 0-indexed
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+// const formattedEntries = computed(() =>
+//   currentFolderEntries.value.map((entry) => ({
+//     ...entry,
+//     formattedDate: formatDate(entry.date),
+//   }))
+// );
 
 const showModal = ref(false);
 const openModal = () => {
@@ -27,27 +40,31 @@ const closeModal = () => {
 };
 
 const addEntry = async (entry: { title: string; content: string }) => {
-  await entryStore.addJournalEntry(entry.title, entry.content, currentFolderId.value);
-  closeModal();
+  try {
+    if (!entry) return;
+
+    await entryStore.addEntry(
+      entry.title.trim(),
+      entry.content.trim(),
+      currentFolderId.value
+    );
+    closeModal();
+  } catch (err) {
+    console.error(err);
+  }
 };
 
-onMounted(() => {
-  if (folders.value.length === 0) entryStore.loadFolders;
-});
-
-const goBack = () => {
-  router.push("/");
-};
-
-onMounted(() => {
+onMounted(async () => {
   if (!currentFolder.value || !currentFolderId.value) router.push("/journal");
+  if (folders.value.length === 0) await entryStore.loadFolders();
+  await entryStore.loadEntries();
 });
 </script>
 
 <template>
   <div class="folder-view">
     <div class="folder-header">
-      <button class="back-button" @click="goBack">
+      <button class="back-button" @click="router.push('/journal')">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 448 512"
@@ -74,7 +91,8 @@ onMounted(() => {
         :key="entry.id"
         class="entry-item"
       >
-        {{ entry.title }}
+        <h2 class="entry-title">{{ entry.title }}</h2>
+        <p class="entry-date">{{ formatDate(entry.date) }}</p>
       </div>
     </div>
 
@@ -142,5 +160,32 @@ h1 {
   text-align: center;
   color: #666;
   margin-top: 2rem;
+}
+
+.entry-item {
+  background-color: #fdf2f8;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #fbcfe8;
+  margin: 0 0 0.5rem 0;
+}
+
+.entry-title {
+  color: #db2777;
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.entry-date {
+  color: #f472b6;
+  font-size: 0.9rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.entries-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 </style>
