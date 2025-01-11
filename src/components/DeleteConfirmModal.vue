@@ -1,10 +1,7 @@
 <script setup lang="ts">
-const props = defineProps({
-  folderName: {
-    type: String,
-    required: true,
-  },
-});
+const props = defineProps<{
+  folderName: string | undefined;
+}>();
 
 const emit = defineEmits(["close", "confirm"]);
 </script>

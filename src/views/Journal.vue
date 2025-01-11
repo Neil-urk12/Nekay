@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, defineAsyncComponent, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { Folder, JournalEntry } from "../composables/interfaces";
+import { Folder } from "../composables/interfaces";
 import { useNotesStore } from "../stores/notes";
 const AddFolderModal = defineAsyncComponent(
   () => import("../components/AddFolderModal.vue")
@@ -19,8 +19,8 @@ const journalStore = useNotesStore();
 const showAddFolderModal = ref(false);
 const showEditFolderModal = ref(false);
 const showDeleteModal = ref(false);
-const selectedFolder = ref(null);
-const folderToDelete = ref(null);
+const selectedFolder = ref<Folder | null>(null);
+const folderToDelete = ref<Folder | null>(null);
 
 const folders = computed(() => [
   ...journalStore.getFolders.filter((folder) => folder.type === "journal"),
@@ -50,32 +50,35 @@ const editFolder = async (updatedFolder: Partial<Folder>) => {
   }
 };
 
-const openDeleteModal = (folder) => {
+const openDeleteModal = (folder: Folder) => {
   folderToDelete.value = folder;
   showDeleteModal.value = true;
 };
 
-const deleteFolder = () => {
-  folders.value = folders.value.filter((f) => f.id !== folderToDelete.value.id);
-  showDeleteModal.value = false;
-  folderToDelete.value = null;
+const deleteFolder = async () => {
+  try {
+    if (!folderToDelete.value || !folderToDelete.value.id) return;
+
+    await journalStore.deleteFolder(folderToDelete.value.id);
+
+    showDeleteModal.value = false;
+    folderToDelete.value = null;
+    await journalStore.loadFolders();
+  } catch (err) {
+    console.error("Error deleting folder:", err);
+  }
 };
 
-const openEditModal = (folder) => {
+const openEditModal = (folder: Folder) => {
   selectedFolder.value = folder;
   showEditFolderModal.value = true;
 };
 
-const navigateToFolder = (folder: Folder) => {
+const navigateToFolder = (folder: Folder) =>
   router.push(`/folder/${folder.id}`);
-};
 
 onMounted(() => {
   if (folders.value.length === 0) journalStore.loadFolders();
-  if ("indexedDB" in window) {
-    alert("Toma ligma");
-    alert(folders.value);
-  }
 });
 </script>
 

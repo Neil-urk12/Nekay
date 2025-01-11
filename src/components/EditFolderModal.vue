@@ -1,12 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
-const props = defineProps({
-  folder: {
-    type: Object,
-    required: true,
-  },
-});
+const props = defineProps<{
+  folder: Folder | null;
+}>();
 
 const emit = defineEmits(["close", "editFolder"]);
 const folderName = ref(props.folder.name);
