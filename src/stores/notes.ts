@@ -43,6 +43,14 @@ export const useNotesStore = defineStore("notes", {
       }
     },
 
+    async loadEntries() {
+      try {
+        this.journalEntries = await db.getEntries();
+      } catch (err) {
+        console.error(err);
+      }
+    },
+
     async addTask(taskContent: string, folderId: string | undefined) {
       try {
         const timestamp = Date.now();
@@ -179,14 +187,6 @@ export const useNotesStore = defineStore("notes", {
         await db.updateFolder(folderId, updatedFolder);
         this.folders[folderIndex] = updatedFolder;
 
-        if (navigator.onLine) {
-          //update in firestore later but it should be first
-          // await updateDoc(doc(fireDb, "folders", folderId), updatedFolder)
-        }
-
-        // Trigger sync
-        // await syncService.syncData();
-
         this.error = null;
       } catch (error) {
         this.setError(error);
@@ -207,15 +207,6 @@ export const useNotesStore = defineStore("notes", {
           // something like await deleteDoc(doc(fireDb, "folders", folderId))
         }
 
-        // Update in IndexedDB
-        // await indexedDBService.updateItem<Folder>("folders", folderId, deletedFolder);
-
-        // Update local state
-        // this.folders.splice(folderIndex, 1);
-
-        // Trigger sync
-        // await syncService.syncData();
-
         this.error = null;
       } catch (error) {
         this.setError(error);
@@ -227,31 +218,29 @@ export const useNotesStore = defineStore("notes", {
         throw error;
       }
     },
-
-    async addJournalEntry(
-      title: string,
-      content: string,
-      folderId: string | undefined
-    ): Promise<void> {
-      const timestamp = Date.now();
-      const newEntry: JournalEntry = {
-        id: generateUUID(),
-        title,
-        content,
-        status: "active",
-        date: new Date().toISOString(),
-        folderId,
-        syncStatus: "pending",
-        lastModified: timestamp,
-        timestamp,
-      };
-
-      this.journalEntries.push(newEntry);
+    async addEntry(entryTitle: string, entryContent: string, folderId: string) {
       try {
-        // await indexedDBService.addItem<JournalEntry>('journal', newEntry);
-        // await syncService.syncData();
-      } catch (error) {
-        this.setError(error);
+        if (!entryTitle && !entryContent && !folderId) return;
+
+        const timestamp = Date.now();
+        const date = new Date().toISOString();
+
+        const newEntry: JournalEntry = {
+          id: generateUUID(),
+          title: entryTitle,
+          content: entryContent,
+          status: "active",
+          date: date,
+          folderId: folderId,
+          syncStatus: "pending",
+          lastModified: timestamp,
+          timestamp: timestamp,
+        };
+
+        await db.createEntry(newEntry);
+        this.loadEntries();
+      } catch (err) {
+        console.error(err);
       }
     },
 
