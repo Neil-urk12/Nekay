@@ -30,28 +30,28 @@ const router = createRouter({
     {
       path: "/folders",
       name: "Folders",
-      component: () => import("../views/FoldersListView.vue"),
+      component: () => import("../views/TaskFoldersView.vue"),
       meta: { requiresAuth: false },
     },
     {
       path: "/folders/:id",
       name: "FolderTasks",
-      component: () => import("../views/FoldersTaskView.vue"),
+      component: () => import("../views/TaskView.vue"),
       meta: { requiresAuth: false },
     },
     {
       path: "/tasks",
-      component: () => import("../views/Tasks.vue"),
+      component: () => import("../views/AllTasks.vue"),
       meta: { requiresAuth: false },
     },
     {
       path: "/journal",
-      component: () => import("../views/Journal.vue"),
+      component: () => import("../views/JournalFolders.vue"),
       meta: { requiresAuth: false },
     },
     {
       path: "/journal/:id",
-      component: () => import("../views/FolderView.vue"),
+      component: () => import("../views/JournalEntryView.vue"),
       meta: { requiresAuth: false },
     },
   ],
