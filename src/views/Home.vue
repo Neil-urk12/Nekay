@@ -1,11 +1,10 @@
 <script lang="ts" setup>
-import { ref, onMounted, computed, defineAsyncComponent } from "vue";
+import { computed, defineAsyncComponent } from "vue";
 import { TimeOfDay, useBackgroundStore } from "../stores/backgroundStore";
 const MelodyHeader = defineAsyncComponent(
   () => import("../components/MelodyHeader.vue")
 );
 
-const timeOfDay = ref<TimeOfDay>("morning");
 const backgroundStore = useBackgroundStore();
 
 const greetingMessage = computed(() => {
@@ -16,7 +15,9 @@ const greetingMessage = computed(() => {
     evening: "Winding down for a peaceful evening! ",
     night: "Sweet dreams ahead! ",
   };
-  return messages[timeOfDay.value as TimeOfDay] || "Have a great day!";
+  return (
+    messages[backgroundStore.timeOfDay as TimeOfDay] || "Have a great day!"
+  );
 });
 </script>
 
@@ -72,7 +73,6 @@ const greetingMessage = computed(() => {
   color: #db2777;
   font-weight: bold;
 }
-
 .animate-float {
   animation: float 3s ease-in-out infinite;
 }
