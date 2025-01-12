@@ -2,10 +2,13 @@
 import { ref, onMounted, computed, defineAsyncComponent } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useNotesStore } from "../stores/notes";
-import AddJournalEntryModal from "../components/AddJournalEntryModal.vue";
-import DeleteEntryModal from "../components/DeleteEntryModal.vue";
-import { JournalEntry } from "../composables/interfaces";
-const EditEntryModal = defineAsyncComponent(
+const AddJournalEntryModal = defineAsyncComponent(
+  () => import("../components/AddJournalEntryModal.vue")
+);
+const DeleteEntryModal = defineAsyncComponent(
+  () => import("../components/DeleteEntryModal.vue")
+);
+import { JournalEntry } from "../composables/interfaces";const EditEntryModal = defineAsyncComponent(
   () => import("../components/EditEntryModal.vue")
 );
 const TrashIconSvg = defineAsyncComponent(
