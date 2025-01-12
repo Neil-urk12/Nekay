@@ -3,6 +3,7 @@ import { createPinia } from "pinia";
 import router from "./router";
 import "./style.css";
 import App from "./App.vue";
+import { registerServiceWorker } from "./utils/serviceWorker";
 
 interface IndexedDBError {
   code: string;
@@ -17,17 +18,17 @@ const initApp = async () => {
   app.use(router)
 
   try {
-    // Register service worker after IndexedDB is ready
-    // await registerServiceWorker();
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/service-worker.js")
-      .then((registration) => {
-        console.log("Service worker registered with scope : ", registration.scope)
-      })
-      .catch((error) => {
-        console.error ("Service worker registration failed: ", error)
-      })
-    }
+    registerServiceWorker();
+    // if ("serviceWorker" in navigator && (window.location.protocol === "https:" || window.location.hostname === "localhost" || window.location.href.startsWith("http://localhost"))) {
+    //   const swPath = import.meta.env.PROD ? "/service-worker.js" : "/dev-sw.js";
+    //   navigator.serviceWorker.register(swPath)
+    //   .then((registration) => {
+    //     console.log("Service worker registered with scope : ", registration.scope)
+    //   })
+    //   .catch((error) => {
+    //     console.error ("Service worker registration failed: ", error)
+    //   })
+    // }
     // Mount the app
     app.mount("#app");
   } catch (err) {

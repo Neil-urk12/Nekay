@@ -5,7 +5,6 @@ import { generateSW } from 'workbox-build'
 
 const generateSWConfig = {
   swDest: path.resolve(__dirname, "dist/service-worker.js"),
-  swSrc: path.resolve(__dirname, "src/sw.js"),
   globDirectory: path.resolve(__dirname, "dist"),
   globPatterns: ['**/*.{html,js,css,png,jpg,jpeg,gif,svg,webp,wav,mp3,json}'],
   runtimeCaching: [

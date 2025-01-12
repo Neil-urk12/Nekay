@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { Folder } from "../composables/interfaces";
 
 const props = defineProps<{
   folder: Folder | null;
 }>();
 
 const emit = defineEmits(["close", "editFolder"]);
-const folderName = ref(props.folder.name);
-const initialName = ref(props.folder.name);
+const folderName = ref(props.folder?.name ?? '');
+const initialName = ref(props.folder?.name ?? '');
 const sameName = computed(() => {
   return folderName.value === initialName.value;
 });
@@ -18,13 +19,14 @@ const handleSubmit = () => {
 
     if (sameName.value) return;
 
-    emit("editFolder", { id: props.folder.id, name: folderName.value });
-    emit("close");
+    if (props.folder) {
+      emit("editFolder", { id: props.folder.id, name: folderName.value });
+      emit("close");
+    }
   } catch (err) {
     console.error(err);
   }
-};
-</script>
+};</script>
 
 <template>
   <div class="modal-overlay">
