@@ -10,12 +10,18 @@ const resetTimer = () => store.resetTimer();
 const toggleMode = () => store.toggleMode();
 const error = ref<string | null>(null);
 const isLoading = ref(true);
-
+const isDarkMode = ref(false);
 const isRunning = computed(() => store.isRunning);
 
-onMounted(async() => {
-  try {
+const toggleDarkMode = () => {
+  isDarkMode.value = !isDarkMode.value;
+  localStorage.setItem("nekayDarkMode", isDarkMode.value.toString());
+};
 
+onMounted(async () => {
+  try {
+    const savedDarkMode = localStorage.getItem("nekayDarkMode");
+    if (savedDarkMode) isDarkMode.value = savedDarkMode === "true";
   } catch (error) {
     console.error(error);
   } finally {
@@ -31,7 +37,23 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="pomodoro-container">
+  <div class="pomodoro-container" :class="{ dark: isDarkMode }">
+    <button
+      class="dark-mode-toggle"
+      @click="toggleDarkMode"
+      :aria-label="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'"
+    >
+      <span
+        class="button-icon"
+        aria-hidden="true"
+        :class="{ dark: isDarkMode }"
+      >
+        {{ isDarkMode ? "☀️" : "🌙" }}
+      </span>
+      <span class="mode-label">
+        {{ isDarkMode ? "Light Mode" : "Dark Mode" }}
+      </span>
+    </button>
     <div v-if="error" class="error-message" role="alert">
       {{ error }}
     </div>
@@ -41,7 +63,7 @@ onUnmounted(() => {
       Loading...
     </div>
 
-    <div v-else class="timer-card">
+    <div v-else class="timer-card" :class="{ dark: isDarkMode }">
       <div class="mode-indicator" :class="store.mode">
         {{ store.mode === "work" ? "Work Time" : "Break Time" }}
       </div>
@@ -146,6 +168,10 @@ onUnmounted(() => {
   padding: 1rem 1rem 0rem 1rem;
   max-width: 600px;
 }
+.pomodoro-container.dark {
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
 .mode-indicator {
   text-align: center;
   font-size: 1.25rem;
@@ -215,6 +241,10 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+}
+.timer-card.dark {
+  background-color: #2d2d2d;
+  border-color: #4a4a4a;
 }
 .timer-controls {
   display: flex;
@@ -305,5 +335,75 @@ onUnmounted(() => {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+.dark-mode-toggle {
+  background: blue;
+}
+.dark .mode-indicator.work {
+  background-color: #d946ef;
+}
+.dark .mode-indicator.break {
+  background-color: #3b82f6;
+}
+
+.dark .timer-display {
+  background-color: #3d3d3d;
+  color: #f472b6;
+}
+
+.dark .stats-container {
+  background-color: #3d3d3d;
+  border-color: #4a4a4a;
+}
+
+.dark .stats-header h2 {
+  color: #f472b6;
+}
+
+.dark .stats-content {
+  color: #f9a8d4;
+}
+
+.dark .control-button.primary {
+  background-color: #d946ef;
+}
+
+.dark .control-button.primary:hover {
+  background-color: #c026d3;
+}
+
+.dark .control-button.secondary {
+  background-color: #4a4a4a;
+  color: #f472b6;
+}
+
+.dark .control-button.secondary:hover {
+  background-color: #606060;
+}
+
+/* Dark mode toggle button styles */
+.dark-mode-toggle {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid plum;
+  background-color: rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  font-size: 1.5rem;
+  transition: transform 0.3s ease;
+}
+
+.dark-mode-toggle:hover {
+  transform: scale(1.1);
+}
+
+.dark .dark-mode-toggle {
+  color: #ffffff;
+}
+.mode-label {
+  padding: 0 0 0 1rem;
+  font-size: 1rem;
 }
 </style>
