@@ -29,7 +29,6 @@ const initApp = async () => {
     //     console.error ("Service worker registration failed: ", error)
     //   })
     // }
-    // Mount the app
     app.mount("#app");
   } catch (err) {
     const error = err as IndexedDBError;
