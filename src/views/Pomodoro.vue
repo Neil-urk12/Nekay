@@ -1,18 +1,121 @@
 <script setup lang="ts">
-import { usePomodoro } from '../stores/pomodoro'
-import { storeToRefs } from 'pinia'
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, ref } from "vue";
+import { useTimerStore } from "../stores/timerStore";
 
-const store = usePomodoro()
-const { isRunning, stats, error, isLoading, mode, progress } = storeToRefs(store)
+const store = useTimerStore();
 
-onMounted(async () => {
-  await store.init()
-})
+const startTimer = () => store.startTimer();
+const pauseTimer = () => store.pauseTimer();
+const resetTimer = () => store.resetTimer();
+const toggleMode = () => store.toggleMode();
+
+onMounted(() => {
+  // Optionally, you can load persisted state here
+});
 
 onUnmounted(() => {
-  store.dispose()
-})
+  if (store.intervalId !== null) {
+    clearInterval(store.intervalId);
+  }
+});
+// import { ref, onMounted, onUnmounted } from 'vue';
+
+// interface Stats {
+//   completedSessions: number;
+// }
+
+const error = ref<string | null>(null);
+const isLoading = ref<boolean>(false);
+// const isRunning = ref<boolean>(false);
+// const mode = ref<"work" | "break">("work");
+// const progress = ref<number>(0);
+// const stats = ref<Stats>({ completedSessions: 0 });
+// const store = {
+//   formattedTime: ref<string>('25:00'),
+//   formattedTotalTime: ref<string>('00:00'),
+//   workDuration: 1500, // 25 minutes in seconds
+//   breakDuration: 300, // 5 minutes in seconds
+//   totalTime: ref<number>(0),
+//   intervalId: ref<NodeJS.Timeout | null>(null),
+//   timeRemaining: ref<number>(1500), // Initial time for work duration
+// };
+
+// const startTimer = () => {
+//   if (!isRunning.value) {
+//     isRunning.value = true;
+//     store.intervalId.value = setInterval(() => {
+//       store.timeRemaining.value--;
+//       progress.value = (1 - store.timeRemaining.value / (mode.value === 'work' ? store.workDuration : store.breakDuration)) * 100;
+
+//       if (store.timeRemaining.value <= 0) {
+//         clearInterval(store.intervalId.value!);
+//         store.totalTime.value += mode.value === 'work' ? store.workDuration : store.breakDuration;
+//         if (mode.value === 'work') {
+//           stats.value.completedSessions++;
+//         }
+//         toggleMode();
+//         startTimer(); // Automatically start the next session
+//       }
+
+//       const minutes = Math.floor(store.timeRemaining.value / 60);
+//       const seconds = store.timeRemaining.value % 60;
+//       store.formattedTime.value = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+//       store.formattedTotalTime.value = formatTime(store.totalTime.value);
+//     }, 1000);
+//   }
+// };
+
+// const pauseTimer = () => {
+//   if (isRunning.value && store.intervalId.value !== null) {
+//     clearInterval(store.intervalId.value);
+//     store.intervalId.value = null;
+//     isRunning.value = false;
+//   }
+// };
+
+// const resetTimer = () => {
+//   clearInterval(store.intervalId.value!);
+//   store.intervalId.value = null;
+//   isRunning.value = false;
+//   mode.value = 'work';
+//   progress.value = 0;
+//   store.timeRemaining.value = store.workDuration;
+//   store.formattedTime.value = '25:00';
+//   store.totalTime.value = 0;
+//   store.formattedTotalTime.value = '00:00';
+// };
+
+// const toggleMode = () => {
+//   if (mode.value === 'work') {
+//     mode.value = 'break';
+//     store.timeRemaining.value = store.breakDuration;
+//   } else {
+//     mode.value = 'work';
+//     store.timeRemaining.value = store.workDuration;
+//   }
+//   progress.value = 0;
+//   const minutes = Math.floor(store.timeRemaining.value / 60);
+//   const seconds = store.timeRemaining.value % 60;
+//   store.formattedTime.value = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+// };
+
+// const formatTime = (totalSeconds: number): string => {
+//   const minutes = Math.floor(totalSeconds / 60);
+//   const seconds = totalSeconds % 60;
+//   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+// };
+
+// onMounted(() => {
+//   // Simulate loading data initially
+//   isLoading.value = true;
+//   setTimeout(() => {
+//     isLoading.value = false;
+//   }, 1000);
+// });
+
+// onUnmounted(() => {
+//   clearInterval(store.intervalId.value!);
+// });
 </script>
 
 <template>
@@ -27,62 +130,72 @@ onUnmounted(() => {
     </div>
 
     <div v-else class="timer-card">
-      <div class="mode-indicator" :class="mode">
-        {{ mode === 'work' ? 'Work Time' : 'Break Time' }}
+      <div class="mode-indicator" :class="store.mode">
+        {{ store.mode === "work" ? "Work Time" : "Break Time" }}
       </div>
 
-      <div class="timer-display" role="timer" :aria-label="`${mode === 'work' ? 'Work' : 'Break'} timer: ${store.formattedTime} remaining`">
+      <div
+        class="timer-display"
+        role="timer"
+        :aria-label="`${store.mode === 'work' ? 'Work' : 'Break'} timer: ${
+          store.formattedTime
+        } remaining`"
+      >
         {{ store.formattedTime }}
-        <div class="progress-bar" :style="{ width: `${progress}%` }" :class="mode"></div>
+        <div
+          class="progress-bar"
+          :style="{ width: `${store.progress}%` }"
+          :class="store.mode"
+        ></div>
       </div>
 
       <div class="timer-controls" role="group" aria-label="Timer controls">
-        <button 
-          v-if="!isRunning" 
+        <button
+          v-if="!store.isRunning"
           class="control-button primary"
-          @click="store.start"
+          @click="startTimer"
           aria-label="Start timer"
         >
           <span class="button-icon" aria-hidden="true">▶</span>
           Start
         </button>
-        <button 
-          v-else 
+        <button
+          v-else
           class="control-button secondary"
-          @click="store.pause"
+          @click="pauseTimer"
           aria-label="Pause timer"
         >
           <span class="button-icon" aria-hidden="true">⏸</span>
           Pause
         </button>
-        <button 
+        <button
           class="control-button secondary"
-          @click="store.reset"
+          @click="resetTimer"
           aria-label="Reset timer"
         >
           <span class="button-icon" aria-hidden="true">↺</span>
           Reset
         </button>
-        <button 
+        <button
           class="control-button secondary"
-          @click="store.toggleMode"
-          :aria-label="mode === 'work' ? 'Switch to break timer' : 'Switch to work timer'"
+          @click="toggleMode"
+          :aria-label="
+            store.mode === 'work'
+              ? 'Switch to break timer'
+              : 'Switch to work timer'
+          "
         >
           <span class="button-icon" aria-hidden="true">⇄</span>
-          {{ mode === 'work' ? 'Take Break' : 'Work Time' }}
+          {{ store.mode === "work" ? "Take Break" : "Work Time" }}
         </button>
       </div>
-<!-- 
-      <div class="keyboard-shortcuts" role="region" aria-label="Keyboard shortcuts">
-        <p>Keyboard Shortcuts:</p>
-        <ul>
-          <li>Space - Start/Pause</li>
-          <li>R - Reset</li>
-          <li>B - Toggle Break</li>
-        </ul>
-      </div> -->
 
-      <div v-if="stats" class="stats-container" role="region" aria-label="Progress statistics">
+      <div
+        v-if="store.stats"
+        class="stats-container"
+        role="region"
+        aria-label="Progress statistics"
+      >
         <div class="stats-header">
           <span class="stats-icon" aria-hidden="true">📊</span>
           <h2>Your Progress</h2>
@@ -90,7 +203,7 @@ onUnmounted(() => {
         <div class="stats-content">
           <p>
             <span class="stats-icon" aria-hidden="true">🎯</span>
-            Completed Sessions: {{ stats.completedSessions }}
+            Completed Sessions: {{ store.stats.completedSessions }}
           </p>
           <p>
             <span class="stats-icon" aria-hidden="true">⏱</span>
@@ -98,8 +211,13 @@ onUnmounted(() => {
           </p>
         </div>
       </div>
-      <div v-if="isRunning" class="dancing-melody" role="status" aria-label="Timer is running">
-        <p>{{ mode === 'work' ? 'Focus Time!' : 'Take a Break!' }}</p>
+      <div
+        v-if="store.isRunning"
+        class="dancing-melody"
+        role="status"
+        aria-label="Timer is running"
+      >
+        <p>{{ store.mode === "work" ? "Focus Time!" : "Take a Break!" }}</p>
         <img src="/assets/melody3.gif" alt="My Melody Dancing" loading="lazy" />
       </div>
     </div>
@@ -152,7 +270,9 @@ onUnmounted(() => {
   background-color: #f472b6;
   transition: width 1s linear;
 }
-.progress-bar.break {background-color: #60a5fa}
+.progress-bar.break {
+  background-color: #60a5fa;
+}
 .keyboard-shortcuts {
   background-color: #fdf2f8;
   padding: 1rem;
@@ -169,7 +289,9 @@ onUnmounted(() => {
   padding: 0;
   margin: 0;
 }
-.keyboard-shortcuts li {margin: 0.25rem 0}
+.keyboard-shortcuts li {
+  margin: 0.25rem 0;
+}
 .timer-card {
   background-color: white;
   border-radius: 1.5rem;
@@ -204,13 +326,19 @@ onUnmounted(() => {
   background-color: #f472b6;
   color: white;
 }
-.control-button.primary:hover {background-color: #db2777}
+.control-button.primary:hover {
+  background-color: #db2777;
+}
 .control-button.secondary {
   background-color: #fbcfe8;
   color: #db2777;
 }
-.control-button.secondary:hover {background-color: #f9a8d4}
-.button-icon {font-size: 1.25rem}
+.control-button.secondary:hover {
+  background-color: #f9a8d4;
+}
+.button-icon {
+  font-size: 1.25rem;
+}
 .stats-container {
   background-color: #fdf2f8;
   border-radius: 1rem;
@@ -241,7 +369,9 @@ onUnmounted(() => {
   gap: 0.5rem;
   margin: 0;
 }
-.stats-icon {font-size: 1.25rem}
+.stats-icon {
+  font-size: 1.25rem;
+}
 .dancing-melody {
   position: absolute;
   color: black;
@@ -250,7 +380,9 @@ onUnmounted(() => {
   left: 50%;
   transform: translateX(-50%);
 }
-.dancing-melody img {width: 10rem}
+.dancing-melody img {
+  width: 10rem;
+}
 .sr-only {
   position: absolute;
   width: 1px;
