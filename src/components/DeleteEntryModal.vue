@@ -22,9 +22,7 @@ const confirmDelete = () => {
   <div v-if="show" @click="closeModal" class="modal-overlay">
     <div class="modal-content" @click.stop>
       <h3 class="modal-title">Delete Entry</h3>
-      <p class="modal-text">
-        Are you sure you want to delete "{{ title }}"?
-      </p>
+      <p class="modal-text">Are you sure you want to delete "{{ title }}"?</p>
       <div class="modal-actions">
         <button @click="closeModal" class="btn-secondary">Cancel</button>
         <button @click="confirmDelete" class="btn-danger">Delete</button>
@@ -61,7 +59,7 @@ const confirmDelete = () => {
 }
 
 .modal-actions {
-  display: felx;
+  display: flex;
   justify-content: flex-end;
   gap: 1rem;
   margin: 1.5rem 0 0 0;
