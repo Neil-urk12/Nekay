@@ -243,70 +243,48 @@ export const useNotesStore = defineStore("notes", {
         console.error(err);
       }
     },
-
-    async editJournalEntry(
-      entryId: string,
-      updates: Partial<JournalEntry>
-    ): Promise<void> {
+    async editJournalEntry(entryId: string, updates: Partial<JournalEntry>) {
       try {
+        if (!entryId) throw new Error("Missing entry id");
+        if (!updates) throw new Error("Missing entry changes");
+
         const entryIndex = this.journalEntries.findIndex(
           (entry) => entry.id === entryId
         );
-        if (entryIndex === -1) {
-          throw new Error("Journal entry not found");
-        }
+
+        if (entryIndex === -1) throw new Error("Journal entry not found");
 
         const timestamp = Date.now();
-        const updatedEntry = {
+
+        const updatedEntry: JournalEntry = {
           ...this.journalEntries[entryIndex],
           ...updates,
           syncStatus: "pending" as const,
           lastModified: timestamp,
         };
 
-        // Update in IndexedDB
-        // await indexedDBService.updateItem<JournalEntry>('journal', entryId, updatedEntry);
-
-        // Update local state
+        await db.updateEntry(entryId, updatedEntry);
         this.journalEntries[entryIndex] = updatedEntry;
-
-        // Trigger sync
-        // await syncService.syncData();
-
-        this.error = null;
-      } catch (error) {
-        this.setError(error);
+      } catch (err) {
+        console.error("Failed to update journal entry: ", err);
+        throw err;
       }
     },
 
-    async deleteJournalEntry(entryId: string): Promise<void> {
+    async deleteJournalEntry(entryId: string) {
       try {
+        if (!entryId) return;
+
         const entryIndex = this.journalEntries.findIndex(
           (entry) => entry.id === entryId
         );
-        if (entryIndex === -1) {
-          throw new Error("Journal entry not found");
-        }
 
-        // const deletedEntry = {
-        //   ...this.journalEntries[entryIndex],
-        //   deleted: true,
-        //   syncStatus: 'pending' as const,
-        //   lastModified: Date.now()
-        // };
+        if (entryIndex === -1) throw new Error("Journal entry not found!");
 
-        // Update in IndexedDB
-        // await indexedDBService.updateItem<JournalEntry>('journal', entryId, deletedEntry);
-
-        // Update local state - remove from array
+        await db.deleteEntry(entryId);
         this.journalEntries.splice(entryIndex, 1);
-
-        // Trigger sync immediately
-        // await syncService.syncData();
-
-        this.error = null;
-      } catch (error) {
-        this.setError(error);
+      } catch (err) {
+        console.error("Failed to delete entry: ", err);
       }
     },
   },
