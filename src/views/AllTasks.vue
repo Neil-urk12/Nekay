@@ -69,23 +69,10 @@ onMounted(() => {
       <div class="add-task">
         <input
           v-model="newTask"
-          placeholder="Add a new task..."
+          placeholder="New task"
           @keyup.enter="addTask"
-          class="input-field"
         />
-        <button @click="addTask" class="btn-primary">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 448 512"
-            width="1rem"
-          >
-            <path
-              fill="#ffffff"
-              d="M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 144L48 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l144 0 0 144c0 17.7 14.3 32 32 32s32-14.3 32-32l0-144 144 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-144 0 0-144z"
-            />
-          </svg>
-          Add Task
-        </button>
+        <button @click="addTask" class="btn-primary">Add Task</button>
       </div>
     </header>
 
@@ -158,7 +145,7 @@ onMounted(() => {
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 512 512"
-                width="1.2rem"
+                width="1rem"
               >
                 <path
                   fill="#B197FC"
@@ -175,7 +162,7 @@ onMounted(() => {
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 448 512"
-                width="1.2rem"
+                width="1rem"
               >
                 <path
                   fill="#a51d2d"
@@ -214,23 +201,22 @@ onMounted(() => {
 
 <style scoped>
 .tasks-container {
-  padding: 2rem;
+  padding: 0.5rem 2rem 2rem 2rem;
   max-width: 800px;
   margin: 0 auto;
   font-family: "Arial", sans-serif;
 }
 
 .page-header {
-  margin-bottom: 0.5rem;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
 }
 
 .page-header h1 {
-  margin-top: 0.5rem;
+  margin: 3.5rem 0rem 0.5rem 0rem;
   font-size: 2rem;
-  color: var(--text-color);
+  color: black;
 }
 
 .add-task {
@@ -241,11 +227,11 @@ onMounted(() => {
 }
 
 .input-field {
-  padding: 0.75rem;
+  padding: 0.25rem 0.5rem;
   border: 1px solid #ddd;
   border-radius: 6px;
   flex: 1;
-  font-size: 1rem;
+  font-size: 0.9rem;
   transition: border-color 0.2s ease;
 }
 
@@ -301,7 +287,6 @@ onMounted(() => {
 
 .task-actions {
   display: flex;
-  gap: 0.5rem;
 }
 
 .edit-input {
@@ -312,16 +297,11 @@ onMounted(() => {
 }
 
 .back-btn {
-  margin-bottom: 1rem;
-  padding: 0.75rem 1.25rem;
-  background: transparent;
   border: none;
   cursor: pointer;
-  color: var(--text-color);
+  background: none;
   font-size: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  position: absolute;
   transition: color 0.2s ease;
 }
 
@@ -434,10 +414,8 @@ onMounted(() => {
 }
 
 /* Button Styles */
-.btn-primary,
 .btn-secondary,
 .btn-danger {
-  padding: 0.75rem 1.25rem;
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -450,12 +428,13 @@ onMounted(() => {
 }
 
 .btn-primary {
-  background-color: var(--primary-color);
+  background-color: #f472b6;
   color: white;
+  font-weight: bold;
 }
 
 .btn-primary:hover {
-  background-color: var(--primary-color-dark);
+  background-color: #e94a9a;
 }
 
 .btn-secondary {
@@ -481,11 +460,5 @@ onMounted(() => {
   border: none;
   cursor: pointer;
   font-size: 1.2rem;
-  color: #555;
-  transition: color 0.2s ease;
-}
-
-.icon-btn:hover {
-  color: var(--primary-color);
 }
 </style>
