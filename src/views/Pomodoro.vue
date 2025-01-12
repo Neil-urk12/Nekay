@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useTimerStore } from "../stores/timerStore";
 
 const store = useTimerStore();
@@ -8,9 +8,19 @@ const startTimer = () => store.startTimer();
 const pauseTimer = () => store.pauseTimer();
 const resetTimer = () => store.resetTimer();
 const toggleMode = () => store.toggleMode();
+const error = ref<string | null>(null);
+const isLoading = ref(true);
 
-onMounted(() => {
-  // Optionally, you can load persisted state here
+const isRunning = computed(() => store.isRunning);
+
+onMounted(async() => {
+  try {
+
+  } catch (error) {
+    console.error(error);
+  } finally {
+    isLoading.value = false;
+  }
 });
 
 onUnmounted(() => {
@@ -18,104 +28,6 @@ onUnmounted(() => {
     clearInterval(store.intervalId);
   }
 });
-// import { ref, onMounted, onUnmounted } from 'vue';
-
-// interface Stats {
-//   completedSessions: number;
-// }
-
-const error = ref<string | null>(null);
-const isLoading = ref<boolean>(false);
-// const isRunning = ref<boolean>(false);
-// const mode = ref<"work" | "break">("work");
-// const progress = ref<number>(0);
-// const stats = ref<Stats>({ completedSessions: 0 });
-// const store = {
-//   formattedTime: ref<string>('25:00'),
-//   formattedTotalTime: ref<string>('00:00'),
-//   workDuration: 1500, // 25 minutes in seconds
-//   breakDuration: 300, // 5 minutes in seconds
-//   totalTime: ref<number>(0),
-//   intervalId: ref<NodeJS.Timeout | null>(null),
-//   timeRemaining: ref<number>(1500), // Initial time for work duration
-// };
-
-// const startTimer = () => {
-//   if (!isRunning.value) {
-//     isRunning.value = true;
-//     store.intervalId.value = setInterval(() => {
-//       store.timeRemaining.value--;
-//       progress.value = (1 - store.timeRemaining.value / (mode.value === 'work' ? store.workDuration : store.breakDuration)) * 100;
-
-//       if (store.timeRemaining.value <= 0) {
-//         clearInterval(store.intervalId.value!);
-//         store.totalTime.value += mode.value === 'work' ? store.workDuration : store.breakDuration;
-//         if (mode.value === 'work') {
-//           stats.value.completedSessions++;
-//         }
-//         toggleMode();
-//         startTimer(); // Automatically start the next session
-//       }
-
-//       const minutes = Math.floor(store.timeRemaining.value / 60);
-//       const seconds = store.timeRemaining.value % 60;
-//       store.formattedTime.value = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-//       store.formattedTotalTime.value = formatTime(store.totalTime.value);
-//     }, 1000);
-//   }
-// };
-
-// const pauseTimer = () => {
-//   if (isRunning.value && store.intervalId.value !== null) {
-//     clearInterval(store.intervalId.value);
-//     store.intervalId.value = null;
-//     isRunning.value = false;
-//   }
-// };
-
-// const resetTimer = () => {
-//   clearInterval(store.intervalId.value!);
-//   store.intervalId.value = null;
-//   isRunning.value = false;
-//   mode.value = 'work';
-//   progress.value = 0;
-//   store.timeRemaining.value = store.workDuration;
-//   store.formattedTime.value = '25:00';
-//   store.totalTime.value = 0;
-//   store.formattedTotalTime.value = '00:00';
-// };
-
-// const toggleMode = () => {
-//   if (mode.value === 'work') {
-//     mode.value = 'break';
-//     store.timeRemaining.value = store.breakDuration;
-//   } else {
-//     mode.value = 'work';
-//     store.timeRemaining.value = store.workDuration;
-//   }
-//   progress.value = 0;
-//   const minutes = Math.floor(store.timeRemaining.value / 60);
-//   const seconds = store.timeRemaining.value % 60;
-//   store.formattedTime.value = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-// };
-
-// const formatTime = (totalSeconds: number): string => {
-//   const minutes = Math.floor(totalSeconds / 60);
-//   const seconds = totalSeconds % 60;
-//   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-// };
-
-// onMounted(() => {
-//   // Simulate loading data initially
-//   isLoading.value = true;
-//   setTimeout(() => {
-//     isLoading.value = false;
-//   }, 1000);
-// });
-
-// onUnmounted(() => {
-//   clearInterval(store.intervalId.value!);
-// });
 </script>
 
 <template>
@@ -151,7 +63,7 @@ const isLoading = ref<boolean>(false);
 
       <div class="timer-controls" role="group" aria-label="Timer controls">
         <button
-          v-if="!store.isRunning"
+          v-if="!isRunning"
           class="control-button primary"
           @click="startTimer"
           aria-label="Start timer"
@@ -212,7 +124,7 @@ const isLoading = ref<boolean>(false);
         </div>
       </div>
       <div
-        v-if="store.isRunning"
+        v-if="isRunning"
         class="dancing-melody"
         role="status"
         aria-label="Timer is running"

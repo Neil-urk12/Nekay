@@ -44,8 +44,9 @@ export const useTimerStore = defineStore("timer", {
             if (this.mode === "work") {
               this.stats.completedSessions++;
             }
+            this.playNotificationSound();
             this.toggleMode();
-            this.startTimer(); // Automatically start the next session
+            this.startTimer();
           }
 
           const minutes = Math.floor(this.timeRemaining / 60);
@@ -100,5 +101,10 @@ export const useTimerStore = defineStore("timer", {
         .toString()
         .padStart(2, "0")}`;
     },
+    playNotificationSound() {
+      const audio = new Audio("/notification.mp3");
+      audio.volume = 0.5;
+      audio.play();
+    }
   },
 });
