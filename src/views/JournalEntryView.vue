@@ -1,13 +1,29 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed, defineAsyncComponent } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useNotesStore } from "../stores/notes";
 import AddJournalEntryModal from "../components/AddJournalEntryModal.vue";
+import DeleteEntryModal from "../components/DeleteEntryModal.vue";
+import { JournalEntry } from "../composables/interfaces";
+const EditEntryModal = defineAsyncComponent(
+  () => import("../components/EditEntryModal.vue")
+);
+const TrashIconSvg = defineAsyncComponent(
+  () => import("../components/TrashIconSvg.vue")
+);
 
 const entryStore = useNotesStore();
 const router = useRouter();
 const route = useRoute();
 
+const showEditModal = ref(false);
+const selectedEntry = ref<{
+  id: string;
+  title: string;
+  content: string;
+} | null>(null);
+const editingEntry = ref<{ id: string; title: string } | null>(null);
+const showDeleteModal = ref<{ id: string; title: string } | null>(null);
 const entries = computed(() => entryStore.getEntries);
 const folders = computed(() => entryStore.getJournalFolders);
 const currentFolderId = computed(() => route.params.id as string);
@@ -20,7 +36,7 @@ const currentFolderEntries = computed(() =>
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0"); 
+  const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
@@ -50,6 +66,47 @@ const addEntry = async (entry: { title: string; content: string }) => {
     closeModal();
   } catch (err) {
     console.error(err);
+  }
+};
+
+const editEntry = async (updatedEntry: {
+  id: string;
+  title: string;
+  content: string;
+}) => {
+  try {
+    await entryStore.editJournalEntry(updatedEntry.id, {
+      title: updatedEntry.title,
+      content: updatedEntry.content,
+    });
+  } catch (err) {
+    console.error("Failed to edit entry: ", err);
+  }
+};
+
+const openEditModal = (entry: JournalEntry) => {
+  selectedEntry.value = entry;
+  showEditModal.value = true;
+};
+
+const saveEdit = async () => {
+  if (!editingEntry.value) return;
+  try {
+    await entryStore.editJournalEntry(editingEntry.value.id, {
+      title: editingEntry.value.title,
+    });
+    editingEntry.value = null;
+  } catch (err) {
+    console.error("Failed to edit entry : ", err);
+  }
+};
+
+const confirmDelete = async (id: string) => {
+  try {
+    await entryStore.deleteJournalEntry(id);
+    showDeleteModal.value = null;
+  } catch (err) {
+    console.error("Failed to delete entry : ", err);
   }
 };
 
@@ -84,21 +141,65 @@ onMounted(async () => {
       @addEntry="addEntry"
     />
 
-    <div class="entries-list" v-if="entries.length">
-      <div
-        v-for="entry in formattedEntries"
-        :key="entry.id"
-        class="entry-item"
-      >
-        <h2 class="entry-title">{{ entry.title }}</h2>
-        <p class="entry-date">{{ entry.formattedDate }}</p>
+    <div class="entries-list" v-if="currentFolderEntries.length">
+      <div v-for="entry in formattedEntries" :key="entry.id" class="entry-item">
+        <div class="entry-content">
+          <template v-if="editingEntry?.id === entry.id">
+            <input
+              v-model="editingEntry.title"
+              @keyup.enter="saveEdit"
+              @keyup.esc="editingEntry = null"
+              class="edit-input"
+              @click.stop
+            />
+          </template>
+          <template v-else>
+            <h2 class="entry-title">{{ entry.title }}</h2>
+          </template>
+          <p class="entry-date">{{ entry.formattedDate }}</p>
+        </div>
+
+        <div class="entry-actions">
+          <button class="icon-btn" @click.stop="openEditModal(entry)">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 512 512"
+              width="1.2rem"
+            >
+              <path
+                fill="black"
+                d="M441 58.9L453.1 71c9.4 9.4 9.4 24.6 0 33.9L424 134.1 377.9 88 407 58.9c9.4-9.4 24.6-9.4 33.9 0zM209.8 256.2L344 121.9 390.1 168 255.8 302.2c-2.9 2.9-6.5 5-10.4 6.1l-58.5 16.7 16.7-58.5c1.1-3.9 3.2-7.5 6.1-10.4zM373.1 25L175.8 222.2c-8.7 8.7-15 19.4-18.3 31.1l-28.6 100c-2.4 8.4-.1 17.4 6.1 23.6s15.2 8.5 23.6 6.1l100-28.6c11.8-3.4 22.5-9.7 31.1-18.3L487 138.9c28.1-28.1 28.1-73.7 0-101.8L474.9 25C446.8-3.1 401.2-3.1 373.1 25zM88 64C39.4 64 0 103.4 0 152L0 424c0 48.6 39.4 88 88 88l272 0c48.6 0 88-39.4 88-88l0-112c0-13.3-10.7-24-24-24s-24 10.7-24 24l0 112c0 22.1-17.9 40-40 40L88 464c-22.1 0-40-17.9-40-40l0-272c0-22.1 17.9-40 40-40l112 0c13.3 0 24-10.7 24-24s-10.7-24-24-24L88 64z"
+              />
+            </svg>
+          </button>
+          <button
+            class="icon-btn"
+            @click.stop="showDeleteModal = { id: entry.id, title: entry.title }"
+          >
+            <TrashIconSvg/>
+          </button>
+        </div>
       </div>
     </div>
 
     <div v-else class="empty-state">
       <p>No entries yet. Click "Add Entry" to create your first entry!</p>
     </div>
+    <DeleteEntryModal
+      v-if="showDeleteModal"
+      :show="!!showDeleteModal"
+      :title="showDeleteModal?.title"
+      :id="showDeleteModal?.id"
+      @close="showDeleteModal = null"
+      @delete="confirmDelete"
+    />
   </div>
+  <EditEntryModal
+    v-if="showEditModal"
+    :entry="selectedEntry"
+    @close="showEditModal = false"
+    @editEntry="editEntry"
+  />
 </template>
 
 <style scoped>
@@ -167,6 +268,12 @@ h1 {
   border-radius: 8px;
   border: 1px solid #fbcfe8;
   margin: 0 0 0.5rem 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.entry-content {
+  flex: 1%;
 }
 
 .entry-title {
@@ -186,5 +293,81 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.entry-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  transition: color 0.2s ease;
+}
+
+.icon-btn:hover {
+  color: rgb(219, 39, 119);
+}
+
+.edit-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid rgb(219, 39, 119);
+  border-radius: 5px;
+  font-size: 1.25rem;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+}
+
+.modal-title {
+  color: rgb(219, 39, 119);
+  margin: 0 0 1rem 0;
+}
+
+.modal-actions {
+  display: felx;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin: 1.5rem 0 0 0;
+}
+
+.btn-secondary {
+  background: #ddd;
+  color: #333;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.btn-danger {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  cursor: pointer;
 }
 </style>
