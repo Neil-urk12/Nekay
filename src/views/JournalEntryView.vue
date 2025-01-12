@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, defineAsyncComponent } from "vue";
+import { ref, onMounted, computed, defineAsyncComponent, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useNotesStore } from "../stores/notes";
 const AddJournalEntryModal = defineAsyncComponent(
@@ -114,12 +114,20 @@ const confirmDelete = async (id: string) => {
 };
 
 const expandedEntries = ref<Set<string>>(new Set());
+const contentHeights = ref<Map<string, number>>(new Map());
 
 const toggleEntry = (entryId: string) => {
   if (expandedEntries.value.has(entryId)) {
     expandedEntries.value.delete(entryId);
   } else {
     expandedEntries.value.add(entryId);
+    // Get and store content height when expanding
+    nextTick(() => {
+      const contentEl = document.querySelector(`[data-content="${entryId}"]`);
+      if (contentEl) {
+        contentHeights.value.set(entryId, contentEl.scrollHeight);
+      }
+    });
   }
 };
 
@@ -212,9 +220,19 @@ onMounted(async () => {
         
         <div class="entry-content">
           <p class="entry-date">{{ entry.formattedDate }}</p>
-          <p v-if="expandedEntries.has(entry.id)" class="entry-text">
-            {{ entry.content }}
-          </p>
+          <div class="content-wrapper">
+            <div
+              class="collapsible-content"
+              :style="{
+                '--content-height': contentHeights.get(entry.id) + 'px'
+              }"
+              :class="{ expanded: expandedEntries.has(entry.id) }"
+            >
+              <div :data-content="entry.id">
+                <p class="entry-text">{{ entry.content }}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -359,7 +377,7 @@ h1 {
 }
 
 .entry-text {
-  margin-top: 1rem;
+  margin: 1rem 0;
   word-break: break-word;
   white-space: pre-wrap;
   color: #4b5563;
@@ -441,4 +459,35 @@ h1 {
   border-radius: 5px;
   cursor: pointer;
 }
+
+.content-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease-out;
+}
+
+.collapsible-content {
+  overflow: hidden;
+}
+
+.content-wrapper:has(.collapsible-content.expanded) {
+  grid-template-rows: 1fr;
+}
+
+.collapsible-content > div {
+  min-height: 0;
+}
+
+/* Remove these styles as they're no longer needed
+.collapsible-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.collapsible-content.expanded {
+  max-height: 2000px;
+  transition: max-height 0.5s ease-in;
+}
+*/
 </style>
