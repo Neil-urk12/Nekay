@@ -304,7 +304,7 @@ h1 {
 }
 
 .entry-content {
-  flex: 1%;
+  flex: 1;
 }
 
 .entry-header {
@@ -341,7 +341,7 @@ h1 {
 
 .entry-text {
   margin-top: 1rem;
-  padding-left: 1.5rem;
+  word-break: break-word;
   white-space: pre-wrap;
   color: #4b5563;
 }
