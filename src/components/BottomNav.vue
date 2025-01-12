@@ -56,7 +56,7 @@ const route = useRoute();
         ></span>
         <span class="nav-text">Journal</span>
       </router-link>
-      <router-link
+      <!-- <router-link
         to="/settings"
         :class="['nav-link', { active: route.path === '/settings' }]"
       >
@@ -68,7 +68,7 @@ const route = useRoute();
           </svg>
         </span>
         <span class="nav-text">Settings</span>
-      </router-link>
+      </router-link> -->
     </div>
   </nav>
 </template>
