@@ -54,6 +54,10 @@ const router = createRouter({
       component: () => import("../views/JournalEntryView.vue"),
       meta: { requiresAuth: false },
     },
+    // {
+    //   path: "/settings",
+    //   component: () => import("../views/SettingsView.vue"),
+    // },
   ],
 });
 
