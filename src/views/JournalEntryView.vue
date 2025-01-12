@@ -477,17 +477,4 @@ h1 {
 .collapsible-content > div {
   min-height: 0;
 }
-
-/* Remove these styles as they're no longer needed
-.collapsible-content {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease-out;
-}
-
-.collapsible-content.expanded {
-  max-height: 2000px;
-  transition: max-height 0.5s ease-in;
-}
-*/
 </style>
