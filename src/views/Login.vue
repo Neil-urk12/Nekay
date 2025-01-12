@@ -3,12 +3,9 @@ import { ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
-// const hasError = ref(false)
-// const errorMessage = ref('')
 
 const currentTime = ref("");
 const currentDate = ref("");
-// const interval = ref(null)
 let timer: NodeJS.Timeout;
 
 interface Button {
@@ -32,7 +29,6 @@ onMounted(() => {
     month: "long",
     day: "numeric",
   });
-  // updateTime()
   timer = setInterval(updateTime, 1000);
 });
 
@@ -63,9 +59,8 @@ watch(inputValue, (inputValue) => {
 const handleButtonClick = (button: Button) => {
   if (button.action === "delete")
     inputValue.value = inputValue.value.slice(0, -1);
-  else if (button.action === "emergency") alert("Emergency clicked");
-  else if (button.action === "cancel") alert("Cancel clicked");
-  else inputValue.value += button.number;
+  else if (button.action === "emergency") {
+  } else inputValue.value += button.number;
 };
 </script>
 
@@ -76,7 +71,103 @@ const handleButtonClick = (button: Button) => {
       <div class="status-bar-left">{{ currentTime }}</div>
       <div class="status-bar-center"></div>
       <div class="status-bar-right">
-        <span class="battery">🔋</span>
+        <span class="wifi">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            width="1.2rem"
+          >
+            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+            <g
+              id="SVGRepo_tracerCarrier"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            ></g>
+            <g id="SVGRepo_iconCarrier">
+              <path
+                fill-rule="evenodd"
+                clip-rule="evenodd"
+                d="M11.7 13.9998C12.777 13.9998 13.65 14.8952 13.65 15.9998C13.65 17.1043 12.777 17.9998 11.7 17.9998C10.623 17.9998 9.75 17.1043 9.75 15.9998C9.75 14.8952 10.623 13.9998 11.7 13.9998Z"
+                stroke="#000000"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></path>
+              <path
+                d="M6.53734 11.4153C6.21454 11.6749 6.16328 12.147 6.42284 12.4698C6.68241 12.7926 7.15451 12.8438 7.47731 12.5843L6.53734 11.4153ZM15.9217 12.5843C16.2445 12.8438 16.7166 12.7926 16.9762 12.4698C17.2357 12.147 17.1845 11.6749 16.8617 11.4153L15.9217 12.5843ZM4.40719 8.91358C4.08343 9.17195 4.03042 9.64385 4.28878 9.96761C4.54714 10.2914 5.01905 10.3444 5.34281 10.086L4.40719 8.91358ZM18.0785 10.1024C18.4113 10.349 18.881 10.2791 19.1276 9.9463C19.3742 9.61349 19.3043 9.14379 18.9715 8.89719L18.0785 10.1024ZM7.47731 12.5843C9.95807 10.5895 13.441 10.5895 15.9217 12.5843L16.8617 11.4153C13.832 8.97915 9.56702 8.97915 6.53734 11.4153L7.47731 12.5843ZM5.34281 10.086C8.03641 7.9365 10.6227 7.52956 12.8154 7.84408C15.0378 8.16284 16.9034 9.23173 18.0785 10.1024L18.9715 8.89719C17.6808 7.94087 15.5835 6.72576 13.0284 6.35927C10.4437 5.98854 7.43782 6.4951 4.40719 8.91358L5.34281 10.086Z"
+                fill="#000000"
+              ></path>
+            </g>
+          </svg>
+        </span>
+        <span class="data-signal">
+          <svg
+            fill="#000000"
+            viewBox="-7.5 0 32 32"
+            version="1.1"
+            xmlns="http://www.w3.org/2000/svg"
+            width="1.2rem"
+          >
+            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+            <g
+              id="SVGRepo_tracerCarrier"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            ></g>
+            <g id="SVGRepo_iconCarrier">
+              <title>signal</title>
+              <path
+                d="M15.96 24.52c-0.48 0-0.84-0.36-0.84-0.84v-15.36c0-0.48 0.36-0.84 0.84-0.84s0.84 0.36 0.84 0.84v15.4c0.040 0.44-0.36 0.8-0.84 0.8zM10.92 24.52c-0.48 0-0.84-0.36-0.84-0.84v-12.2c0-0.48 0.36-0.84 0.84-0.84s0.84 0.36 0.84 0.84v12.2c0.040 0.48-0.36 0.84-0.84 0.84zM5.88 24.52c-0.48 0-0.84-0.36-0.84-0.84v-8c0-0.48 0.36-0.84 0.84-0.84s0.84 0.36 0.84 0.84v8c0 0.48-0.4 0.84-0.84 0.84zM0.84 24.52c-0.48 0-0.84-0.36-0.84-0.84v-5.28c0-0.48 0.36-0.84 0.84-0.84s0.84 0.36 0.84 0.84v5.28c0 0.48-0.4 0.84-0.84 0.84z"
+              ></path>
+            </g>
+          </svg>
+        </span>
+        <span class="battery">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            width="1.2rem"
+          >
+            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+            <g
+              id="SVGRepo_tracerCarrier"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            ></g>
+            <g id="SVGRepo_iconCarrier">
+              <path
+                d="M21 11V13"
+                stroke="#323232"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></path>
+              <path
+                d="M12 8L11.8852 8.15313L9.12188 11.8375L9.07313 11.9025C9.043 11.9427 9.07166 12 9.12188 12V12H12.8107V12C12.8887 12 12.9332 12.0891 12.8864 12.1515L12.8107 12.2525L10.157 15.7907L10 16"
+                stroke="#323232"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></path>
+              <path
+                d="M14 16H16V16C17.1046 16 18 15.1046 18 14V10C18 8.89543 17.1046 8 16 8V8H15"
+                stroke="#323232"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></path>
+              <path
+                d="M7 16H5V16C3.89543 16 3 15.1046 3 14V10C3 8.89543 3.89543 8 5 8V8H8"
+                stroke="#323232"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              ></path>
+            </g>
+          </svg>
+        </span>
       </div>
     </div>
 
@@ -126,6 +217,9 @@ const handleButtonClick = (button: Button) => {
 </template>
 
 <style scoped>
+* {
+  font-family: "Concert One", "Montserrat", sans-serif;
+}
 .login-container {
   background: linear-gradient(
     0deg,
@@ -144,7 +238,7 @@ const handleButtonClick = (button: Button) => {
   align-items: center;
   text-align: center;
   overflow-x: hidden;
-  padding-top: 44px; /* Increased padding for status bar */
+  padding-top: 44px;
 }
 
 .status-bar {
@@ -172,8 +266,8 @@ const handleButtonClick = (button: Button) => {
 }
 
 .header {
-  margin-top: 60px; /* Add space after status bar */
-  margin-bottom: 40px; /* Increased space before input display */
+  margin-top: 60px;
+  margin-bottom: 40px;
 }
 
 .title {
@@ -186,7 +280,7 @@ const handleButtonClick = (button: Button) => {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 20px; /* Increased space before buttons */
+  margin-bottom: 20px;
   padding: 10px;
   width: 80%;
   max-width: 300px;
