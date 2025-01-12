@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useNotesStore } from "../stores/notes";
 import AddJournalEntryModal from "../components/AddJournalEntryModal.vue";
@@ -19,18 +19,17 @@ const currentFolderEntries = computed(() =>
 );
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
-  const year = date.getFullYear().toString().slice(-2); // Get last 2 digits of year
-  const month = String(date.getMonth() + 1).padStart(2, "0"); // Months are 0-indexed
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0"); 
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
-// const formattedEntries = computed(() =>
-//   currentFolderEntries.value.map((entry) => ({
-//     ...entry,
-//     formattedDate: formatDate(entry.date),
-//   }))
-// );
-
+const formattedEntries = computed(() =>
+  currentFolderEntries.value.map((entry) => ({
+    ...entry,
+    formattedDate: formatDate(entry.date),
+  }))
+);
 const showModal = ref(false);
 const openModal = () => {
   showModal.value = true;
@@ -87,12 +86,12 @@ onMounted(async () => {
 
     <div class="entries-list" v-if="entries.length">
       <div
-        v-for="entry in currentFolderEntries"
+        v-for="entry in formattedEntries"
         :key="entry.id"
         class="entry-item"
       >
         <h2 class="entry-title">{{ entry.title }}</h2>
-        <p class="entry-date">{{ formatDate(entry.date) }}</p>
+        <p class="entry-date">{{ entry.formattedDate }}</p>
       </div>
     </div>
 
