@@ -1,6 +1,6 @@
 export interface BaseItem {
   id: string;
-  folderId?: string;
+  folderId?: string | "alltasks";
   syncStatus: "synced" | "pending" | "failed";
   lastModified: number;
   timestamp: number;
