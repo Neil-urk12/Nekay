@@ -65,7 +65,7 @@ onUnmounted(() => {
 
     <div v-else class="timer-card" :class="{ dark: isDarkMode }">
       <div class="mode-indicator" :class="store.mode">
-        {{ store.mode === "work" ? "Work Time" : "Break Time" }}
+        {{ store.mode === "work" ? "Work Time" : store.mode === "shortBreak" ? "Short Break Time" : "Long Break Time" }}
       </div>
 
       <div
@@ -115,12 +115,20 @@ onUnmounted(() => {
           @click="toggleMode"
           :aria-label="
             store.mode === 'work'
-              ? 'Switch to break timer'
-              : 'Switch to work timer'
+              ? 'Switch to short break timer'
+              : store.mode === 'shortBreak'
+              ? 'Return to work timer'
+              : 'Return to work timer'
           "
         >
           <span class="button-icon" aria-hidden="true">⇄</span>
-          {{ store.mode === "work" ? "Take Break" : "Work Time" }}
+          {{
+            store.mode === "work"
+              ? "Take Short Break"
+              : store.mode === "shortBreak"
+              ? "Return to Work"
+              : "Return to Work"
+          }}
         </button>
       </div>
 
