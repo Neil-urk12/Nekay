@@ -1,6 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import {
+  computed,
+  defineAsyncComponent,
+  onMounted,
+  onUnmounted,
+  ref,
+} from "vue";
 import { useTimerStore } from "../stores/timerStore";
+const DarkModeToggle = defineAsyncComponent(
+  () => import("../components/DarkModeToggle.vue")
+);
 
 const store = useTimerStore();
 
@@ -38,7 +47,8 @@ onUnmounted(() => {
 
 <template>
   <div class="pomodoro-container" :class="{ dark: isDarkMode }">
-    <button
+    <DarkModeToggle :isDarkMode="isDarkMode" @toggle="toggleDarkMode" />
+    <!-- <button
       class="dark-mode-toggle"
       @click="toggleDarkMode"
       :aria-label="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'"
@@ -53,7 +63,7 @@ onUnmounted(() => {
       <span class="mode-label">
         {{ isDarkMode ? "Light Mode" : "Dark Mode" }}
       </span>
-    </button>
+    </button> -->
     <div v-if="error" class="error-message" role="alert">
       {{ error }}
     </div>
@@ -65,7 +75,13 @@ onUnmounted(() => {
 
     <div v-else class="timer-card" :class="{ dark: isDarkMode }">
       <div class="mode-indicator" :class="store.mode">
-        {{ store.mode === "work" ? "Work Time" : store.mode === "shortBreak" ? "Short Break Time" : "Long Break Time" }}
+        {{
+          store.mode === "work"
+            ? "Work Time"
+            : store.mode === "shortBreak"
+            ? "Short Break Time"
+            : "Long Break Time"
+        }}
       </div>
 
       <div
@@ -160,7 +176,9 @@ onUnmounted(() => {
         aria-label="Timer is running"
       >
         <img src="/assets/melody3.gif" alt="My Melody Dancing" loading="lazy" />
-        <h3 class="focus-time" :class="{ dark: isDarkMode }">{{ store.mode === "work" ? "Focus Time!" : "Take a Break!" }}</h3>
+        <h3 class="focus-time" :class="{ dark: isDarkMode }">
+          {{ store.mode === "work" ? "Focus Time!" : "Take a Break!" }}
+        </h3>
       </div>
     </div>
   </div>
@@ -329,7 +347,7 @@ onUnmounted(() => {
   text-align: center;
   bottom: 5rem;
   left: 50%;
-  transform: translateX(-50%); 
+  transform: translateX(-50%);
 }
 .dancing-melody img {
   width: 10rem;
@@ -350,75 +368,38 @@ onUnmounted(() => {
   white-space: nowrap;
   border: 0;
 }
-.dark-mode-toggle {
-  background: blue;
-}
 .dark .mode-indicator.work {
   background-color: #d946ef;
 }
 .dark .mode-indicator.break {
   background-color: #3b82f6;
 }
-
 .dark .timer-display {
   background-color: #3d3d3d;
   color: #f472b6;
 }
-
 .dark .stats-container {
   background-color: #3d3d3d;
   border-color: #4a4a4a;
 }
-
 .dark .stats-header h2 {
   color: #f472b6;
 }
-
 .dark .stats-content {
   color: #f9a8d4;
 }
-
 .dark .control-button.primary {
   background-color: #d946ef;
 }
-
 .dark .control-button.primary:hover {
   background-color: #c026d3;
 }
-
 .dark .control-button.secondary {
   background-color: #4a4a4a;
   color: #f472b6;
 }
-
 .dark .control-button.secondary:hover {
   background-color: #606060;
-}
-
-/* Dark mode toggle button styles */
-.dark-mode-toggle {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  padding: 0.5rem;
-  border-radius: 50%;
-  border: 1px solid plum;
-  background-color: rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  font-size: 1.5rem;
-  transition: transform 0.3s ease;
-}
-
-.dark-mode-toggle:hover {
-  transform: scale(1.1);
-}
-
-.dark .dark-mode-toggle {
-  color: #ffffff;
-}
-.mode-label {
-  padding: 0 0 0 1rem;
-  font-size: 1rem;
 }
 .focus-time.dark {
   color: #f472b6;
