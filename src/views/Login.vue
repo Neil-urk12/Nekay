@@ -53,7 +53,10 @@ const buttons = ref([
 ]);
 
 watch(inputValue, (inputValue) => {
-  if (inputValue === import.meta.env.VITE_MOTMOT_KEY) router.push("/home");
+  if (inputValue === import.meta.env.VITE_MOTMOT_KEY) {
+    localStorage.setItem("isAuthenticated", "true");
+    router.push("/home");
+  }
 });
 
 const handleButtonClick = (button: Button) => {
