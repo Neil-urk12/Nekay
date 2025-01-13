@@ -31,6 +31,7 @@ onMounted(async () => {
   try {
     const savedDarkMode = localStorage.getItem("nekayDarkMode");
     if (savedDarkMode) isDarkMode.value = savedDarkMode === "true";
+    store.loadStats();
   } catch (error) {
     console.error(error);
   } finally {

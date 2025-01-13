@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
 interface Stats {
   completedSessions: number;
@@ -55,6 +56,7 @@ export const useTimerStore = defineStore("timer", {
             if (this.mode === "work") {
               this.stats.completedSessions++;
               this.sessionCount++;
+              this.syncStats();
               if (this.sessionCount % this.longBreakInterval === 0) {
                 this.mode = "longBreak";
               } else {
@@ -91,9 +93,6 @@ export const useTimerStore = defineStore("timer", {
       this.progress = 0;
       this.timeRemaining = this.workDuration;
       this.formattedTime = "25:00";
-      this.totalTime = 0;
-      this.formattedTotalTime = "00:00";
-      this.sessionCount = 0;
     },
     toggleMode() {
       if (this.mode === "work") {
@@ -129,6 +128,41 @@ export const useTimerStore = defineStore("timer", {
       const audio = new Audio('/pomostart.wav')
       audio.volume = 0.5
       audio.play()
+    },
+    async syncStats() {
+      try {
+        if (navigator.onLine) {
+          const { db } = await import("../firebase/firebase-config");
+          const statsRef = doc(db, "pomodoroStats", "userStats");
+          await setDoc(statsRef, {
+            completedSessions: this.stats.completedSessions,
+            totalTime: this.totalTime,
+            sessionCount: this.sessionCount,
+            formattedTotalTime: this.formattedTotalTime
+          });
+        }
+        
+      } catch (error) {
+        console.error("Failed to sync pomodoro stats:", error);
+      }
+    },
+    async loadStats() {
+      try {
+        if (navigator.onLine) {
+          const { db } = await import("../firebase/firebase-config");
+          const statsRef = doc(db, "pomodoroStats", "userStats");
+          const docSnap = await getDoc(statsRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            this.stats.completedSessions = data.completedSessions;
+            this.totalTime = data.totalTime;
+            this.sessionCount = data.sessionCount;
+            this.formattedTotalTime = data.formattedTotalTime
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load pomodoro stats:", error);
+      }
     }
   },
 });
