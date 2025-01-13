@@ -205,6 +205,8 @@ onMounted(() => {
 
 <style scoped>
 .tasks-container {
+  background-color: rgba(0, 0, 0, 0.01);
+  backdrop-filter: blur(5px);
   padding: 0.5rem 2rem 2rem 2rem;
   max-width: 800px;
   margin: 0 auto;
