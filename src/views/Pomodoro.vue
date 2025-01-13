@@ -151,8 +151,8 @@ onUnmounted(() => {
         role="status"
         aria-label="Timer is running"
       >
-        <p>{{ store.mode === "work" ? "Focus Time!" : "Take a Break!" }}</p>
         <img src="/assets/melody3.gif" alt="My Melody Dancing" loading="lazy" />
+        <h3 class="focus-time" :class="{ dark: isDarkMode }">{{ store.mode === "work" ? "Focus Time!" : "Take a Break!" }}</h3>
       </div>
     </div>
   </div>
@@ -318,12 +318,18 @@ onUnmounted(() => {
   position: absolute;
   color: black;
   font-size: 1.15rem;
+  text-align: center;
   bottom: 5rem;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%); 
 }
 .dancing-melody img {
   width: 10rem;
+}
+.dancing-melody h3 {
+  border: #d46e98 1px dashed;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
 }
 .sr-only {
   position: absolute;
@@ -405,5 +411,8 @@ onUnmounted(() => {
 .mode-label {
   padding: 0 0 0 1rem;
   font-size: 1rem;
+}
+.focus-time.dark {
+  color: #f472b6;
 }
 </style>
