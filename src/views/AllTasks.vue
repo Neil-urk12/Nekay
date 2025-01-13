@@ -12,14 +12,18 @@ const tasks = computed(() => [...taskStore.getTasks]);
 const newTask = ref("");
 const editingTask = ref<{ id: string; content: string } | null>(null);
 const deleteConfirm = ref<{ id: string; content: string } | null>(null);
+const isLoading = ref(false);
 
 const addTask = async () => {
   if (!newTask.value.trim()) return;
   try {
-    await taskStore.addTask(newTask.value, undefined);
+    isLoading.value = true;
+    await taskStore.addTask(newTask.value, "alltasks");
     newTask.value = "";
   } catch (error) {
     console.error("Failed to add task:", error);
+  } finally {
+    isLoading.value = false;
   }
 };
 
@@ -72,7 +76,7 @@ onMounted(() => {
           placeholder="New task"
           @keyup.enter="addTask"
         />
-        <button @click="addTask" class="btn-primary">Add Task</button>
+        <button @click="addTask" class="btn-primary" :disabled="isLoading">Add Task</button>
       </div>
     </header>
 

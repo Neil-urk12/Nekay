@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
 import { Task, JournalEntry, Folder } from "../composables/interfaces";
 import { generateUUID } from "../utils/functions";
-// import { addDoc, collection } from "firebase/firestore";
-// import { db as fireDb } from "../firebase/firebase-config";
+import { collection, deleteDoc, doc, getDocs, setDoc, updateDoc } from "firebase/firestore";
+import { db as fireDb } from "../firebase/firebase-config";
 import { db } from "../services/indexedDB";
 
 export const useNotesStore = defineStore("notes", {
@@ -37,17 +37,39 @@ export const useNotesStore = defineStore("notes", {
 
     async loadTasks() {
       try {
-        this.tasks = await db.getTasks();
+        this.tasksLoading = true;
+        if (navigator.onLine) {
+          const querySnapshot = await getDocs(collection(fireDb, "tasks"));
+          this.tasks = querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as Task[];
+          this.tasksLoading = false;
+        } else {
+          this.tasks = await db.getTasks();
+          this.tasksLoading = false;
+        }
       } catch (err) {
-        console.error(err);
+        console.error('Failed to load tasks', err);
       }
     },
 
     async loadEntries() {
       try {
-        this.journalEntries = await db.getEntries();
+        this.loading = true;
+        if (navigator.onLine) {
+          const querySnapshot = await getDocs(collection(fireDb, "entries"));
+          this.journalEntries = querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as JournalEntry[];
+          this.loading = false;
+        } else {
+          this.journalEntries = await db.getEntries();
+          this.loading = false;
+        }
       } catch (err) {
-        console.error(err);
+        console.error('Failed to load entries', err);
       }
     },
 
@@ -65,15 +87,21 @@ export const useNotesStore = defineStore("notes", {
         };
 
         if (navigator.onLine) {
-          // Create in Firestore first
           newTask.syncStatus = "synced";
-          // await addDoc(collection(fireDb, "tasks"), newTask);
+          const docRef = doc(fireDb, "tasks", newTask.id)
+          await setDoc(docRef, newTask)
+          await db.createTask(newTask);
+          this.tasks = [...this.tasks, newTask];
+          this.error = null;
+          return;
+        } else {
+          await db.createTask(newTask);
+          this.tasks = [...this.tasks, newTask];
+          this.error = null;
         }
-        await db.createTask(newTask);
-        this.tasks = [...this.tasks, newTask];
-        this.error = null;
       } catch (error) {
         this.setError(error);
+        console.error("Failed to add task:", error);
       }
     },
 
@@ -93,15 +121,16 @@ export const useNotesStore = defineStore("notes", {
           lastModified: timestamp,
         };
 
-        // Update in IndexedDB
-        // await indexedDBService.updateItem<Task>("tasks", id, updatedTask);
-
-        // Update local state
+        if (navigator.onLine) {
+          const docRef = doc(fireDb, "tasks", id)
+          await updateDoc(docRef, updatedTask)
+          await db.updateTask(id, updatedTask);
+          this.tasks[taskIndex] = updatedTask;   
+          this.error = null;
+          return;
+        } 
+        await db.updateTask(id, updatedTask);
         this.tasks[taskIndex] = updatedTask;
-
-        // Trigger sync
-        // await syncService.syncData();
-
         this.error = null;
       } catch (error) {
         this.setError(error);
@@ -114,20 +143,20 @@ export const useNotesStore = defineStore("notes", {
 
         if (taskIndex === -1) throw new Error("Task not found");
 
-        await db.deleteTask(taskId);
-        this.loadTasks();
-        // Trigger sync
-        // await syncService.syncData();
+        if (navigator.onLine) {
+          await deleteDoc(doc(fireDb, "tasks", taskId));
+          await db.deleteTask(taskId);
+          this.tasks.splice(taskIndex, 1);
+          this.error = null;
+          return;
+        }
 
+        await db.deleteTask(taskId);
+        this.tasks.splice(taskIndex, 1);
         this.error = null;
       } catch (error) {
         this.setError(error);
-        // Rollback local state if error
-        const deletedTask = this.tasks.find((t) => t.id === taskId);
-        if (deletedTask) {
-          this.tasks.push(deletedTask);
-        }
-        throw error;
+        console.error("Failed to delete task:", error);
       }
     },
 
@@ -147,7 +176,8 @@ export const useNotesStore = defineStore("notes", {
 
         if (navigator.onLine) {
           newFolder.syncStatus = "synced";
-          // await addDoc(collection(fireDb, "folders"), newFolder);
+          const docRef = doc(fireDb, "folders", newFolder.id)
+          await setDoc(docRef, newFolder)
         }
 
         await db.createFolder(newFolder);
@@ -184,6 +214,11 @@ export const useNotesStore = defineStore("notes", {
           lastModified: timestamp,
         };
 
+        if (navigator.onLine) {
+          const docRef = doc(fireDb, "folders", folderId)
+          await updateDoc(docRef, updatedFolder)
+        }
+
         await db.updateFolder(folderId, updatedFolder);
         this.folders[folderIndex] = updatedFolder;
 
@@ -199,13 +234,13 @@ export const useNotesStore = defineStore("notes", {
 
         if (folderIndex === -1) throw new Error("Folder not found");
 
-        await db.deleteFolder(folderId);
+        if (navigator.onLine) {
+          await deleteDoc(doc(fireDb, "folders", folderId));
+        }
 
+        await db.deleteFolder(folderId);
         this.folders.splice(folderIndex, 1);
 
-        if (navigator.onLine) {
-          // something like await deleteDoc(doc(fireDb, "folders", folderId))
-        }
 
         this.error = null;
       } catch (error) {
@@ -220,7 +255,9 @@ export const useNotesStore = defineStore("notes", {
     },
     async addEntry(entryTitle: string, entryContent: string, folderId: string) {
       try {
-        if (!entryTitle && !entryContent && !folderId) return;
+        if (!entryTitle) return;
+        if (!entryContent) return;
+        if (!folderId) return;
 
         const timestamp = Date.now();
         const date = new Date().toISOString();
@@ -237,10 +274,22 @@ export const useNotesStore = defineStore("notes", {
           timestamp: timestamp,
         };
 
-        await db.createEntry(newEntry);
-        this.loadEntries();
+        if (navigator.onLine) {
+          newEntry.syncStatus = "synced";
+          const docRef = doc(fireDb, "entries", newEntry.id)
+          await setDoc(docRef, newEntry)
+          await db.createEntry(newEntry);
+          this.journalEntries = [...this.journalEntries, newEntry];
+          this.error = null;
+          return;
+        } else {
+          await db.createEntry(newEntry);
+          this.journalEntries = [...this.journalEntries, newEntry];
+          this.error = null;
+        }
       } catch (err) {
-        console.error(err);
+        this.setError(err);
+        console.error("Failed to add entry:", err);
       }
     },
     async editJournalEntry(entryId: string, updates: Partial<JournalEntry>) {
@@ -255,19 +304,27 @@ export const useNotesStore = defineStore("notes", {
         if (entryIndex === -1) throw new Error("Journal entry not found");
 
         const timestamp = Date.now();
-
-        const updatedEntry: JournalEntry = {
+        const updatedEntry = {
           ...this.journalEntries[entryIndex],
           ...updates,
           syncStatus: "pending" as const,
           lastModified: timestamp,
         };
 
+        if (navigator.onLine) {
+          const docRef = doc(fireDb, "entries", entryId)
+          await updateDoc(docRef, updatedEntry)
+          await db.updateEntry(entryId, updatedEntry);
+          this.journalEntries[entryIndex] = updatedEntry;
+          this.error = null;
+          return;
+        }
         await db.updateEntry(entryId, updatedEntry);
         this.journalEntries[entryIndex] = updatedEntry;
+        this.error = null;
       } catch (err) {
-        console.error("Failed to update journal entry: ", err);
-        throw err;
+        this.setError(err);
+        console.error("Failed to update journal entry:", err);
       }
     },
 
@@ -281,10 +338,20 @@ export const useNotesStore = defineStore("notes", {
 
         if (entryIndex === -1) throw new Error("Journal entry not found!");
 
+        if (navigator.onLine) {
+          await deleteDoc(doc(fireDb, "entries", entryId));
+          await db.deleteEntry(entryId);
+          this.journalEntries.splice(entryIndex, 1);
+          this.error = null;
+          return;
+        }
+
         await db.deleteEntry(entryId);
         this.journalEntries.splice(entryIndex, 1);
+        this.error = null;
       } catch (err) {
-        console.error("Failed to delete entry: ", err);
+        this.setError(err);
+        console.error("Failed to delete entry:", err);
       }
     },
   },

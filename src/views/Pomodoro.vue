@@ -48,22 +48,6 @@ onUnmounted(() => {
 <template>
   <div class="pomodoro-container" :class="{ dark: isDarkMode }">
     <DarkModeToggle :isDarkMode="isDarkMode" @toggle="toggleDarkMode" />
-    <!-- <button
-      class="dark-mode-toggle"
-      @click="toggleDarkMode"
-      :aria-label="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'"
-    >
-      <span
-        class="button-icon"
-        aria-hidden="true"
-        :class="{ dark: isDarkMode }"
-      >
-        {{ isDarkMode ? "☀️" : "🌙" }}
-      </span>
-      <span class="mode-label">
-        {{ isDarkMode ? "Light Mode" : "Dark Mode" }}
-      </span>
-    </button> -->
     <div v-if="error" class="error-message" role="alert">
       {{ error }}
     </div>
