@@ -1,14 +1,38 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { ref, onMounted, onUnmounted } from "vue";
+import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase/firebase-config";
 import { useRouter } from "vue-router";
+import {
+  AuthError,
+  browserLocalPersistence,
+  setPersistence,
+} from "firebase/auth/cordova";
 
 const email = ref("");
 const password = ref("");
 const error = ref("");
 const isLoading = ref(false);
 const router = useRouter();
+
+const getErrorMessage = (errorCode: string) => {
+  switch (errorCode) {
+    case "auth/invalid-credential":
+      return "Invalid email or password. Please check your credentials and try again.";
+    case "auth/user-not-found":
+      return "No account found with this email address.";
+    case "auth/wrong-password":
+      return "Incorrect password. Please try again.";
+    case "auth/invalid-email":
+      return "Please enter a valid email address.";
+    case "auth/user-disabled":
+      return "This account has been disabled. Please contact support.";
+    case "auth/too-many-requests":
+      return "Too many failed login attempts. Please try again later.";
+    default:
+      return "An error occurred during login. Please try again.";
+  }
+};
 
 const handleLogin = async () => {
   if (!email.value || !password.value) {
@@ -18,15 +42,52 @@ const handleLogin = async () => {
 
   try {
     isLoading.value = true;
-    await signInWithEmailAndPassword(auth, email.value, password.value);
-    router.push("/");
+    error.value = "";
+
+    await setPersistence(auth, browserLocalPersistence);
+
+    const userCredential = await signInWithEmailAndPassword(
+      auth,
+      email.value.trim(),
+      password.value.trim()
+    );
+
+    if (userCredential.user) {
+      localStorage.setItem("isAuthenticated", "true");
+      router.push("/");
+    }
   } catch (err: any) {
     console.error("Login error:", err);
-    error.value = err.message || "Failed to login";
+    const authError = err as AuthError;
+    error.value = getErrorMessage(authError.code);
   } finally {
     isLoading.value = false;
   }
 };
+
+let unsubscribe: (() => void) | null = null;
+
+onMounted(() => {
+  unsubscribe = onAuthStateChanged(auth, (user) => {
+    if (user) {
+      localStorage.setItem("isAuthenticated", "true");
+      router.push("/");
+    } else localStorage.removeItem("isAuthenticated");
+  });
+});
+
+onUnmounted(async () => {
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) router.push("/");
+    });
+  } catch (err) {
+    console.error("Auth setup error: ", err);
+  }
+  if (unsubscribe) unsubscribe();
+});
 </script>
 
 <template>
@@ -56,6 +117,7 @@ const handleLogin = async () => {
             required
             placeholder="Enter your password"
             :disabled="isLoading"
+            autocomplete="current-password"
           />
         </div>
 

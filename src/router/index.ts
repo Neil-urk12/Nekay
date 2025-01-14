@@ -74,20 +74,33 @@ const router = createRouter({
 
 // Navigation guard
 router.beforeEach((to, _from, next) => {
-  return new Promise((resolve) => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      unsubscribe();
-      const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
-      if (requiresAuth && !user) {
-        next("/login");
-      } else if (to.path === "/login" && user) {
-        next("/");
-      } else {
-        next();
-      }
-      resolve();
-    });
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
+
+  onAuthStateChanged(auth, (user) => {
+    if (requiresAuth && !user) {
+      next("/login");
+    } else if (to.path === "/login" && user) {
+      next("/");
+    } else {
+      next();
+    }
   });
 });
+// router.beforeEach((to, _from, next) => {
+//   return new Promise((resolve) => {
+//     const unsubscribe = onAuthStateChanged(auth, (user) => {
+//       unsubscribe();
+//       const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
+//       if (requiresAuth && !user) {
+//         next("/login");
+//       } else if (to.path === "/login" && user) {
+//         next("/");
+//       } else {
+//         next();
+//       }
+//       resolve();
+//     });
+//   });
+// });
 
 export default router;
