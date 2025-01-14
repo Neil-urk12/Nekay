@@ -6,7 +6,7 @@ const route = useRoute();
 <template>
   <nav class="bottom-nav">
     <div class="nav-container">
-      <router-link to="/" :class="['nav-link', { active: route.path === '/' }]">
+      <router-link to="/home" :class="['nav-link', { active: route.path === '/' }]">
         <span class="nav-icon"
           ><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512">
             <path
