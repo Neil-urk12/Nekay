@@ -23,17 +23,23 @@ export interface PomodoroStats extends BaseItem {
   totalFocusTime: number;
 }
 
+export interface WaterEntry extends BaseItem {
+  amount: number;
+  date: string;
+}
+
 class NekayDatabase extends Dexie {
   tasks!: Table<Task>;
   journal!: Table<JournalEntry>;
   folders!: Table<Folder>;
   notes!: Table<Note>;
   pomodoro!: Table<PomodoroSession>;
+  waterEntries!: Table<WaterEntry>;
 
   constructor() {
     super("NekayOfflineDB_v2");
 
-    this.version(2).stores({
+    this.version(3).stores({
       tasks:
         "id, taskContent, status, folderId, syncStatus, lastModified, timestamp, [syncStatus+lastModified]",
       journal:
@@ -44,6 +50,7 @@ class NekayDatabase extends Dexie {
         "id, noteTitle, noteContent, syncStatus, timestamp, lastModified, [syncStatus+lastModified]",
       pomodoro:
         "id, type, syncStatus, startTime, timestamp, lastModified, [syncStatus+lastModified]",
+      waterEntries: "id, amount, date, timestamp, syncStatus, lastModified, [syncStatus+lastModified]",
     });
 
     this.tasks = this.table("tasks");
@@ -117,6 +124,18 @@ class NekayDatabase extends Dexie {
     if (!entryId) throw new Error("Failed to delete entry!");
 
     await this.journal.delete(entryId);
+  }
+
+  async getWaterEntries() {
+    return await this.waterEntries.toArray()
+  }
+
+  async createWaterEntry(entry: WaterEntry) {
+    return await this.waterEntries.add(entry);
+  }
+
+  async deleteWaterEntry(id: string) {
+    return await this.waterEntries.delete(id);
   }
 }
 export const db = new NekayDatabase();
