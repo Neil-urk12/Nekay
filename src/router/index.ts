@@ -16,7 +16,7 @@ const router = createRouter({
     },
     {
       path: "/",
-      name: "Login",
+      name: "Lockscreen",
       component: () => import("../views/Login.vue"),
       meta: {
         hideBottomNav: true,
