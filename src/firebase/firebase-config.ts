@@ -1,5 +1,4 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth/web-extension";
 import { initializeFirestore, CACHE_SIZE_UNLIMITED } from "firebase/firestore";
 import {
   getAuth,
