@@ -15,24 +15,24 @@ const router = createRouter({
       },
     },
     {
-      path: "/login",
+      path: "/",
       name: "Login",
       component: () => import("../views/Login.vue"),
       meta: {
         hideBottomNav: true,
-        requiresAuth: false,
+        requiresAuth: true,
       },
     },
     {
-      path: "/",
+      path: "/home",
       component: () => import("../views/Home.vue"),
       meta: { requiresAuth: true },
     },
-    {
-      path: "/home",
-      redirect: "/",
-      meta: { requiresAuth: true },
-    },
+    // {
+    //   path: "/home",
+    //   redirect: "/",
+    //   meta: { requiresAuth: true },
+    // },
     {
       path: "/pomodoro",
       component: () => import("../views/Pomodoro.vue"),
