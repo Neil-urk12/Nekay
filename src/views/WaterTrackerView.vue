@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from "vue";
-import { useNotesStore } from "../stores/notes";
+import { useWaterStore } from "../stores/waterTracker";
 
-const waterStore = useNotesStore();
+const waterStore = useWaterStore();
 const showAddModal = ref(false);
 const currentDate = ref(new Date().toISOString().split('T')[0]);
+const amount = ref('');
 
 const waterEntries = computed(() => {
   return waterStore.getWaterEntries || [];
@@ -15,7 +16,6 @@ const addWaterEntry = async (amount: number) => {
     await waterStore.addWaterEntry({
       amount,
       date: currentDate.value,
-      timestamp: new Date().toISOString()
     });
     showAddModal.value = false;
   } catch (err) {
