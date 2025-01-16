@@ -60,7 +60,20 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="container">
+  <div class="exercise-container">
+    <router-link to="/home" class="back-button">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 448 512"
+        width="1rem"
+      >
+        <path
+          fill="currentColor"
+          d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"
+        />
+      </svg>
+      Back
+    </router-link>
     <h1>Breathing Exercise</h1>
     <div class="controls">
       <div class="control-group">
@@ -71,6 +84,8 @@ onUnmounted(() => {
           v-model="inhaleInput"
           min="1"
           :disabled="isRunning"
+          inputmode="numeric"
+          pattern="[0-9]*"
         />
       </div>
       <div class="control-group">
@@ -105,66 +120,109 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.container {
+.exercise-container {
   background-color: #ffe0e6;
-  padding: 30px;
-  border-radius: 15px;
+  padding: 1rem;
+  border-radius: 12px;
   height: 90vh;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  justify-content: center;
+  position: relative;
+}
+
+.back-button {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: rgb(37, 99, 235);
+  font-weight: 500;
+}
+
+.back-button:hover {
+  opacity: 0.8;
 }
 
 h1 {
   color: #ff69b4;
-  margin-bottom: 20px;
+  margin: 0.5rem 0;
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
 }
 
 .controls {
   display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
+  flex-direction: row;
   justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin: 0.5rem auto;
+  max-width: 100%;
+  padding: 0 1rem;
+  flex-wrap: wrap;
 }
 
 .control-group {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
+  gap: 0.5rem;
 }
 
 label {
-  margin-bottom: 5px;
   color: #ff69b4;
+  font-size: clamp(0.875rem, 2vw, 1rem);
+  white-space: nowrap;
 }
 
 input[type="number"] {
-  padding: 10px;
-  border: 1px solid #ffb6c1;
-  border-radius: 5px;
-  width: 60px;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #ffb6c1;
+  border-radius: 8px;
+  width: clamp(60px, 15vw, 80px);
   text-align: center;
+  font-size: 1rem;
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 button {
-  padding: 12px 25px;
+  padding: 0.75rem 1.5rem;
   background-color: #ff69b4;
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
   transition: background-color 0.3s ease;
+  width: clamp(120px, 50%, 200px);
+  margin: 0 auto;
 }
 
 button:hover {
   background-color: #f0499a;
 }
 
+button:active {
+  transform: scale(0.98);
+}
+
 .circle-container {
   position: relative;
-  width: 150px;
-  height: 150px;
-  margin: 30px auto 0;
+  width: clamp(200px, 50vw, 300px);
+  height: clamp(200px, 50vw, 300px);
+  margin: 1rem auto;
 }
 
 .circle {
@@ -174,14 +232,14 @@ button:hover {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 5px solid #ffb6c1;
+  border: clamp(3px, 1vw, 5px) solid #ffb6c1;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 24px;
+  font-size: clamp(1.25rem, 4vw, 2rem);
   color: #ff69b4;
   font-weight: bold;
-  transition: transform 0.5s ease;
+  transition: all 0.5s ease;
 }
 
 .inhale {
@@ -201,9 +259,54 @@ button:hover {
 }
 
 #message {
-  margin-top: 20px;
-  font-size: 18px;
+  margin-top: 1rem;
+  font-size: clamp(1rem, 3vw, 1.5rem);
   color: #ff69b4;
   font-weight: bold;
+  padding: 0 1rem;
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding: 2rem;
+    gap: 2rem;
+  }
+
+  .back-button {
+    top: 2rem;
+    left: 2rem;
+  }
+
+  .controls {
+    gap: 2rem;
+    padding: 0 2rem;
+  }
+
+  .circle-container {
+    margin: 2rem auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .controls {
+    gap: 0.5rem;
+  }
+  
+  .control-group {
+    flex-direction: column;
+  }
+}
+
+@media (max-height: 600px) {
+  .container {
+    padding: 1rem;
+    gap: 0.5rem;
+  }
+
+  .circle-container {
+    width: clamp(150px, 30vw, 200px);
+    height: clamp(150px, 30vw, 200px);
+    margin: 0.5rem auto;
+  }
 }
 </style>
