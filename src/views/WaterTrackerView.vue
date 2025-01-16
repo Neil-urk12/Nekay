@@ -25,7 +25,7 @@ const waterHeight = computed(() =>
 );
 
 const sharkDisplay = computed(() =>
-  waterHeight.value > 30 ? "block" : "none"
+  waterHeight.value > 25 ? "block" : "none"
 );
 
 const sharkPosition = computed(() => waterHeight.value / 2);
@@ -274,6 +274,9 @@ onMounted(() => {
     <h1>Sharky Water Tracker</h1>
 
     <div class="fish-tank">
+      <div class="empty-state" v-if="currentWater < 500">
+        <img src="/src/assets/sadShark.svg" alt="Sad shark" loading="lazy" />
+      </div>
       <div class="water" :style="{ height: waterHeight + '%' }">
         <div
           class="shark"
@@ -331,7 +334,14 @@ onMounted(() => {
 .back-button:hover {
   opacity: 0.8;
 }
-
+.empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 2;
+}
 .header-controls {
   display: flex;
   justify-content: space-between;
@@ -462,15 +472,12 @@ h1 {
   height: 1px;
   background: #ddd;
 }
-
 .input-divider::before {
   left: 0;
 }
-
 .input-divider::after {
   right: 0;
 }
-
 .shark {
   position: absolute;
   width: 100px;
@@ -482,13 +489,11 @@ h1 {
   display: none;
   z-index: 2;
 }
-
 .shark img {
   width: 100%;
   height: 100%;
   transform: scaleX(1);
 }
-
 .seaweed {
   position: absolute;
   bottom: 0;
@@ -497,7 +502,6 @@ h1 {
   border-radius: 20px 20px 0 0;
   animation: sway 3s ease-in-out infinite;
 }
-
 .rocks {
   position: absolute;
   bottom: 0;
@@ -506,14 +510,12 @@ h1 {
   background: linear-gradient(to right, #95a5a6 0%, #7f8c8d 50%, #95a5a6 100%);
   border-radius: 5px;
 }
-
 .input-group {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 10px;
 }
-
 input[type="number"] {
   padding: 8px;
   border: 2px solid #3498db;
@@ -521,7 +523,6 @@ input[type="number"] {
   width: 100px;
   text-align: center;
 }
-
 button {
   padding: 10px 20px;
   margin: 5px;
@@ -532,31 +533,25 @@ button {
   cursor: pointer;
   transition: transform 0.2s;
 }
-
 button:hover {
   transform: scale(1.05);
 }
-
 .quick-add {
   margin: 1rem 0;
 }
-
 .quick-add button {
   background: #2ecc71;
 }
-
 .error-message {
   color: #e74c3c;
   font-size: 0.9em;
   margin-top: 5px;
   min-height: 20px;
 }
-
 .stats {
   margin-top: 1rem;
   color: #2c3e50;
 }
-
 .progress-info {
   font-size: 0.9em;
   color: #7f8c8d;
