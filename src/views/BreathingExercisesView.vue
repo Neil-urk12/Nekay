@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onUnmounted } from "vue";
+import DarkModeToggle from '../components/DarkModeToggle.vue';
 
 const inhaleInput = ref(4);
 const holdInput = ref(4);
@@ -8,6 +9,7 @@ const isRunning = ref(false);
 const circleText = ref("Ready");
 const message = ref("");
 const circleClass = ref("circle");
+const isDarkMode = ref(false);
 let intervalId;
 
 function startBreathing() {
@@ -54,13 +56,18 @@ function breatheCycle() {
   }, inhaleTime);
 }
 
+function toggleDarkMode() {
+  isDarkMode.value = !isDarkMode.value;
+}
+
 onUnmounted(() => {
   clearTimeout(intervalId);
 });
 </script>
 
 <template>
-  <div class="exercise-container">
+  <div class="exercise-container" :class="{ dark: isDarkMode }">
+    <DarkModeToggle :isDarkMode="isDarkMode" @toggle="toggleDarkMode" />
     <router-link to="/home" class="back-button">
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -120,6 +127,9 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+* {
+  font-family: "Concert One", "Montserrat", sans-serif;
+}
 .exercise-container {
   background-color: #ffe0e6;
   padding: 1rem;
@@ -134,6 +144,10 @@ onUnmounted(() => {
   position: relative;
 }
 
+.exercise-container.dark {
+  background-color: #2d1f2f;
+}
+
 .back-button {
   position: absolute;
   top: 1rem;
@@ -142,8 +156,12 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.5rem;
   text-decoration: none;
-  color: rgb(37, 99, 235);
+  color: #ff69b4;
   font-weight: 500;
+}
+
+.dark .back-button {
+  color: #69b3ff;
 }
 
 .back-button:hover {
@@ -154,6 +172,10 @@ h1 {
   color: #ff69b4;
   margin: 0.5rem 0;
   font-size: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.dark h1 {
+  color: #ff99cc;
 }
 
 .controls {
@@ -181,6 +203,10 @@ label {
   white-space: nowrap;
 }
 
+.dark label {
+  color: #ff99cc;
+}
+
 input[type="number"] {
   padding: 0.5rem 0.75rem;
   border: 2px solid #ffb6c1;
@@ -189,6 +215,12 @@ input[type="number"] {
   text-align: center;
   font-size: 1rem;
   -moz-appearance: textfield;
+}
+
+.dark input[type="number"] {
+  background-color: #1f1f1f;
+  border-color: #ff99cc;
+  color: #ffffff;
 }
 
 input[type="number"]::-webkit-outer-spin-button,
@@ -210,8 +242,16 @@ button {
   margin: 0 auto;
 }
 
+.dark button {
+  background-color: #ff99cc;
+}
+
 button:hover {
   background-color: #f0499a;
+}
+
+.dark button:hover {
+  background-color: #ff80bf;
 }
 
 button:active {
@@ -242,9 +282,18 @@ button:active {
   transition: all 0.5s ease;
 }
 
+.dark .circle {
+  border-color: #ff99cc;
+  color: #ff99cc;
+}
+
 .inhale {
   transform: scale(1.2);
   border-color: #ff69b4;
+}
+
+.dark .inhale {
+  border-color: #ff99cc;
 }
 
 .exhale {
@@ -254,8 +303,17 @@ button:active {
   background-color: #ff69b4;
 }
 
+.dark .exhale {
+  border-color: #2d1f2f;
+  background-color: #ff99cc;
+}
+
 .hold {
   border-color: #ffb6c1;
+}
+
+.dark .hold {
+  border-color: #ff99cc;
 }
 
 #message {
@@ -264,6 +322,10 @@ button:active {
   color: #ff69b4;
   font-weight: bold;
   padding: 0 1rem;
+}
+
+.dark #message {
+  color: #ff99cc;
 }
 
 @media (min-width: 768px) {
