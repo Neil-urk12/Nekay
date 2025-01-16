@@ -8,7 +8,8 @@ const AddJournalEntryModal = defineAsyncComponent(
 const DeleteEntryModal = defineAsyncComponent(
   () => import("../components/DeleteEntryModal.vue")
 );
-import { JournalEntry } from "../composables/interfaces";const EditEntryModal = defineAsyncComponent(
+import { JournalEntry } from "../composables/interfaces";
+const EditEntryModal = defineAsyncComponent(
   () => import("../components/EditEntryModal.vue")
 );
 const TrashIconSvg = defineAsyncComponent(
