@@ -33,6 +33,11 @@ const router = createRouter({
       component: () => import('../views/WaterTrackerView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/breathing_exercise',
+      component: () => import('../views/BreathingExercisesView.vue'),
+      meta: { requiresAuth: true },
+    },
     // {
     //   path: "/home",
     //   redirect: "/",
