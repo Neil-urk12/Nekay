@@ -1,6 +1,6 @@
 <script setup>
-import { ref, onUnmounted } from "vue";
-import DarkModeToggle from '../components/DarkModeToggle.vue';
+import { ref, onUnmounted, defineAsyncComponent } from "vue";
+const DarkModeToggle = defineAsyncComponent(() => import('../components/DarkModeToggle.vue'));
 
 const inhaleInput = ref(4);
 const holdInput = ref(4);
