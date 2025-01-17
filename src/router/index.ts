@@ -6,7 +6,7 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      path: "/check",
+      path: "/login",
       name: "SecurityCheck",
       component: () => import("../views/SecurityCheck.vue"),
       meta: {
@@ -96,21 +96,5 @@ router.beforeEach((to, _from, next) => {
     }
   });
 });
-// router.beforeEach((to, _from, next) => {
-//   return new Promise((resolve) => {
-//     const unsubscribe = onAuthStateChanged(auth, (user) => {
-//       unsubscribe();
-//       const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
-//       if (requiresAuth && !user) {
-//         next("/login");
-//       } else if (to.path === "/login" && user) {
-//         next("/");
-//       } else {
-//         next();
-//       }
-//       resolve();
-//     });
-//   });
-// });
 
 export default router;
