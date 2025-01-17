@@ -3,11 +3,7 @@ import { ref, onMounted, onUnmounted } from "vue";
 import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase/firebase-config";
 import { useRouter } from "vue-router";
-import {
-  AuthError,
-  browserLocalPersistence,
-  setPersistence,
-} from "firebase/auth/cordova";
+import { AuthError } from "firebase/auth/cordova";
 
 const email = ref("");
 const password = ref("");
@@ -44,7 +40,7 @@ const handleLogin = async () => {
     isLoading.value = true;
     error.value = "";
 
-    await setPersistence(auth, browserLocalPersistence);
+    // await setPersistence(auth, browserLocalPersistence);
 
     const userCredential = await signInWithEmailAndPassword(
       auth,
@@ -77,15 +73,15 @@ onMounted(() => {
 });
 
 onUnmounted(async () => {
-  try {
-    await setPersistence(auth, browserLocalPersistence);
+  // try {
+  //   await setPersistence(auth, browserLocalPersistence);
 
-    onAuthStateChanged(auth, (user) => {
-      if (user) router.push("/");
-    });
-  } catch (err) {
-    console.error("Auth setup error: ", err);
-  }
+  //   onAuthStateChanged(auth, (user) => {
+  //     if (user) router.push("/");
+  //   });
+  // } catch (err) {
+  //   console.error("Auth setup error: ", err);
+  // }
   if (unsubscribe) unsubscribe();
 });
 </script>
