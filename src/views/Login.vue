@@ -53,7 +53,7 @@ const buttons = ref([
 ]);
 
 watch(inputValue, (inputValue) => {
-  if (inputValue === import.meta.env.VITE_MOTMOT_KEY) {
+  if (inputValue === "041823") {
     localStorage.setItem("isAuthenticated", "true");
     router.push("/home");
   }
