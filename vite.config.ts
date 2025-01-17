@@ -37,6 +37,13 @@ const generateSWConfig = {
         cacheName: "static-resources-cache-v1",
       },
     },
+    {
+      urlPattern: /identitytoolkit\.googleapis\.com/,
+      handler: 'NetworkOnly',
+      options: {
+        cacheName: 'firebase-auth-cache'
+      }
+    },
   ],
 };
 // https://vitejs.dev/config/
@@ -54,7 +61,9 @@ export default defineConfig({
               handler: entry.handler as
                 | "NetworkFirst"
                 | "CacheFirst"
-                | "StaleWhileRevalidate",
+
+                | "StaleWhileRevalidate"
+                | "NetworkOnly",
             })),
           });
           console.log("Service worker generated successfully!");
