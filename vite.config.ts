@@ -72,12 +72,19 @@ export default defineConfig({
     },
   },
   build: {
+    target: "esnext",
+    minify: 'terser',
     outDir: "dist",
     assetsDir: "assets",
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, "index.html"),
-      },
+      }, 
+      output: {
+        manualChunks: {
+          vue: ["vue"],
+        }
+      }
     },
   },
   optimizeDeps: {
