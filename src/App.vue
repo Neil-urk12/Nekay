@@ -35,7 +35,7 @@ onMounted(async () => {
     <div v-else-if="isLoading" class="loading">Loading...</div>
     <template v-else>
       <router-view></router-view>
-      <BottomNav v-if="$route.path !== '/' && $route.path !== '/check'" />
+      <BottomNav v-if="$route.path !== '/' && $route.path !== '/login'" />
     </template>
   </div>
 </template>
