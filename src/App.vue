@@ -1,39 +1,41 @@
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, ref } from 'vue';
-const BottomNav = defineAsyncComponent(() => import('./components/BottomNav.vue'))
-import { useNotesStore } from './stores/notes';
-import { storeToRefs } from 'pinia';
-
-const notesStore = useNotesStore();
-const { initialized } = storeToRefs(notesStore);
+import { defineAsyncComponent, onMounted, ref } from "vue";
+import { useBackgroundStore } from "./stores/backgroundStore";
+const BottomNav = defineAsyncComponent(
+  () => import("./components/BottomNav.vue")
+);
+const backgroundStore = useBackgroundStore();
 const isLoading = ref(true);
 const error = ref<Error | null>(null);
 
 onMounted(async () => {
   try {
-    if (!initialized.value) 
-      await notesStore.initialise()
-    await notesStore.fetchFromFirebase()
+    backgroundStore.determineTimeOfDay();
+    setInterval(() => backgroundStore.determineTimeOfDay, 60000);
+    // if (!initialized.value)
+    //   await notesStore.initialise()
+    // await notesStore.fetchFromFirebase()
   } catch (err) {
-    console.error('Failed to initialize app:', err)
-    error.value = err as Error
+    console.error("Failed to initialize app:", err);
+    error.value = err as Error;
   } finally {
-    isLoading.value = false
+    isLoading.value = false;
   }
-})
+});
 </script>
 
 <template>
-  <div class="app-container">
+  <div
+    class="app-container"
+    :style="{ backgroundImage: backgroundStore.backgroundImage }"
+  >
     <div v-if="error" class="error-message">
       {{ error.message }}
     </div>
-    <div v-else-if="isLoading" class="loading">
-      Loading...
-    </div>
+    <div v-else-if="isLoading" class="loading">Loading...</div>
     <template v-else>
       <router-view></router-view>
-      <BottomNav v-if="$route.path !== '/login'" />
+      <BottomNav v-if="$route.path !== '/' && $route.path !== '/login'" />
     </template>
   </div>
 </template>
@@ -41,11 +43,12 @@ onMounted(async () => {
 <style>
 body {
   margin: 0;
-  font-family: 'Comic Sans MS', cursive;
+  font-family: "Comic Sans MS", cursive;
 }
 .app-container {
   min-height: 100vh;
-  background-color: #fce7f3;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 .loading {
   display: flex;

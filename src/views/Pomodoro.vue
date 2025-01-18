@@ -1,22 +1,54 @@
 <script setup lang="ts">
-import { usePomodoro } from '../stores/pomodoro'
-import { storeToRefs } from 'pinia'
-import { onMounted, onUnmounted } from 'vue'
+import {
+  computed,
+  defineAsyncComponent,
+  onMounted,
+  onUnmounted,
+  ref,
+} from "vue";
+import { useTimerStore } from "../stores/timerStore";
+const DarkModeToggle = defineAsyncComponent(
+  () => import("../components/DarkModeToggle.vue")
+);
 
-const store = usePomodoro()
-const { isRunning, stats, error, isLoading, mode, progress } = storeToRefs(store)
+const store = useTimerStore();
+
+const startTimer = () => store.startTimer();
+const pauseTimer = () => store.pauseTimer();
+const resetTimer = () => store.resetTimer();
+const toggleMode = () => store.toggleMode();
+const error = ref<string | null>(null);
+const isLoading = ref(true);
+const isDarkMode = ref(false);
+const isRunning = computed(() => store.isRunning);
+
+const toggleDarkMode = () => {
+  isDarkMode.value = !isDarkMode.value;
+  localStorage.setItem("nekayDarkMode", isDarkMode.value.toString());
+};
 
 onMounted(async () => {
-  await store.init()
-})
+  try {
+    const savedDarkMode = localStorage.getItem("nekayDarkMode");
+    if (savedDarkMode) isDarkMode.value = savedDarkMode === "true";
+    store.loadStats();
+  } catch (error) {
+    console.error(error);
+  } finally {
+    isLoading.value = false;
+  }
+});
 
 onUnmounted(() => {
-  store.dispose()
-})
+  if (store.intervalId !== null) {
+    clearInterval(store.intervalId);
+  }
+});
 </script>
 
 <template>
-  <div class="pomodoro-container">
+  <div class="pomodoro-container" :class="{ dark: isDarkMode }">
+    <DarkModeToggle :isDarkMode="isDarkMode" @toggle="toggleDarkMode" />
     <div v-if="error" class="error-message" role="alert">
       {{ error }}
     </div>
@@ -26,63 +58,87 @@ onUnmounted(() => {
       Loading...
     </div>
 
-    <div v-else class="timer-card">
-      <div class="mode-indicator" :class="mode">
-        {{ mode === 'work' ? 'Work Time' : 'Break Time' }}
+    <div v-else class="timer-card" :class="{ dark: isDarkMode }">
+      <div class="mode-indicator" :class="store.mode">
+        {{
+          store.mode === "work"
+            ? "Work Time"
+            : store.mode === "shortBreak"
+            ? "Short Break Time"
+            : "Long Break Time"
+        }}
       </div>
 
-      <div class="timer-display" role="timer" :aria-label="`${mode === 'work' ? 'Work' : 'Break'} timer: ${store.formattedTime} remaining`">
+      <div
+        class="timer-display"
+        role="timer"
+        :aria-label="`${store.mode === 'work' ? 'Work' : 'Break'} timer: ${
+          store.formattedTime
+        } remaining`"
+      >
         {{ store.formattedTime }}
-        <div class="progress-bar" :style="{ width: `${progress}%` }" :class="mode"></div>
+        <div
+          class="progress-bar"
+          :style="{ width: `${store.progress}%` }"
+          :class="store.mode"
+        ></div>
       </div>
 
       <div class="timer-controls" role="group" aria-label="Timer controls">
-        <button 
-          v-if="!isRunning" 
+        <button
+          v-if="!isRunning"
           class="control-button primary"
-          @click="store.start"
+          @click="startTimer"
           aria-label="Start timer"
         >
           <span class="button-icon" aria-hidden="true">▶</span>
           Start
         </button>
-        <button 
-          v-else 
+        <button
+          v-else
           class="control-button secondary"
-          @click="store.pause"
+          @click="pauseTimer"
           aria-label="Pause timer"
         >
           <span class="button-icon" aria-hidden="true">⏸</span>
           Pause
         </button>
-        <button 
+        <button
           class="control-button secondary"
-          @click="store.reset"
+          @click="resetTimer"
           aria-label="Reset timer"
         >
           <span class="button-icon" aria-hidden="true">↺</span>
           Reset
         </button>
-        <button 
+        <button
           class="control-button secondary"
-          @click="store.toggleMode"
-          :aria-label="mode === 'work' ? 'Switch to break timer' : 'Switch to work timer'"
+          @click="toggleMode"
+          :aria-label="
+            store.mode === 'work'
+              ? 'Switch to short break timer'
+              : store.mode === 'shortBreak'
+              ? 'Return to work timer'
+              : 'Return to work timer'
+          "
         >
           <span class="button-icon" aria-hidden="true">⇄</span>
-          {{ mode === 'work' ? 'Take Break' : 'Work Time' }}
+          {{
+            store.mode === "work"
+              ? "Take Short Break"
+              : store.mode === "shortBreak"
+              ? "Return to Work"
+              : "Return to Work"
+          }}
         </button>
       </div>
-<!-- 
-      <div class="keyboard-shortcuts" role="region" aria-label="Keyboard shortcuts">
-        <p>Keyboard Shortcuts:</p>
-        <ul>
-          <li>Space - Start/Pause</li>
-          <li>R - Reset</li>
-          <li>B - Toggle Break</li>
-        </ul>
-      </div> -->
 
-      <div v-if="stats" class="stats-container" role="region" aria-label="Progress statistics">
+      <div
+        v-if="store.stats"
+        class="stats-container"
+        role="region"
+        aria-label="Progress statistics"
+      >
         <div class="stats-header">
           <span class="stats-icon" aria-hidden="true">📊</span>
           <h2>Your Progress</h2>
@@ -90,7 +146,7 @@ onUnmounted(() => {
         <div class="stats-content">
           <p>
             <span class="stats-icon" aria-hidden="true">🎯</span>
-            Completed Sessions: {{ stats.completedSessions }}
+            Completed Sessions: {{ store.stats.completedSessions }}
           </p>
           <p>
             <span class="stats-icon" aria-hidden="true">⏱</span>
@@ -98,21 +154,34 @@ onUnmounted(() => {
           </p>
         </div>
       </div>
-      <div v-if="isRunning" class="dancing-melody" role="status" aria-label="Timer is running">
-        <p>{{ mode === 'work' ? 'Focus Time!' : 'Take a Break!' }}</p>
+      <div
+        v-if="isRunning"
+        class="dancing-melody"
+        role="status"
+        aria-label="Timer is running"
+      >
         <img src="/assets/melody3.gif" alt="My Melody Dancing" loading="lazy" />
+        <h3 class="focus-time" :class="{ dark: isDarkMode }">
+          {{ store.mode === "work" ? "Focus Time!" : "Take a Break!" }}
+        </h3>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+* {
+  font-family: "Concert One", "Montserrat", sans-serif;
+}
 .pomodoro-container {
   min-height: 100vh;
   background-color: #fce7f3;
-  padding: 1rem;
+  padding: 1rem 1rem 0rem 1rem;
   max-width: 600px;
-  margin: 2rem auto;
+}
+.pomodoro-container.dark {
+  background-color: #1a1a1a;
+  color: #ffffff;
 }
 .mode-indicator {
   text-align: center;
@@ -150,7 +219,9 @@ onUnmounted(() => {
   background-color: #f472b6;
   transition: width 1s linear;
 }
-.progress-bar.break {background-color: #60a5fa}
+.progress-bar.break {
+  background-color: #60a5fa;
+}
 .keyboard-shortcuts {
   background-color: #fdf2f8;
   padding: 1rem;
@@ -167,7 +238,9 @@ onUnmounted(() => {
   padding: 0;
   margin: 0;
 }
-.keyboard-shortcuts li {margin: 0.25rem 0}
+.keyboard-shortcuts li {
+  margin: 0.25rem 0;
+}
 .timer-card {
   background-color: white;
   border-radius: 1.5rem;
@@ -179,6 +252,10 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+}
+.timer-card.dark {
+  background-color: #2d2d2d;
+  border-color: #4a4a4a;
 }
 .timer-controls {
   display: flex;
@@ -202,13 +279,19 @@ onUnmounted(() => {
   background-color: #f472b6;
   color: white;
 }
-.control-button.primary:hover {background-color: #db2777}
+.control-button.primary:hover {
+  background-color: #db2777;
+}
 .control-button.secondary {
   background-color: #fbcfe8;
   color: #db2777;
 }
-.control-button.secondary:hover {background-color: #f9a8d4}
-.button-icon {font-size: 1.25rem}
+.control-button.secondary:hover {
+  background-color: #f9a8d4;
+}
+.button-icon {
+  font-size: 1.25rem;
+}
 .stats-container {
   background-color: #fdf2f8;
   border-radius: 1rem;
@@ -239,16 +322,26 @@ onUnmounted(() => {
   gap: 0.5rem;
   margin: 0;
 }
-.stats-icon {font-size: 1.25rem}
+.stats-icon {
+  font-size: 1.25rem;
+}
 .dancing-melody {
   position: absolute;
   color: black;
   font-size: 1.15rem;
+  text-align: center;
   bottom: 5rem;
   left: 50%;
   transform: translateX(-50%);
 }
-.dancing-melody img {width: 10rem}
+.dancing-melody img {
+  width: 10rem;
+}
+.dancing-melody h3 {
+  border: #d46e98 1px dashed;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+}
 .sr-only {
   position: absolute;
   width: 1px;
@@ -259,5 +352,41 @@ onUnmounted(() => {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+.dark .mode-indicator.work {
+  background-color: #d946ef;
+}
+.dark .mode-indicator.break {
+  background-color: #3b82f6;
+}
+.dark .timer-display {
+  background-color: #3d3d3d;
+  color: #f472b6;
+}
+.dark .stats-container {
+  background-color: #3d3d3d;
+  border-color: #4a4a4a;
+}
+.dark .stats-header h2 {
+  color: #f472b6;
+}
+.dark .stats-content {
+  color: #f9a8d4;
+}
+.dark .control-button.primary {
+  background-color: #d946ef;
+}
+.dark .control-button.primary:hover {
+  background-color: #c026d3;
+}
+.dark .control-button.secondary {
+  background-color: #4a4a4a;
+  color: #f472b6;
+}
+.dark .control-button.secondary:hover {
+  background-color: #606060;
+}
+.focus-time.dark {
+  color: #f472b6;
 }
 </style>
