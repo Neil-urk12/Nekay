@@ -9,6 +9,13 @@ const generateSWConfig = {
   globPatterns: ["**/*.{html,js,css,png,jpg,jpeg,gif,svg,webp,wav,mp3,json}"],
   runtimeCaching: [
     {
+      urlPattern: /identitytoolkit\.googleapis\.com/,
+      handler: "NetworkOnly",
+      options: {
+        cacheName: "firebase-auth-cache",
+      },
+    },
+    {
       urlPattern: /\/api\//,
       handler: "NetworkFirst",
       options: {
@@ -54,7 +61,8 @@ export default defineConfig({
               handler: entry.handler as
                 | "NetworkFirst"
                 | "CacheFirst"
-                | "StaleWhileRevalidate",
+                | "StaleWhileRevalidate"
+                | "NetworkOnly",
             })),
           });
           console.log("Service worker generated successfully!");
@@ -68,23 +76,25 @@ export default defineConfig({
     host: true,
     port: 5173,
     headers: {
-      "access-control-allow-origin": "*",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
     },
   },
   build: {
     target: "esnext",
-    minify: 'terser',
+    minify: "terser",
     outDir: "dist",
     assetsDir: "assets",
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, "index.html"),
-      }, 
+      },
       output: {
         manualChunks: {
           vue: ["vue"],
-        }
-      }
+        },
+      },
     },
   },
   optimizeDeps: {
