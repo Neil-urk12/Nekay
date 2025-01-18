@@ -29,13 +29,13 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/water_tracker',
-      component: () => import('../views/WaterTrackerView.vue'),
+      path: "/water_tracker",
+      component: () => import("../views/WaterTrackerView.vue"),
       meta: { requiresAuth: true },
     },
     {
-      path: '/breathing_exercise',
-      component: () => import('../views/BreathingExercisesView.vue'),
+      path: "/breathing_exercise",
+      component: () => import("../views/BreathingExercisesView.vue"),
       meta: { requiresAuth: true },
     },
     // {
@@ -83,18 +83,35 @@ const router = createRouter({
 });
 
 // Navigation guard
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
 
-  onAuthStateChanged(auth, (user) => {
-    if (requiresAuth && !user) {
-      next("/login");
-    } else if (to.path === "/login" && user) {
-      next("/");
-    } else {
-      next();
-    }
+  return new Promise((resolve) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      unsubscribe();
+
+      if (requiresAuth && !user) {
+        resolve(next("/login"));
+      } else if (to.path === "/login" && user) {
+        resolve(next("/"));
+      } else {
+        resolve(next());
+      }
+    });
   });
 });
+// router.beforeEach((to, _from, next) => {
+//   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
+
+//   onAuthStateChanged(auth, (user) => {
+//     if (requiresAuth && !user) {
+//       next("/login");
+//     } else if (to.path === "/login" && user) {
+//       next("/");
+//     } else {
+//       next();
+//     }
+//   });
+// });
 
 export default router;
