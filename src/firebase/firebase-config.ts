@@ -1,9 +1,9 @@
 import { initializeApp } from "firebase/app";
 import { initializeFirestore, CACHE_SIZE_UNLIMITED } from "firebase/firestore";
 import {
+  browserLocalPersistence,
   getAuth,
   setPersistence,
-  browserLocalPersistence,
 } from "firebase/auth";
 
 const firebaseConfig = {
@@ -15,31 +15,16 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-auth.useDeviceLanguage();
 setPersistence(auth, browserLocalPersistence);
+auth.useDeviceLanguage();
 const db = initializeFirestore(app, {
   cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+  experimentalForceLongPolling: true,
+  experimentalAutoDetectLongPolling: true,
 });
-
-// enableIndexedDbPersistence(db)
-//   .then(() => {
-//     console.log("Offline persistence enabled");
-//   })
-//   .catch((err) => {
-//     if (err.code == "failed-precondition") {
-//       // Multiple tabs open, persistence can only be enabled in one tab at a time.
-//       console.warn(
-//         "Multiple tabs open, offline persistence can only be enabled in one tab at a time."
-//       );
-//     } else if (err.code == "unimplemented") {
-//       // The current browser doesn't support offline persistence
-//       console.warn("Current browser doesn't support offline persistence");
-//     }
-//   });
 
 window.addEventListener("online", () => {
   console.log("App is online");
