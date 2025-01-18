@@ -22,6 +22,8 @@ setPersistence(auth, browserLocalPersistence);
 auth.useDeviceLanguage();
 const db = initializeFirestore(app, {
   cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+  experimentalForceLongPolling: true,
+  experimentalAutoDetectLongPolling: true,
 });
 
 window.addEventListener("online", () => {
