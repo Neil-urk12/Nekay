@@ -1,9 +1,37 @@
 <script lang="ts" setup>
-import { computed, defineAsyncComponent } from "vue";
+import { computed, defineAsyncComponent, ref, onMounted } from "vue";
 import { TimeOfDay, useBackgroundStore } from "../stores/backgroundStore";
 const MelodyHeader = defineAsyncComponent(
   () => import("../components/MelodyHeader.vue")
 );
+
+const dailyAffirmation = ref("")
+
+async function fetchAffirmation() {
+  try {
+    console.log("Fetching affirmation...")
+    const response = await fetch("https://affi-rm.vercel.app/daily-affirmation")
+    console.log("Response status: ", response.status)
+    if (!response.ok) {
+      throw new Error('Failed to fetch affirmation');
+    }
+
+    if (response.status === 204) {
+      dailyAffirmation.value = "You are doing great! Keep up the good work!"
+      return;
+    }
+
+    if (!response) {  
+      throw new Error('Failed to fetch affirmation');
+    }
+
+    const data = await response.json()
+    dailyAffirmation.value = data.message
+  } catch (err) {
+    console.error('Error fetching affirmation: ', err);
+    dailyAffirmation.value = "You are doing great! Keep up the good work!"
+  }
+}
 
 const backgroundStore = useBackgroundStore();
 
@@ -18,7 +46,11 @@ const greetingMessage = computed(() => {
   return (
     messages[backgroundStore.timeOfDay as TimeOfDay] || "Have a great day!"
   );
-});
+})
+
+onMounted(async () => {
+  await fetchAffirmation()
+}) 
 </script>
 
 <template>
@@ -35,6 +67,10 @@ const greetingMessage = computed(() => {
         <p class="greeting">Hi Kaykayy!</p>
         <p class="greetingMessage">{{ greetingMessage }}</p>
       </div>
+    </div>
+    
+    <div class="affirmation-container">
+      <p class="affirmation">{{ dailyAffirmation }}</p>
     </div>
 
     <div class="app-icons-container">
@@ -124,7 +160,7 @@ a {
   display: flex;
   justify-content: center;
   gap: 2rem;
-  margin: 50%;
+  margin: 2rem 0;
   text-decoration: none;
 }
 @keyframes float {
@@ -154,5 +190,27 @@ a {
     margin: 1rem;
     padding: 1rem;
   }
+}
+
+.affirmation-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  margin: 4rem 0 2rem 0;
+}
+
+.affirmation {
+  color: #4b5563;
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 500;
+  text-align: center;
+  max-width: 80%;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  font-family: 'Courier New', Courier, monospace;
 }
 </style>
