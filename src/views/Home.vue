@@ -1,11 +1,15 @@
 <script lang="ts" setup>
-import { computed, defineAsyncComponent, ref, onMounted } from "vue";
+import { computed, defineAsyncComponent, ref, onMounted, watch } from "vue";
 import { TimeOfDay, useBackgroundStore } from "../stores/backgroundStore";
 const MelodyHeader = defineAsyncComponent(
   () => import("../components/MelodyHeader.vue")
 );
 
 const dailyAffirmation = ref("")
+
+watch(dailyAffirmation, (newVal) => {
+  console.log("Affirmation updated:", newVal);
+});
 
 async function fetchAffirmation() {
   try {
