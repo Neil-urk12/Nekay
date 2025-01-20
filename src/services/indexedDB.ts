@@ -137,5 +137,29 @@ class NekayDatabase extends Dexie {
   async deleteWaterEntry(id: string) {
     return await this.waterEntries.delete(id);
   }
+
+  async markForDeletion(collection: 'tasks' | 'folders' | 'journal', id: string) {
+    if (!id) throw new Error('Failed to mark for deletion');
+
+    if (collection === 'tasks') {
+      this.tasks.update(id, {
+        syncStatus: 'deleted',
+        lastModified: Date.now()
+      });
+      return;
+    } else if (collection === 'folders') {
+      this.folders.update(id, {
+        syncStatus: 'deleted',
+        lastModified: Date.now()
+      });
+      return;
+    } else if (collection === 'journal') {
+      this.journal.update(id, {
+        syncStatus: 'deleted',
+        lastModified: Date.now()
+      });
+      return;
+    }
+  }
 }
 export const db = new NekayDatabase();
