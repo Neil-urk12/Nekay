@@ -23,7 +23,7 @@ const selectedFolder = ref<Folder | null>(null);
 const folderToDelete = ref<Folder | null>(null);
 const newFolderName = ref("");
 
-const folders = computed(() => journalStore.getFolders);
+const folders = computed(() => journalStore.getJournalFolders);
 
 const addFolder = async (folderName: string) => {
   try {
