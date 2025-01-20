@@ -83,7 +83,7 @@ onMounted(() => {
           placeholder="New task"
           @keyup.enter="addTask"
         />
-        <button @click="addTask" disabled="isLoading" class="btn-primary" :disabled="isLoading">Add Task</button>
+        <button @click="addTask" class="btn-primary" :disabled="isLoading">Add Task</button>
       </div>
     </header>
 
