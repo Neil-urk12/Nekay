@@ -1,20 +1,31 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { defineProps, defineEmits } from "vue";
 
-const emit = defineEmits(["close", "folderName"]);
-const folderName = ref("");
+const props = defineProps({
+  title: {
+    type: String,
+    required: true,
+  },
+  showModal: {
+    type: Boolean,
+    required: true,
+  },
+  submitButtonText: {
+    type: String,
+    default: "Add",
+  },
+});
 
-const handleSubmit = () => {
-  if (folderName.value.trim()) {
-    emit("folderName", folderName.value);
-    folderName.value = "";
-    emit("close");
-  }
+const emit = defineEmits(["close", "submit"]);
+
+const handleSubmit = (event: Event) => {
+  event.preventDefault();
+  emit("submit");
 };
 </script>
 
 <template>
-  <div class="modal-overlay">
+  <div v-if="showModal" class="modal-overlay">
     <div class="modal-content">
       <button class="close-button" @click="$emit('close')">
         <svg
@@ -29,21 +40,18 @@ const handleSubmit = () => {
         </svg>
       </button>
 
-      <h2>Add New Folder</h2>
+      <h2>{{ props.title }}</h2>
 
-      <form @submit.prevent="handleSubmit">
-        <input
-          type="text"
-          v-model="folderName"
-          placeholder="Enter folder name"
-          required
-        />
+      <form @submit="handleSubmit">
+        <slot></slot>
 
         <div class="button-group">
           <button type="button" class="cancel-button" @click="$emit('close')">
             Cancel
           </button>
-          <button type="submit" class="add-button">Add</button>
+          <button type="submit" class="add-button">
+            {{ props.submitButtonText }}
+          </button>
         </div>
       </form>
     </div>
@@ -99,6 +107,7 @@ input {
   display: flex;
   gap: 1rem;
   justify-content: flex-end;
+  margin: 1rem auto;
 }
 
 .cancel-button,
