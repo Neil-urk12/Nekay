@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 import { Folder } from "../composables/interfaces";
 import { useNotesStore } from "../stores/notes";
 const AddFolderModal = defineAsyncComponent(
-  () => import("../components/AddFolderModal.vue")
+  () => import("../components/AddModal.vue")
 );
 const EditFolderModal = defineAsyncComponent(
   () => import("../components/EditFolderModal.vue")
@@ -21,6 +21,7 @@ const showEditFolderModal = ref(false);
 const showDeleteModal = ref(false);
 const selectedFolder = ref<Folder | null>(null);
 const folderToDelete = ref<Folder | null>(null);
+const newFolderName = ref("");
 
 const folders = computed(() => journalStore.getFolders);
 
@@ -28,9 +29,17 @@ const addFolder = async (folderName: string) => {
   try {
     if (!folderName.trim()) return;
 
-    await journalStore.addFolder(folderName, "journal")
+    await journalStore.addFolder(folderName, "journal");
   } catch (err) {
     console.error(err);
+  }
+};
+
+const handleAddFolder = () => {
+  if (newFolderName.value.trim()) {
+    addFolder(newFolderName.value);
+    newFolderName.value = "";
+    showAddFolderModal.value = false;
   }
 };
 
@@ -141,9 +150,18 @@ onMounted(() => {
     </div>
     <AddFolderModal
       v-if="showAddFolderModal"
+      title="Add New Folder"
+      :showModal="showAddFolderModal"
       @close="showAddFolderModal = false"
-      @folderName="addFolder"
-    />
+      @submit="handleAddFolder"
+    >
+      <input
+        type="text"
+        v-model="newFolderName"
+        placeholder="Enter folder name"
+        required
+      />
+    </AddFolderModal>
     <EditFolderModal
       v-if="showEditFolderModal"
       :folder="selectedFolder"
