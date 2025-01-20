@@ -1,316 +1,445 @@
-// import { indexedDBService } from "./indexedDB";
-// import type { BatchUpdateOperations } from "../firebase/firestore-service";
-// import { 
-//   getChangedItems,
-//   batchUpdate,
-//   WithMetadata,
-//   Task, Folder, JournalEntry 
-// } from "../firebase/firestore-service";
-// import { useOffline } from "../composables/useOffline";
-// import { watch } from 'vue';
+import { db as fireDb } from "../firebase/firebase-config";
+import { db } from "./indexedDB";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  onSnapshot,
+  setDoc,
+  writeBatch,
+  // query,
+  // where,
+  // getDocs,
+  // doc,
+  // setDoc,
+  // deleteDoc,
+} from "firebase/firestore";
+import debounce from "lodash/debounce";
 
-// const SYNC_INTERVAL = 30000; // 30 seconds
-// const MAX_RETRIES = 3;
-// const RETRY_DELAY = 5000; // 5 seconds
+type SyncableCollection = "tasks" | "folders" | "journal" | "pomodoro";
+type SyncStatus = "pending" | "syncing" | "synced" | "error";
 
-// async function retry<T>(func: () => Promise<T>, retries: number = MAX_RETRIES): Promise<T> {
-//   try {
-//     return await func();
-//   } catch (error) {
-//     if (retries > 0) {
-//       console.warn(`Retrying after error: ${error}`);
-//       await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
-//       return retry(func, retries - 1);
-//     } else {
-//       console.error(`Failed after multiple retries: ${error}`);
-//       throw error;
-//     }
-//   }
-// }
+interface SyncState {
+  status: SyncStatus;
+  lastSync: Date | null;
+  error: Error | null;
+  progress: number;
+}
 
-// export class SyncService {
-//   private isSyncing = false;
-//   private lastSyncTime = 0;
-//   private syncInterval: NodeJS.Timeout | null = null;
-//   private offlineState = useOffline();
-//   private syncDebounceTimeout: NodeJS.Timeout | null = null;
-//   private syncQueue: Map<string, Promise<void>> = new Map();
+export class SyncService {
+  private static instance: SyncService;
+  private listeners: Map<string, () => void> = new Map();
+  private syncState: Map<SyncableCollection, SyncState> = new Map();
+  // private retryAttempts: Map<string, number> = new Map();
+  // private readonly MAX_RETRY_ATTEMPTS = 3;
+  private readonly BATCH_SIZE = 500;
+  private isOnline: boolean = navigator.onLine;
 
-//   private get isOnline() {
-//     return !this.offlineState.isOffline.value;
-//   }
+  private constructor() {
+    this.setupNetworkListeners();
+    this.initializeSyncStates();
+  }
 
-//   constructor() {
-//     this.setupAutoSync();
-//     this.setupOnlineListener();
-//   }
+  static getInstance(): SyncService {
+    if (!SyncService.instance) {
+      SyncService.instance = new SyncService();
+    }
+    return SyncService.instance;
+  }
 
-//   private clearTimeouts() {
-//     if (this.syncInterval) {
-//       clearInterval(this.syncInterval);
-//       this.syncInterval = null;
-//     }
-//     if (this.syncDebounceTimeout) {
-//       clearTimeout(this.syncDebounceTimeout);
-//       this.syncDebounceTimeout = null;
-//     }
-//   }
+  private initializeSyncStates() {
+    const collections: SyncableCollection[] = [
+      "tasks",
+      "folders",
+      "journal",
+      "pomodoro",
+    ];
+    collections.forEach((collection) => {
+      this.syncState.set(collection, {
+        status: "synced",
+        lastSync: null,
+        error: null,
+        progress: 0,
+      });
+    });
+  }
 
-//   private setupAutoSync() {
-//     if (this.syncInterval) {
-//       clearInterval(this.syncInterval);
-//     }
+  private setupNetworkListeners() {
+    window.addEventListener("online", () => {
+      this.isOnline = true;
+      this.syncAll();
+    });
 
-//     this.syncInterval = setInterval(() => {
-//       if (this.isOnline && !this.isSyncing) {
-//         this.syncData();
-//       }
-//     }, SYNC_INTERVAL);
-//   }
+    window.addEventListener("offline", () => {
+      this.isOnline = false;
+      this.removeAllListeners();
+    });
+  }
 
-//   private setupOnlineListener() {
-//     watch(this.offlineState.isOffline, (isOffline) => {
-//       if (!isOffline) {
-//         this.debouncedSync();
-//       }
-//     });
+  private async setupRealtimeListener(collectionName: SyncableCollection) {
+    const collectionRef = collection(fireDb, collectionName);
 
-//     window.addEventListener('app-online', () => {
-//       this.debouncedSync();
-//     });
-//   }
+    const unsubscribe = onSnapshot(
+      collectionRef,
+      debounce(async (snapshot) => {
+        if (!this.isOnline) return;
 
-//   private debouncedSync(): void {
-//     if (this.syncDebounceTimeout) {
-//       clearTimeout(this.syncDebounceTimeout);
-//     }
-    
-//     try {
-//       this.syncDebounceTimeout = setTimeout(() => {
-//         this.syncData().catch(error => {
-//           console.error('Debounced sync failed:', error);
-//         });
-//       }, 1000);
-//     } catch (error) {
-//       console.error('Failed to schedule debounced sync:', error);
-//     }
-//   }
+        for (const change of snapshot.docChanges()) {
+          const data = change.doc.data();
+          const id = change.doc.id;
 
-//   private async queueSync(key: string, operation: () => Promise<void>): Promise<void> {
-//     const existing = this.syncQueue.get(key);
-//     if (existing) {
-//       return existing;
-//     }
+          try {
+            switch (change.type) {
+              case "added":
+              case "modified":
+                await this.handleIncomingChange(collectionName, id, data);
+                break;
+              case "removed":
+                await this.handleRemoteDelete(collectionName, id);
+                break;
+            }
+          } catch (error) {
+            console.error(`Sync error for ${collection}:`, error);
+            this.updateSyncState(collectionName, "error", error as Error);
+          }
+        }
+      }, 1500)
+    );
 
-//     const promise = operation().finally(() => {
-//       this.syncQueue.delete(key);
-//     });
+    this.listeners.set(collectionName, unsubscribe);
+  }
 
-//     this.syncQueue.set(key, promise);
-//     return promise;
-//   }
+  private async handleIncomingChange(
+    collection: SyncableCollection,
+    id: string,
+    data: any
+  ) {
+    const localData = await this.getLocalItem(collection, id);
 
-//   // Main sync process
-//   async syncData(): Promise<void> {
-//     if (this.isSyncing) {
-//       console.log('Sync already in progress, queuing...');
-//       return this.queueSync('main', () => this._syncData());
-//     }
-//     return this._syncData();
-//   }
+    if (!localData) {
+      await this.updateLocalItem(collection, id, data);
+      return
+    } 
 
-//   private async _syncData(): Promise<void> {
-//     try {
-//       this.isSyncing = true;
-//       console.log('Starting sync process...');
+    const localModified = localData.lastModified;
+    const remoteModified = data.lastModified;
 
-//       const syncStart = Date.now();
-      
-//       // Get all pending changes from IndexedDB in batches
-//       const batchSize = 50;
-//       let processed = 0;
-      
-//       while (true) {
-//         const [pendingTasks, pendingEntries, pendingFolders] = await retry<[Task[], JournalEntry[], Folder[]]>(() => Promise.all([
-//           indexedDBService.getPendingSyncItems<Task>('tasks', batchSize, processed),
-//           indexedDBService.getPendingSyncItems<JournalEntry>('journal', batchSize, processed),
-//           indexedDBService.getPendingSyncItems<Folder>('folders', batchSize, processed)
-//         ]));
+    if (localModified < remoteModified) {
+      await this.updateLocalItem(collection, id, data);
+    } else if (localModified > remoteModified) {
+      const docRef = doc(fireDb, collection, id);
+      await setDoc (docRef, {
+        ...localData,
+        syncStatus: "synced"
+      });
+      await this.updateLocalItem(collection, id, {
+        ...localData,
+        syncStatus: "synced"
+      });
+    }
+  }
 
-//         if (!pendingTasks.length && !pendingEntries.length && !pendingFolders.length) {
-//           break;
-//         }
+  private async handleRemoteDelete(collection: SyncableCollection, id: string) {
+    try {
+      switch (collection) {
+        case "tasks":
+          await db.deleteTask(id);
+          break;
+        case "folders":
+          await db.deleteFolder(id);
+          break;
+        case "journal":
+          await db.deleteEntry(id);
+          break;
+      }
+    } catch (error) {
+      console.error(`Failed to delete ${collection} item locally:`, error);
+    }
+  }
 
-//         // Process batch
-//         await this.processBatch({
-//           tasks: pendingTasks,
-//           journalEntries: pendingEntries,
-//           folders: pendingFolders
-//         });
+  private async getLocalItem(collection: SyncableCollection, id: string) {
+    switch (collection) {
+      case "tasks":
+        return await db.tasks.where("id").equals(id).first();
+      case "folders":
+        return await db.folders.where("id").equals(id).first();
+      case "journal":
+        return await db.journal.where("id").equals(id).first();
+      default:
+        return null;
+    }
+  }
 
-//         processed += batchSize;
-//       }
+  private async syncFromFirestore(collectionToSync: SyncableCollection) {
+    console.log(`Syncing from Firestore for collection: ${collectionToSync}`); // Debug log
 
-//       // Get remote changes since last sync
-//       const [remoteTasks, remoteEntries, remoteFolders] = await retry<[WithMetadata<Task>[], WithMetadata<JournalEntry>[], WithMetadata<Folder>[]]>(() => Promise.all([
-//         getChangedItems<Task>('tasks', this.lastSyncTime),
-//         getChangedItems<JournalEntry>('journalEntries', this.lastSyncTime),
-//         getChangedItems<Folder>('folders', this.lastSyncTime)
-//       ]));
+    try {
+      const collectionName = collectionToSync === "journal" ? "entries" : collectionToSync;
+      const querySnapshot = await getDocs(collection(fireDb, collectionName));
 
-//       // Process remote changes first
-//       console.log('Processing remote changes...');
-//       await retry(() => this.processRemoteChanges(remoteTasks, remoteEntries, remoteFolders));
+      for (const doc of querySnapshot.docs) {
+        const data = { id: doc.id, ...doc.data() };
+        await this.updateLocalItem(collectionToSync, doc.id, {
+          ...data,
+          syncStatus: "synced",
+        });
+      }
+    } catch (error) {
+      console.error(`Error syncing from Firestore for ${collectionToSync}:`, error);
+      throw error;
+    }
+  }
 
-//       this.lastSyncTime = syncStart;
-//       console.log('Sync completed successfully');
-//     } catch (error) {
-//       console.error('Sync failed:', error);
-//       throw error;
-//     } finally {
-//       this.isSyncing = false;
-//     }
-//   }
+  private async updateLocalItem(
+    collection: SyncableCollection,
+    id: string,
+    data: any
+  ) {
+    console.log(`Updating local item in ${collection}:`, data); // Debug log
 
-//   private async processBatch(
-//     batch: {
-//       tasks: WithMetadata<Task>[],
-//       journalEntries: WithMetadata<JournalEntry>[],
-//       folders: WithMetadata<Folder>[]
-//     }
-//   ): Promise<void> {
-//     const { tasks, journalEntries, folders } = batch;
-    
-//     // Process in smaller chunks to avoid overwhelming IndexedDB
-//     const chunkSize = 10;
-//     const chunks = [];
-    
-//     for (let i = 0; i < Math.max(tasks.length, journalEntries.length, folders.length); i += chunkSize) {
-//       chunks.push({
-//         tasks: tasks.slice(i, i + chunkSize),
-//         journalEntries: journalEntries.slice(i, i + chunkSize),
-//         folders: folders.slice(i, i + chunkSize)
-//       });
-//     }
-    
-//     for (const chunk of chunks) {
-//       await retry(() => this.processChunk(chunk));
-//     }
-//   }
+    try {
+      switch (collection) {
+        case "tasks":
+          await db.updateTask(id, data);
+          break;
+        case "folders":
+          await db.updateFolder(id, data);
+          break;
+        case "journal":
+          await db.updateEntry(id, data);
+          break;
+      }
+    } catch (error) {
+      console.error(`Error updating local item in ${collection}:`, error);
+      throw error;
+    }
+  }
 
-//   private async processChunk(
-//     chunk: {
-//       tasks: WithMetadata<Task>[],
-//       journalEntries: WithMetadata<JournalEntry>[],
-//       folders: WithMetadata<Folder>[]
-//     }
-//   ): Promise<void> {
-//     // Separate deleted and updated items
-//     const deletedTasks = chunk.tasks.filter(t => t.deleted).map(t => t.id!);
-//     const deletedEntries = chunk.journalEntries.filter(e => e.deleted).map(e => e.id!);
-//     const deletedFolders = chunk.folders.filter(f => f.deleted).map(f => f.id!);
+  private async getPendingItems(collection: SyncableCollection) {
+    console.log(`Getting pending items for ${collection}`); // Debug log
 
-//     const updatedTasks = chunk.tasks.filter(t => !t.deleted);
-//     const updatedEntries = chunk.journalEntries.filter(e => !e.deleted);
-//     const updatedFolders = chunk.folders.filter(f => !f.deleted);
+    try {
+      switch (collection) {
+        case "tasks":
+          const tasks = await db.tasks
+            .where("syncStatus")
+            .equals("pending")
+            .toArray();
+          console.log(`Found ${tasks.length} pending tasks`); // Debug log
+          return tasks;
+        case "folders":
+          return await db.folders
+            .where("syncStatus")
+            .equals("pending")
+            .toArray();
+        case "journal":
+          return await db.journal
+            .where("syncStatus")
+            .equals("pending")
+            .toArray();
+        default:
+          return [];
+      }
+    } catch (error) {
+      console.error(`Error getting pending items for ${collection}:`, error);
+      throw error;
+    }
+  }
 
-//     // Process in batches
-//     await retry(() => batchUpdate({
-//       tasks: updatedTasks,
-//       journalEntries: updatedEntries,
-//       folders: updatedFolders,
-//       deletedTaskIds: deletedTasks,
-//       deletedJournalEntryIds: deletedEntries,
-//       deletedFolderIds: deletedFolders
-//     } as BatchUpdateOperations));
+  private async getDeletedItems(collection: SyncableCollection) {
+    console.log(`Getting deleted items for ${collection}`);
 
-//     // Update sync status in IndexedDB for both updated and deleted items
-//     await retry(() => Promise.all([
-//       ...updatedTasks.map(task => 
-//         indexedDBService.updateItem('tasks', task.id!, { ...task, syncStatus: 'synced' as const })
-//       ),
-//       ...updatedEntries.map(entry => 
-//         indexedDBService.updateItem('journal', entry.id!, { ...entry, syncStatus: 'synced' as const })
-//       ),
-//       ...updatedFolders.map(folder => 
-//         indexedDBService.updateItem('folders', folder.id!, { ...folder, syncStatus: 'synced' as const })
-//       ),
-//       ...deletedTasks.map(id => 
-//         indexedDBService.deleteItem('tasks', id)
-//       ),
-//       ...deletedEntries.map(id => 
-//         indexedDBService.deleteItem('journal', id)
-//       ),
-//       ...deletedFolders.map(id => 
-//         indexedDBService.deleteItem('folders', id)
-//       )
-//     ]));
-//   }
+    try {
+      switch (collection) {
+        case "tasks":
+          const tasks = await db.tasks
+            .where("syncStatus")
+            .equals("deleted")  
+            .toArray();
+          console.log(`Found ${tasks.length} pending tasks`);
+          return tasks;
+        case "folders":
+          return await db.folders
+            .where("syncStatus")
+            .equals("deleted")
+            .toArray();
+        case "journal":
+          return await db.journal
+            .where("syncStatus")
+            .equals("deleted")
+            .toArray();
+        default:
+          return [];
+      }
+    } catch (error) {
+      console.error(`Error getting pending items for ${collection}:`, error);
+      throw error;
+    }
+  }
 
-//   private async processRemoteChanges(
-//     tasks: WithMetadata<Task>[],
-//     entries: WithMetadata<JournalEntry>[],
-//     folders: WithMetadata<Folder>[]
-//   ) {
-//     console.log('Processing remote changes...');
+  private updateSyncState(
+    collection: SyncableCollection,
+    status: SyncStatus,
+    error: Error | null = null
+  ) {
+    const state = this.syncState.get(collection)!;
+    this.syncState.set(collection, {
+      ...state,
+      status,
+      error,
+      lastSync: status === "synced" ? new Date() : state.lastSync,
+    });
+  }
 
-//     // Process tasks
-//     for (const task of tasks) {
-//       if (!task.id) {
-//         console.warn('Skipping task without id:', task);
-//         continue;
-//       }
+  async syncAll() {
+    if (!this.isOnline) return;
 
-//       if (task.deleted) {
-//         await retry(() => indexedDBService.deleteItem('tasks', task.id!));
-//       } else {
-//         const localTask = await retry(() => indexedDBService.getItem<Task>('tasks', task.id!));
-//         if (!localTask || localTask.lastModified < task.lastModified) {
-//           await retry(() => indexedDBService.updateItem('tasks', task.id!, task));
-//         }
-//       }
-//     }
+    const collections: SyncableCollection[] = [
+      "tasks",
+      "folders",
+      "journal",
+      "pomodoro",
+    ];
 
-//     // Process journal entries
-//     for (const entry of entries) {
-//       if (!entry.id) {
-//         console.warn('Skipping journal entry without id:', entry);
-//         continue;
-//       }
+    for (const collection of collections) {
+      try {
+        this.updateSyncState(collection, "syncing");
+        await this.syncCollection(collection);
+        this.setupRealtimeListener(collection);
+        this.updateSyncState(collection, "synced");
+      } catch (error) {
+        console.error(`Failed to sync ${collection}:`, error);
+        this.updateSyncState(collection, "error", error as Error);
+      }
+    }
+  }
 
-//       if (entry.deleted) {
-//         await retry(() => indexedDBService.deleteItem('journal', entry.id!));
-//       } else {
-//         const localEntry = await retry(() => indexedDBService.getItem<JournalEntry>('journal', entry.id!));
-//         if (!localEntry || localEntry.lastModified < entry.lastModified) {
-//           await retry(() => indexedDBService.updateItem('journal', entry.id!, entry));
-//         }
-//       }
-//     }
+  private async syncCollection(collection: SyncableCollection) {
+    console.log(`Starting sync for collection: ${collection}`);
+    try {
+      const pendingItems = await this.getPendingItems(collection);
+      const deletedItems = await this.getDeletedItems(collection);  
 
-//     // Process folders
-//     for (const folder of folders) {
-//       if (!folder.id) {
-//         console.warn('Skipping folder without id:', folder);
-//         continue;
-//       }
+      for (const item of deletedItems) {
+        const docRef  = doc(fireDb, collection, item.id);
+        await deleteDoc(docRef);
+        await this.deleteLocalItem(collection, item.id);
+      }
 
-//       if (folder.deleted) {
-//         await retry(() => indexedDBService.deleteItem('folders', folder.id!));
-//       } else {
-//         const localFolder = await retry(() => indexedDBService.getItem<Folder>('folders', folder.id!));
-//         if (!localFolder || localFolder.lastModified < folder.lastModified) {
-//           await retry(() => indexedDBService.updateItem('folders', folder.id!, folder));
-//         }
-//       }
-//     }
-//   }
+      const itemsToSync = pendingItems.filter(item => item.syncStatus === 'pending');
+      if (itemsToSync.length === 0) {
+        await this.syncFromFirestore(collection);
+        return;
+      }
 
-//   // Cleanup method
-//   destroy() {
-//     this.clearTimeouts();
-//     this.syncQueue.clear();
-//   }
-// }
+      if (pendingItems.length === 0) {
+        await this.syncFromFirestore(collection);
+        return;
+      }
 
-// export const syncService = new SyncService();
+      for (let i = 0; i < pendingItems.length; i += this.BATCH_SIZE) {
+        const batch = writeBatch(fireDb);
+        const chunk = pendingItems.slice(i, i + this.BATCH_SIZE);
+
+        for (const item of chunk) {
+          const docRef = doc(fireDb, collection, item.id);
+
+          const itemToSync = {
+            ...item,
+            lastModified: Date.now(),
+            timestamp: item.timestamp || Date.now(),
+            syncStatus: "synced"
+          };
+          batch.set(docRef, itemToSync);
+        }
+
+        await batch.commit();
+
+        // Only update local items after successful batch commit
+        for (const item of chunk) {
+          await this.updateLocalItem(collection, item.id, {
+            ...item,
+            syncStatus: "synced",
+            lastModified: Date.now(),
+          });
+        }
+        this.updateSyncProgress(
+          collection,
+          ((i + chunk.length) / pendingItems.length) * 100
+        );
+      }
+    } catch (error) {
+      console.error(`Error syncing collection ${collection}:`, error);
+      this.updateSyncState(collection, "error", error instanceof Error ? error : new Error(String(error)));
+      throw error; // Propagate error up
+    }
+  }
+
+  private async deleteLocalItem(collection: SyncableCollection, id: string) {
+    switch (collection) {
+      case "tasks":
+        await db.deleteTask(id);
+        break;
+      case "folders":
+        await db.deleteFolder(id);
+        break;
+      case "journal":
+        await db.deleteEntry(id);
+        break;
+    }
+  }
+
+  private updateSyncProgress(collection: SyncableCollection, progress: number) {
+    const state = this.syncState.get(collection)!;
+    this.syncState.set(collection, {
+      ...state,
+      progress,
+    });
+  }
+
+  async loadFromCache() {
+    const collections: SyncableCollection[] = [
+      "tasks",
+      "folders",
+      "journal",
+      "pomodoro",
+    ];
+
+    for (const collection of collections) {
+      try {
+        const localData = await this.getLocalItems(collection);
+        if (localData && localData.length > 0) 
+          console.log(`Loaded ${localData.length} cached items for ${collection}`);
+        else 
+          await this.syncFromFirestore(collection);
+      } catch (error) {
+        console.warn(`Failed to load cache for ${collection}:`, error);
+      }
+    }
+  }
+
+  private async getLocalItems(collection: SyncableCollection) {
+    switch (collection) {
+      case "tasks":
+        return await db.tasks.toArray();
+      case "folders": 
+        return await db.folders.toArray();
+      case "journal":
+        return await db.journal.toArray();
+      default:
+        return [];
+    }
+  }
+
+  removeAllListeners() {
+    this.listeners.forEach((unsubscribe) => unsubscribe());
+    this.listeners.clear();
+  }
+
+  getSyncState(collection: SyncableCollection): SyncState {
+    return this.syncState.get(collection)!;
+  }
+}
+
+export const syncService = SyncService.getInstance();

@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { defineAsyncComponent, onMounted, ref } from "vue";
 import { useBackgroundStore } from "./stores/backgroundStore";
+import { useNotesStore } from "./stores/notes";
 const BottomNav = defineAsyncComponent(
   () => import("./components/BottomNav.vue")
 );
+import { syncService } from "./services/syncService";
 const backgroundStore = useBackgroundStore();
+const notesStore = useNotesStore()
 const isLoading = ref(true);
 const error = ref<Error | null>(null);
 
@@ -12,9 +15,15 @@ onMounted(async () => {
   try {
     backgroundStore.determineTimeOfDay();
     setInterval(() => backgroundStore.determineTimeOfDay, 60000);
-    // if (!initialized.value)
-    //   await notesStore.initialise()
-    // await notesStore.fetchFromFirebase()
+    notesStore.initializeStore();
+
+    await syncService.loadFromCache();
+    
+    if (navigator.onLine) {
+      await syncService.syncAll().catch(err => {
+        console.error("Background sync failed:", err);
+      });
+    }
   } catch (err) {
     console.error("Failed to initialize app:", err);
     error.value = err as Error;
