@@ -40,7 +40,7 @@ const handleSubmit = (event: Event) => {
         </svg>
       </button>
 
-      <h2>{{ title }}</h2>
+      <h2>{{ props.title }}</h2>
 
       <form @submit="handleSubmit">
         <slot></slot>
@@ -50,7 +50,7 @@ const handleSubmit = (event: Event) => {
             Cancel
           </button>
           <button type="submit" class="add-button">
-            {{ submitButtonText }}
+            {{ props.submitButtonText }}
           </button>
         </div>
       </form>
