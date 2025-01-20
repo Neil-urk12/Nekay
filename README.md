@@ -1,5 +1,24 @@
-# Vue 3 + TypeScript + Vite
+# 💕 Nekay - A Love-Powered Productivity App
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Built with Vue 3 + TypeScript + Vite (and lots of love! 💝)
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## What's This All About?
+
+Nekay is a delightful personal companion app I crafted for my girlfriend, because sometimes "I love you" is best expressed in code! 👩‍💻
+A beautiful and cute girl needs a cute and fun app too! 💕
+
+### Features That Make It Special:
+
+- ⏰ **Pomodoro Timer**: Because time flies when you're being productive (or thinking about your significant other)
+- 📝 **Task Management**: Keep track of todos, even if "Kiss my boyfriend" is always at the top of the list
+- 📓 **Journal Entries**: A digital space to capture thoughts, dreams, and maybe a few complaints about my coding habits
+- 🌡️ **Breathing Exercises**: For when I'm not around to give calming hugs
+- 💧 **Water Tracker**: Stay hydrated! (Because love isn't the only thing you need to survive)
+
+## Technical Sweet Nothings
+
+- Built with Vue 3 + TypeScript for type-safe love declarations
+- Vite for lightning-fast builds (almost as fast as my heart beats when she uses the app)
+- PWA-enabled for offline functionality (because our love doesn't need an internet connection)
+- IndexedDB for local data persistence (like memories, but digital)
+- Firebase backend for real-time sync (keeping us connected, one commit at a time)
