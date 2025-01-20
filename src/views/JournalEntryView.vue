@@ -259,9 +259,6 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-* {
-  font-family: "Concert One", "Montserrat", sans-serif;
-}
 .folder-view {
   padding: 1rem;
   max-width: 800px;

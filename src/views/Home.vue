@@ -68,7 +68,7 @@ onMounted(async () => {
     </div>
     <div class="message-container animate-float">
       <div class="message-box animate-fade-in">
-        <p class="greeting">Hi Kaykayy!</p>
+        <p class="greeting">Hi Babiee!</p>
         <p class="greetingMessage">{{ greetingMessage }}</p>
       </div>
     </div>
@@ -160,7 +160,6 @@ a {
 }
 /* Add this to create a container for the app icons */
 .app-icons-container {
-  font-family: "Concert One", "Montserrat", sans-serif;
   display: flex;
   justify-content: center;
   gap: 2rem;

@@ -198,9 +198,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-* {
-  font-family: "Concert One", "Montserrat", sans-serif;
-}
 h1 {
   color: white;
 }
