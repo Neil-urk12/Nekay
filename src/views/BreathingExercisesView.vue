@@ -127,9 +127,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-* {
-  font-family: "Concert One", "Montserrat", sans-serif;
-}
 .exercise-container {
   background-color: #ffe0e6;
   padding: 1rem;

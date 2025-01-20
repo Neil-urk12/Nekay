@@ -58,8 +58,15 @@ const confirmDelete = async () => {
 };
 
 onMounted(() => {
-  if (folders.value.length === 0) taskStore.loadFolders();
-  if (tasks.value.length === 0) taskStore.loadTasks();
+  try {
+    isLoading.value = true;
+    if (folders.value.length === 0) taskStore.loadFolders();
+    if (tasks.value.length === 0) taskStore.loadTasks();
+  } catch (error) {
+    console.error("Failed to load tasks:", error);
+  } finally {
+    isLoading.value = false;
+  }
 });
 </script>
 
@@ -76,7 +83,7 @@ onMounted(() => {
           placeholder="New task"
           @keyup.enter="addTask"
         />
-        <button @click="addTask" class="btn-primary" :disabled="isLoading">Add Task</button>
+        <button @click="addTask" disabled="isLoading" class="btn-primary" :disabled="isLoading">Add Task</button>
       </div>
     </header>
 
@@ -210,28 +217,23 @@ onMounted(() => {
   padding: 0.5rem 2rem 2rem 2rem;
   max-width: 800px;
   margin: 0 auto;
-  font-family: "Arial", sans-serif;
 }
-
 .page-header {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
 }
-
 .page-header h1 {
   margin: 3.5rem 0rem 0.5rem 0rem;
   font-size: 2rem;
   color: black;
 }
-
 .add-task {
   display: flex;
   gap: 0.75rem;
   margin-top: 1rem;
   width: 100%;
 }
-
 .input-field {
   padding: 0.25rem 0.5rem;
   border: 1px solid #ddd;
@@ -240,17 +242,14 @@ onMounted(() => {
   font-size: 0.9rem;
   transition: border-color 0.2s ease;
 }
-
 .input-field:focus {
   border-color: rgb(206, 0, 158);
 }
-
 .tasks-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
-
 .task-item {
   background: #fff;
   border-radius: 12px;
@@ -262,11 +261,9 @@ onMounted(() => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   transition: background-color 0.2s ease;
 }
-
 .task-item:hover {
   background: #f9f9f9;
 }
-
 .task-content {
   display: flex;
   align-items: center;
@@ -274,34 +271,28 @@ onMounted(() => {
   gap: 1rem;
   flex: 1;
 }
-
 .task-content span {
   word-break: break-word;
   overflow-wrap: break-word;
   min-width: 0;
   flex: 1;
 }
-
 .completed {
   background: #f0f0f0;
 }
-
 .completed-text {
   text-decoration: line-through;
   color: #888;
 }
-
 .task-actions {
   display: flex;
 }
-
 .edit-input {
   flex: 1;
   padding: 0.75rem;
   border: 1px solid var(--primary-color);
   border-radius: 6px;
 }
-
 .back-btn {
   border: none;
   cursor: pointer;
@@ -310,11 +301,9 @@ onMounted(() => {
   position: absolute;
   transition: color 0.2s ease;
 }
-
 .back-btn:hover {
   color: var(--primary-color);
 }
-
 /* Checkbox Styles */
 .checkbox-container {
   display: flex;

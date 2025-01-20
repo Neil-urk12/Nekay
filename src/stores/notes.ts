@@ -241,11 +241,9 @@ export const useNotesStore = defineStore("notes", {
         await db.deleteFolder(folderId);
         this.folders.splice(folderIndex, 1);
 
-
         this.error = null;
       } catch (error) {
         this.setError(error);
-        // Rollback local state if error
         const deletedFolder = this.folders.find((f) => f.id === folderId);
         if (deletedFolder) {
           this.folders.push(deletedFolder);
