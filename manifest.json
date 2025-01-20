@@ -30,5 +30,10 @@
       "type": "image/png",
       "platform": "desktop"
     }
-  ]
+  ],
+  "permissions": [
+    "background",
+    "storage"
+  ],
+  "background_sync": true
 }
