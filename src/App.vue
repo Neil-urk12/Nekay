@@ -41,9 +41,10 @@ onMounted(async () => {
 </template>
 
 <style>
-body {
+* {
   margin: 0;
-  font-family: "Comic Sans MS", cursive;
+  padding: 0;
+  font-family: "Concert One", "Montserrat", sans-serif;
 }
 .app-container {
   min-height: 100vh;
