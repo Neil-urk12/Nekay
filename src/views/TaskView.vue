@@ -183,13 +183,19 @@ onMounted(async () => {
   padding: 1rem;
   max-width: 800px;
   margin: 0 auto;
-  min-height: 90vh;
+  min-height: 95vh;
   background-size: cover;
   background-repeat: no-repeat;
   background-position: right;
 }
 .page-header {
   margin-bottom: 2rem;
+}
+.add-task {
+  display: flex;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  width: 100%;
 }
 .icon-btn {
   background: none;
