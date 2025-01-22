@@ -1,22 +1,26 @@
 {
+  "name": "Nekay",
   "short_name": "Nekay",
-  "name": "Nekay App",
+  "description": "Your personal task and journal companion",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#1a1a1a",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "/img/icons/android-chrome-192x192.png",
+      "src": "/nekay-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "/img/icons/android-chrome-512x512.png",
+      "src": "/nekay-512x512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
-  "start_url": "./index.html",
-  "display": "standalone",
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
   "screenshots": [
     {
       "src": "img/mobile.png",
@@ -31,9 +35,12 @@
       "platform": "desktop"
     }
   ],
-  "permissions": [
-    "background",
-    "storage"
-  ],
+  "categories": ["productivity", "lifestyle"],
+  "prefer_related_applications": false,
+  "background": {
+    "scripts": ["service-worker.js"],
+    "persistent": true
+  },
+  "permissions": ["background", "storage"],
   "background_sync": true
 }
