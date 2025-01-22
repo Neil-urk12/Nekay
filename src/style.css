@@ -1,86 +1,3 @@
-.content-card {
-  background-color: white;
-  border-radius: 1.5rem;
-  padding: 1rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  max-width: 100%;
-  width: 100%;
-  margin: 0 auto;
-}
-
-.page-title {
-  font-size: 1.875rem;
-  color: #db2777;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.page-title img {
-  width: 2rem;
-  height: 2rem;
-}
-
-.folders-section {
-  margin-bottom: 2rem;
-}
-
-.folders-section h2 {
-  color: #db2777;
-  font-size: 1.25rem;
-  margin-bottom: 1rem;
-}
-.folder-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  max-width: 100%;
-}
-.folder-edit-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  width: 100%;
-  align-items: center;
-}
-.stacked-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.stacked-buttons button {
-  width: 100%;
-  min-width: 5rem;
-}
-.folder-item {
-  max-width: calc(100% - 1rem);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  background-color: rgb(253, 242, 248);
-  display: flex;
-  align-items: center;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 1rem;
-  cursor: pointer;
-  color: #db2777;
-}
-
-.folder-item.active {
-  background-color: #db2777;
-  color: white;
-}
-
-.add-folder,
-.add-task {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
 input {
   flex: 1;
   padding: 0.5rem;
@@ -99,12 +16,6 @@ button {
   border-radius: 0.5rem;
   cursor: pointer;
 }
-.task-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  color: black;
-}
 .task-item {
   display: flex;
   align-items: center;
@@ -116,44 +27,12 @@ button {
   flex-wrap: wrap;
   gap: 0.5rem;
 }
-.task-label {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  gap: 0.5rem;
-  flex: 1;
-}
-.task-label span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.completed {
-  text-decoration: line-through;
-  color: #9ca3af;
-}
 .delete-button {
   background: none;
   border: none;
   padding: 0.25rem;
   cursor: pointer;
   font-size: 1.2rem; /* Increase font size */
-}
-.edit-button {
-  background: none;
-  border: none;
-  padding: 0.25rem;
-  cursor: pointer;
-  font-size: 1.2rem; /* Increase font size */
-}
-.task-label input {
-  margin-right: 0.5rem; /* Add margin to the right of the checkbox */
-}
-
-.icon-buttons {
-  display: flex;
-  flex-direction: column; /* Stack buttons vertically */
-  gap: 0.5rem;
 }
 .modal-content {
   background-color: white;
