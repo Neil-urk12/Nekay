@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, defineAsyncComponent } from "vue";
 import { useNotesStore } from "../stores/notes";
 import { Task } from "../composables/interfaces";
-import ReturnButton from "../components/ReturnButton.vue";
-
+const ReturnButton = defineAsyncComponent(() => import("../components/ReturnButton.vue"));
 
 const taskStore = useNotesStore();
 const folders = computed(() => taskStore.getFolders);
