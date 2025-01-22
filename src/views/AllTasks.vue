@@ -2,9 +2,8 @@
 import { ref, computed, onMounted } from "vue";
 import { useNotesStore } from "../stores/notes";
 import { Task } from "../composables/interfaces";
-import { useRouter } from "vue-router";
+import ReturnButton from "../components/ReturnButton.vue";
 
-const router = useRouter();
 
 const taskStore = useNotesStore();
 const folders = computed(() => taskStore.getFolders);
@@ -73,9 +72,7 @@ onMounted(() => {
 <template>
   <div class="tasks-container">
     <header class="page-header">
-      <button class="back-btn" @click="router.push('/folders')">
-        ← Back to Folders
-      </button>
+      <ReturnButton />
       <h1>All Tasks</h1>
       <div class="add-task">
         <input
@@ -213,7 +210,7 @@ onMounted(() => {
 .tasks-container {
   background-color: rgba(0, 0, 0, 0.01);
   backdrop-filter: blur(5px);
-  padding: 0.5rem 2rem 2rem 2rem;
+  padding: 0.5rem 1.5rem 0rem 1.5rem;
   max-width: 800px;
   margin: 0 auto;
 }
@@ -225,7 +222,9 @@ onMounted(() => {
 .page-header h1 {
   margin: 3rem 0rem 0rem 0rem;
   font-size: 2rem;
-  color: black;
+  background-color: rgb(255, 255, 255);
+  padding: 0.5rem;
+  border-radius: 6px;
 }
 .add-task {
   display: flex;
@@ -291,18 +290,6 @@ onMounted(() => {
   padding: 0.75rem;
   border: 1px solid var(--primary-color);
   border-radius: 6px;
-}
-.back-btn {
-  border: none;
-  cursor: pointer;
-  background: none;
-  font-size: 1rem;
-  position: absolute;
-  left: 0;
-  transition: color 0.2s ease;
-}
-.back-btn:hover {
-  color: var(--primary-color);
 }
 /* Checkbox Styles */
 .checkbox-container {
