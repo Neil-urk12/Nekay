@@ -223,14 +223,14 @@ onMounted(() => {
   align-items: flex-start;
 }
 .page-header h1 {
-  margin: 3.5rem 0rem 0.5rem 0rem;
+  margin: 3rem 0rem 0rem 0rem;
   font-size: 2rem;
   color: black;
 }
 .add-task {
   display: flex;
   gap: 0.75rem;
-  margin-top: 1rem;
+  margin: 1rem 0;
   width: 100%;
 }
 .input-field {
@@ -298,6 +298,7 @@ onMounted(() => {
   background: none;
   font-size: 1rem;
   position: absolute;
+  left: 0;
   transition: color 0.2s ease;
 }
 .back-btn:hover {
