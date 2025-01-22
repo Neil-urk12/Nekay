@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { ref, computed, onMounted, defineAsyncComponent } from "vue";
+import { useRoute } from "vue-router";
 import { useNotesStore } from "../stores/notes";
 import { Task } from "../composables/interfaces";
-import { useBackgroundStore } from "../stores/backgroundStore";
+const ReturnButton = defineAsyncComponent(() => import("../components/ReturnButton.vue"));
 
-const backgroundStore = useBackgroundStore();
 const route = useRoute();
-const router = useRouter();
 const taskStore = useNotesStore();
 const folders = computed(() => taskStore.getFolders);
 const tasks = computed(() => [...taskStore.getTasks]);
@@ -87,26 +85,17 @@ const deleteTask = async (taskId: string) => {
 };
 
 onMounted(async () => {
-  backgroundStore.determineTimeOfDay();
-  setInterval(() => backgroundStore.determineTimeOfDay(), 60000);
-  if (!currentFolder.value) router.push("/folders");
+  if (!currentFolder.value) return;
   if (tasks.value.length === 0) taskStore.loadTasks();
 });
 </script>
 
 <template>
   <div
-    class="folder-tasks"
-    :style="{ backgroundImage: backgroundStore.backgroundImage }"
-  >
-    <div class="tasks-container">
-      <header class="page-header">
-        <button class="back-btn" @click="router.push('/folders')">
-          ← Back to Folders
-        </button>
-        <h1>{{ currentFolder?.name }}</h1>
-      </header>
-
+    class="folder-tasks">
+    <header class="page-header">
+      <ReturnButton />
+      <h1>{{ currentFolder?.name }}</h1>
       <div class="add-task">
         <input
           v-model="newTask"
@@ -115,7 +104,9 @@ onMounted(async () => {
         />
         <button @click="addTask" class="btn-primary">Add Task</button>
       </div>
+    </header>
 
+    <div class="tasks-container">
       <div class="tasks-list">
         <div
           v-for="task in folderTasks"
@@ -180,35 +171,41 @@ onMounted(async () => {
 
 <style scoped>
 .folder-tasks {
-  padding: 1rem;
+  padding: 0.5rem 1.5rem 0rem 1.5rem;
   max-width: 800px;
   margin: 0 auto;
-  min-height: 90vh;
+  min-height: 95vh;
   background-size: cover;
   background-repeat: no-repeat;
   background-position: right;
+  background-color: rgba(0, 0, 0, 0.01);
+  backdrop-filter: blur(5px);
 }
 .page-header {
-  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.page-header h1 {
+  font-size: 2rem;
+  margin: 3rem 0rem 0rem 0rem;
+  background-color: rgb(255, 255, 255);
+  padding: 0.5rem;
+  border-radius: 6px;
+}
+.add-task {
+  display: flex;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  width: 100%;
 }
 .icon-btn {
   background: none;
   padding: 0.25rem 0.5rem;
 }
-.back-btn {
-  margin-bottom: 1rem;
-  padding: 0.5rem 1rem;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: white;
-}
 .btn-primary {
   font-weight: bold;
   color: white;
-}
-.back-btn:hover {
-  color: rgb(84, 84, 242);
 }
 .tasks-list {
   margin-top: 1.5rem;

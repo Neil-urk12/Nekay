@@ -3,7 +3,7 @@ import { ref, onMounted, computed, defineAsyncComponent, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useNotesStore } from "../stores/notes";
 const AddJournalEntryModal = defineAsyncComponent(
-  () => import("../components/AddJournalEntryModal.vue")
+  () => import("../components/AddModal.vue")
 );
 const DeleteEntryModal = defineAsyncComponent(
   () => import("../components/DeleteEntryModal.vue")
@@ -21,6 +21,7 @@ const router = useRouter();
 const route = useRoute();
 
 const showEditModal = ref(false);
+const newEntry = ref({ title: "", content: "" });
 const selectedEntry = ref<{
   id: string;
   title: string;
@@ -56,6 +57,14 @@ const openModal = () => {
 };
 const closeModal = () => {
   showModal.value = false;
+};
+
+const handleAddEntry = () => {
+  if (newEntry.value.title.trim() && newEntry.value.content.trim()) {
+    addEntry(newEntry.value);
+    newEntry.value = { title: "", content: "" };
+    closeModal();
+  }
 };
 
 const addEntry = async (entry: { title: string; content: string }) => {
@@ -159,18 +168,32 @@ onMounted(async () => {
     </div>
     <AddJournalEntryModal
       v-if="showModal"
+      title="Add New Entry"
+      :showModal="showModal"
       @close="closeModal"
-      @addEntry="addEntry"
-    />
+      @submit="handleAddEntry"
+    >
+      <input
+        type="text"
+        v-model="newEntry.title"
+        placeholder="Enter title"
+        required
+      />
+      <textarea
+        v-model="newEntry.content"
+        placeholder="Enter content"
+        required
+      ></textarea>
+    </AddJournalEntryModal>
 
     <div class="entries-list" v-if="currentFolderEntries.length">
       <div v-for="entry in formattedEntries" :key="entry.id" class="entry-item">
         <div class="entry-header">
           <div class="entry-header-left">
-            <button 
-              class="collapse-btn" 
+            <button
+              class="collapse-btn"
               @click="toggleEntry(entry.id)"
-              :class="{ 'expanded': expandedEntries.has(entry.id) }"
+              :class="{ expanded: expandedEntries.has(entry.id) }"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -196,7 +219,7 @@ onMounted(async () => {
               <h2 class="entry-title">{{ entry.title }}</h2>
             </template>
           </div>
-          
+
           <div class="entry-actions">
             <button class="icon-btn" @click.stop="openEditModal(entry)">
               <svg
@@ -212,20 +235,22 @@ onMounted(async () => {
             </button>
             <button
               class="icon-btn"
-              @click.stop="showDeleteModal = { id: entry.id, title: entry.title }"
+              @click.stop="
+                showDeleteModal = { id: entry.id, title: entry.title }
+              "
             >
-              <TrashIconSvg/>
+              <TrashIconSvg />
             </button>
           </div>
         </div>
-        
+
         <div class="entry-content">
           <p class="entry-date">{{ entry.formattedDate }}</p>
           <div class="content-wrapper">
             <div
               class="collapsible-content"
               :style="{
-                '--content-height': contentHeights.get(entry.id) + 'px'
+                '--content-height': contentHeights.get(entry.id) + 'px',
               }"
               :class="{ expanded: expandedEntries.has(entry.id) }"
             >
@@ -259,15 +284,12 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-* {
-  font-family: "Concert One", "Montserrat", sans-serif;
-}
 .folder-view {
   padding: 1rem;
   max-width: 800px;
   margin: 0 auto;
   background: rgb(255, 255, 255);
-  min-height: 90vh;
+  min-height: 95vh;
   display: flex;
   flex-direction: column;
 }
@@ -477,5 +499,84 @@ h1 {
 
 .collapsible-content > div {
   min-height: 0;
+}
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  position: relative;
+  width: 90%;
+  max-width: 400px;
+}
+
+.close-button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+h2 {
+  margin-bottom: 1.5rem;
+  color: rgb(219, 39, 119);
+}
+
+input,
+textarea {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+textarea {
+  height: 100px;
+  resize: vertical;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.cancel-button,
+.add-button {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.cancel-button {
+  background: white;
+  border: 1px solid rgb(219, 39, 119);
+  color: rgb(219, 39, 119);
+}
+
+.add-button {
+  background: rgb(219, 39, 119);
+  border: 1px solid rgb(219, 39, 119);
+  color: white;
+}
+
+.add-button:hover {
+  background: white;
+  color: rgb(219, 39, 119);
 }
 </style>

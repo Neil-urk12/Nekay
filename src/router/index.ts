@@ -24,6 +24,10 @@ const router = createRouter({
       },
     },
     {
+      path: "/sync-test",
+      component: () => import("../components/SyncTester.vue"),
+    },
+    {
       path: "/home",
       component: () => import("../views/Home.vue"),
       meta: { requiresAuth: true },

@@ -18,12 +18,14 @@ export const useNotesStore = defineStore("notes", {
   }),
 
   getters: {
-    getEntries: (state) => state.journalEntries,
+    getEntries: (state) => {
+      return state.journalEntries.filter((entry) => entry.syncStatus !== "deleted");
+    },
     getJournalFolders: (state) => {
-      return state.folders.filter((f) => f.type === "journal");
+      return state.folders.filter((f) => ((f.type === "journal" && f.syncStatus !== "deleted")))
     },
     getTaskFolders: (state) => {
-      return state.folders.filter((f) => f.type === "task");
+      return state.folders.filter((f) => f.type === "task" && f.syncStatus !== "deleted");
     },
     getFolders: (state) => state.folders,
     getTasks: (state) => state.tasks,
@@ -33,6 +35,18 @@ export const useNotesStore = defineStore("notes", {
     setError(error: unknown) {
       this.error = error instanceof Error ? error.message : String(error);
       console.error("Store error:", error);
+    },
+
+    async initializeStore() {
+      try {
+        await this.loadTasks();
+        await this.loadEntries();
+        await this.loadFolders();
+        this.initialized = true;
+        console.log("Store initialized");
+      } catch (error) {
+        console.error("Error initializing store:", error);
+      }
     },
 
     async loadTasks() {
@@ -110,9 +124,8 @@ export const useNotesStore = defineStore("notes", {
         const timestamp = Date.now();
         const taskIndex = this.tasks.findIndex((t) => t.id === id);
 
-        if (taskIndex === -1) {
+        if (taskIndex === -1) 
           throw new Error("Task not found");
-        }
 
         const updatedTask = {
           ...this.tasks[taskIndex],
@@ -140,18 +153,14 @@ export const useNotesStore = defineStore("notes", {
     async deleteTask(taskId: string) {
       try {
         const taskIndex = this.tasks.findIndex((t) => t.id === taskId);
-
         if (taskIndex === -1) throw new Error("Task not found");
 
         if (navigator.onLine) {
           await deleteDoc(doc(fireDb, "tasks", taskId));
           await db.deleteTask(taskId);
-          this.tasks.splice(taskIndex, 1);
-          this.error = null;
-          return;
+        } else {
+        await db.markForDeletion('tasks', taskId);
         }
-
-        await db.deleteTask(taskId);
         this.tasks.splice(taskIndex, 1);
         this.error = null;
       } catch (error) {
@@ -236,16 +245,14 @@ export const useNotesStore = defineStore("notes", {
 
         if (navigator.onLine) {
           await deleteDoc(doc(fireDb, "folders", folderId));
+          await db.deleteFolder(folderId);
+        } else {
+          await db.markForDeletion('folders', folderId);
         }
-
-        await db.deleteFolder(folderId);
         this.folders.splice(folderIndex, 1);
-
-
         this.error = null;
       } catch (error) {
         this.setError(error);
-        // Rollback local state if error
         const deletedFolder = this.folders.find((f) => f.id === folderId);
         if (deletedFolder) {
           this.folders.push(deletedFolder);
@@ -319,6 +326,7 @@ export const useNotesStore = defineStore("notes", {
           this.error = null;
           return;
         }
+        
         await db.updateEntry(entryId, updatedEntry);
         this.journalEntries[entryIndex] = updatedEntry;
         this.error = null;
@@ -341,12 +349,8 @@ export const useNotesStore = defineStore("notes", {
         if (navigator.onLine) {
           await deleteDoc(doc(fireDb, "entries", entryId));
           await db.deleteEntry(entryId);
-          this.journalEntries.splice(entryIndex, 1);
-          this.error = null;
-          return;
-        }
+        } else await db.markForDeletion('journal', entryId);
 
-        await db.deleteEntry(entryId);
         this.journalEntries.splice(entryIndex, 1);
         this.error = null;
       } catch (err) {
