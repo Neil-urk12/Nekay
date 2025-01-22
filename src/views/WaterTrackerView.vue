@@ -304,15 +304,12 @@ onMounted(() => {
   </div>
 </template>
 
-<style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  font-family: Arial, sans-serif;
-}
+<style scoped>
+
 .water-tracker-container {
   background: linear-gradient(45deg, #83a4d4, #b6fbff);
+  margin: 0;
+  box-sizing: border-box;
   padding: 1rem;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
   text-align: center;

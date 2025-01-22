@@ -10,7 +10,7 @@ const newFolderName = ref("");
 const editingFolder = ref<{ id: string; name: string } | null>(null);
 const deleteConfirm = ref<{ id: string; name: string } | null>(null);
 
-const folders = computed(() => [...noteStore.getFolders.filter((folder) => folder.type === "task")]);
+const folders = computed(() => noteStore.getTaskFolders)
 
 const navigateToFolder = (folderId: string) => {
   router.push(`/folders/${folderId}`);
@@ -198,9 +198,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-* {
-  font-family: "Concert One", "Montserrat", sans-serif;
-}
 h1 {
   color: white;
 }

@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 import { Folder } from "../composables/interfaces";
 import { useNotesStore } from "../stores/notes";
 const AddFolderModal = defineAsyncComponent(
-  () => import("../components/AddFolderModal.vue")
+  () => import("../components/AddModal.vue")
 );
 const EditFolderModal = defineAsyncComponent(
   () => import("../components/EditFolderModal.vue")
@@ -21,20 +21,25 @@ const showEditFolderModal = ref(false);
 const showDeleteModal = ref(false);
 const selectedFolder = ref<Folder | null>(null);
 const folderToDelete = ref<Folder | null>(null);
+const newFolderName = ref("");
 
-const folders = computed(() => [
-  ...journalStore.getFolders.filter((folder) => folder.type === "journal"),
-]);
+const folders = computed(() => journalStore.getJournalFolders);
 
 const addFolder = async (folderName: string) => {
   try {
     if (!folderName.trim()) return;
 
     await journalStore.addFolder(folderName, "journal");
-
-    await journalStore.loadFolders();
   } catch (err) {
     console.error(err);
+  }
+};
+
+const handleAddFolder = () => {
+  if (newFolderName.value.trim()) {
+    addFolder(newFolderName.value);
+    newFolderName.value = "";
+    showAddFolderModal.value = false;
   }
 };
 
@@ -63,7 +68,6 @@ const deleteFolder = async () => {
 
     showDeleteModal.value = false;
     folderToDelete.value = null;
-    await journalStore.loadFolders();
   } catch (err) {
     console.error("Error deleting folder:", err);
   }
@@ -146,9 +150,18 @@ onMounted(() => {
     </div>
     <AddFolderModal
       v-if="showAddFolderModal"
+      title="Add New Folder"
+      :showModal="showAddFolderModal"
       @close="showAddFolderModal = false"
-      @folderName="addFolder"
-    />
+      @submit="handleAddFolder"
+    >
+      <input
+        type="text"
+        v-model="newFolderName"
+        placeholder="Enter folder name"
+        required
+      />
+    </AddFolderModal>
     <EditFolderModal
       v-if="showEditFolderModal"
       :folder="selectedFolder"
@@ -165,15 +178,9 @@ onMounted(() => {
 </template>
 
 <style scoped>
-* {
-  margin: 0;
-  padding: 0;
-  font-family: "Concert One", "Montserrat", sans-serif;
-}
-
 .journal-container {
   background: rgb(255, 255, 255);
-  min-height: 90vh;
+  min-height: 95vh;
   padding: 1rem;
   max-width: 800px;
   margin: 0 auto;

@@ -21,10 +21,26 @@
       "purpose": "any maskable"
     }
   ],
+  "screenshots": [
+    {
+      "src": "img/mobile.png",
+      "sizes": "320x320",
+      "type": "image/png",
+      "platform": "mobile"
+    },
+    {
+      "src": "img/desktop.png",
+      "sizes": "1366x768",
+      "type": "image/png",
+      "platform": "desktop"
+    }
+  ],
   "categories": ["productivity", "lifestyle"],
   "prefer_related_applications": false,
   "background": {
     "scripts": ["service-worker.js"],
     "persistent": true
-  }
+  },
+  "permissions": ["background", "storage"],
+  "background_sync": true
 }

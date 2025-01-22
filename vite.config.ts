@@ -9,6 +9,24 @@ const generateSWConfig = {
   globPatterns: ["**/*.{html,js,css,png,jpg,jpeg,gif,svg,webp,wav,mp3,json}"],
   runtimeCaching: [
     {
+      urlPattern: /firestore\.googleapis\.com/,
+      handler: "NetworkFirst",
+      options: {
+        cacheName: "firestore-cache-v1",
+        networkTimeoutSeconds: 10,
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 24 * 60 * 60 // 24 hours
+        },
+        backgroundSync: {
+          name: 'firestoreSync',
+          options: {
+            maxRetentionTime: 24 * 60 // Retry for up to 24 hours
+          }
+        }
+      }
+    },
+    {
       urlPattern: /identitytoolkit\.googleapis\.com/,
       handler: "NetworkOnly",
       options: {

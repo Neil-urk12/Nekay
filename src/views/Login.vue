@@ -220,9 +220,6 @@ const handleButtonClick = (button: Button) => {
 </template>
 
 <style scoped>
-* {
-  font-family: "Concert One", "Montserrat", sans-serif;
-}
 .login-container {
   background: linear-gradient(
     0deg,

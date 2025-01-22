@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, defineAsyncComponent } from "vue";
 import { useNotesStore } from "../stores/notes";
 import { Task } from "../composables/interfaces";
-import { useRouter } from "vue-router";
-
-const router = useRouter();
+const ReturnButton = defineAsyncComponent(() => import("../components/ReturnButton.vue"));
 
 const taskStore = useNotesStore();
 const folders = computed(() => taskStore.getFolders);
@@ -58,17 +56,22 @@ const confirmDelete = async () => {
 };
 
 onMounted(() => {
-  if (folders.value.length === 0) taskStore.loadFolders();
-  if (tasks.value.length === 0) taskStore.loadTasks();
+  try {
+    isLoading.value = true;
+    if (folders.value.length === 0) taskStore.loadFolders();
+    if (tasks.value.length === 0) taskStore.loadTasks();
+  } catch (error) {
+    console.error("Failed to load tasks:", error);
+  } finally {
+    isLoading.value = false;
+  }
 });
 </script>
 
 <template>
   <div class="tasks-container">
     <header class="page-header">
-      <button class="back-btn" @click="router.push('/folders')">
-        ← Back to Folders
-      </button>
+      <ReturnButton />
       <h1>All Tasks</h1>
       <div class="add-task">
         <input
@@ -94,7 +97,6 @@ onMounted(() => {
               :checked="task.completed"
               @change="toggleTask(task)"
             />
-            <span class="checkmark"></span>
           </div>
           <template v-if="editingTask?.id === task.id">
             <input
@@ -207,31 +209,28 @@ onMounted(() => {
 .tasks-container {
   background-color: rgba(0, 0, 0, 0.01);
   backdrop-filter: blur(5px);
-  padding: 0.5rem 2rem 2rem 2rem;
+  padding: 0.5rem 1.5rem 0rem 1.5rem;
   max-width: 800px;
   margin: 0 auto;
-  font-family: "Arial", sans-serif;
 }
-
 .page-header {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
 }
-
 .page-header h1 {
-  margin: 3.5rem 0rem 0.5rem 0rem;
+  margin: 3rem 0rem 0rem 0rem;
   font-size: 2rem;
-  color: black;
+  background-color: rgb(255, 255, 255);
+  padding: 0.5rem;
+  border-radius: 6px;
 }
-
 .add-task {
   display: flex;
   gap: 0.75rem;
-  margin-top: 1rem;
+  margin: 1rem 0;
   width: 100%;
 }
-
 .input-field {
   padding: 0.25rem 0.5rem;
   border: 1px solid #ddd;
@@ -240,20 +239,17 @@ onMounted(() => {
   font-size: 0.9rem;
   transition: border-color 0.2s ease;
 }
-
 .input-field:focus {
   border-color: rgb(206, 0, 158);
 }
-
 .tasks-list {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
-
 .task-item {
-  background: #fff;
-  border-radius: 12px;
+  background-color: #f8e7f1;
+  border-radius: 8px;
   padding: 0.5rem 1rem;
   display: flex;
   align-items: center;
@@ -262,11 +258,9 @@ onMounted(() => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   transition: background-color 0.2s ease;
 }
-
 .task-item:hover {
   background: #f9f9f9;
 }
-
 .task-content {
   display: flex;
   align-items: center;
@@ -274,47 +268,28 @@ onMounted(() => {
   gap: 1rem;
   flex: 1;
 }
-
 .task-content span {
   word-break: break-word;
   overflow-wrap: break-word;
   min-width: 0;
   flex: 1;
 }
-
 .completed {
   background: #f0f0f0;
 }
-
 .completed-text {
   text-decoration: line-through;
   color: #888;
 }
-
 .task-actions {
   display: flex;
 }
-
 .edit-input {
   flex: 1;
   padding: 0.75rem;
   border: 1px solid var(--primary-color);
   border-radius: 6px;
 }
-
-.back-btn {
-  border: none;
-  cursor: pointer;
-  background: none;
-  font-size: 1rem;
-  position: absolute;
-  transition: color 0.2s ease;
-}
-
-.back-btn:hover {
-  color: var(--primary-color);
-}
-
 /* Checkbox Styles */
 .checkbox-container {
   display: flex;
@@ -329,49 +304,6 @@ onMounted(() => {
   width: 30px;
   height: 30px;
   cursor: pointer;
-}
-
-.checkmark {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 18px;
-  width: 18px;
-  background-color: palevioletred;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
-}
-
-.checkbox-container:hover input ~ .checkmark {
-  background-color: #ccc;
-}
-
-.checkbox-container input:checked ~ .checkmark {
-  background-color: var(--primary-color);
-}
-
-.checkmark:after {
-  content: "";
-  position: absolute;
-  display: none;
-}
-
-.checkbox-container input:checked ~ .checkmark:after {
-  font-size: 1.2rem;
-  color: pink;
-  display: block;
-}
-
-.checkbox-container .checkmark:after {
-  left: 6px;
-  top: 3px;
-  width: 5px;
-  height: 10px;
-  border: 2px solid #e74c3c;
-  border-width: 0 3px 3px 0;
-  -webkit-transform: rotate(45deg);
-  -ms-transform: rotate(45deg);
-  transform: rotate(45deg);
 }
 
 /* Modal Styles */
