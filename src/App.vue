@@ -75,4 +75,22 @@ onMounted(async () => {
   border-radius: 0.5rem;
   color: #dc2626;
 }
+input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #fbcfe8;
+  border-radius: 0.5rem;
+  max-width: calc(100% - 1rem);
+  outline: none;
+  text-align: center;
+  box-sizing: border-box;
+  width: 100%;
+}
+button {
+  background-color: #f472b6;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
 </style>
