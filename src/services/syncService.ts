@@ -196,22 +196,36 @@ export class SyncService {
     id: string,
     data: any
   ) {
-    console.log(`Updating local item in ${collection}:`, data); // Debug log
+    console.log(`Updating/Creating local item in ${collection}:`, data);
 
     try {
+      const existingItem = await this.getLocalItem(collection, id);
+      
       switch (collection) {
         case "tasks":
-          await db.updateTask(id, data);
+          if (existingItem) {
+            await db.updateTask(id, data);
+          } else {
+            await db.createTask(data);
+          }
           break;
         case "folders":
-          await db.updateFolder(id, data);
+          if (existingItem) {
+            await db.updateFolder(id, data);
+          } else {
+            await db.createFolder(data);
+          }
           break;
         case "journal":
-          await db.updateEntry(id, data);
+          if (existingItem) {
+            await db.updateEntry(id, data);
+          } else {
+            await db.createEntry(data);
+          }
           break;
       }
     } catch (error) {
-      console.error(`Error updating local item in ${collection}:`, error);
+      console.error(`Error updating/creating local item in ${collection}:`, error);
       throw error;
     }
   }
@@ -408,13 +422,22 @@ export class SyncService {
 
     for (const collection of collections) {
       try {
+        console.log(`Starting initial sync for ${collection}`);
+        
+        // First check if we already have data
         const localData = await this.getLocalItems(collection);
-        if (localData && localData.length > 0) 
-          console.log(`Loaded ${localData.length} cached items for ${collection}`);
-        else 
+        if (!localData || localData.length === 0) {
+          console.log(`No local data found for ${collection}, syncing from Firestore`);
           await this.syncFromFirestore(collection);
+          
+          // Verify the sync was successful
+          const syncedData = await this.getLocalItems(collection);
+          console.log(`Successfully synced ${syncedData?.length || 0} items for ${collection}`);
+        } else {
+          console.log(`Found ${localData.length} existing items for ${collection}`);
+        }
       } catch (error) {
-        console.warn(`Failed to load cache for ${collection}:`, error);
+        console.error(`Failed to sync ${collection} from Firestore:`, error);
       }
     }
   }
