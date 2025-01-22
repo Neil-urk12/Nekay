@@ -101,7 +101,6 @@ onMounted(() => {
               :checked="task.completed"
               @change="toggleTask(task)"
             />
-            <span class="checkmark"></span>
           </div>
           <template v-if="editingTask?.id === task.id">
             <input
@@ -224,14 +223,14 @@ onMounted(() => {
   align-items: flex-start;
 }
 .page-header h1 {
-  margin: 3.5rem 0rem 0.5rem 0rem;
+  margin: 3rem 0rem 0rem 0rem;
   font-size: 2rem;
   color: black;
 }
 .add-task {
   display: flex;
   gap: 0.75rem;
-  margin-top: 1rem;
+  margin: 1rem 0;
   width: 100%;
 }
 .input-field {
@@ -251,8 +250,8 @@ onMounted(() => {
   gap: 0.75rem;
 }
 .task-item {
-  background: #fff;
-  border-radius: 12px;
+  background-color: #f8e7f1;
+  border-radius: 8px;
   padding: 0.5rem 1rem;
   display: flex;
   align-items: center;
@@ -299,6 +298,7 @@ onMounted(() => {
   background: none;
   font-size: 1rem;
   position: absolute;
+  left: 0;
   transition: color 0.2s ease;
 }
 .back-btn:hover {
@@ -318,49 +318,6 @@ onMounted(() => {
   width: 30px;
   height: 30px;
   cursor: pointer;
-}
-
-.checkmark {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 18px;
-  width: 18px;
-  background-color: palevioletred;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
-}
-
-.checkbox-container:hover input ~ .checkmark {
-  background-color: #ccc;
-}
-
-.checkbox-container input:checked ~ .checkmark {
-  background-color: var(--primary-color);
-}
-
-.checkmark:after {
-  content: "";
-  position: absolute;
-  display: none;
-}
-
-.checkbox-container input:checked ~ .checkmark:after {
-  font-size: 1.2rem;
-  color: pink;
-  display: block;
-}
-
-.checkbox-container .checkmark:after {
-  left: 6px;
-  top: 3px;
-  width: 5px;
-  height: 10px;
-  border: 2px solid #e74c3c;
-  border-width: 0 3px 3px 0;
-  -webkit-transform: rotate(45deg);
-  -ms-transform: rotate(45deg);
-  transform: rotate(45deg);
 }
 
 /* Modal Styles */
