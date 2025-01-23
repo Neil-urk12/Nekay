@@ -49,6 +49,7 @@ onUnmounted(() => {
 <template>
   <div class="pomodoro-container" :class="{ dark: isDarkMode }">
     <DarkModeToggle :isDarkMode="isDarkMode" @toggle="toggleDarkMode" />
+    <img class="peekingMelody" src="https://s6.imgcdn.dev/YDIqCq.png" alt="YDIqCq.png" border="0" loading="lazy">
     <div v-if="error" class="error-message" role="alert">
       {{ error }}
     </div>
@@ -59,6 +60,7 @@ onUnmounted(() => {
     </div>
 
     <div v-else class="timer-card" :class="{ dark: isDarkMode }">
+
       <div class="mode-indicator" :class="store.mode">
         {{
           store.mode === "work"
@@ -160,7 +162,7 @@ onUnmounted(() => {
         role="status"
         aria-label="Timer is running"
       >
-        <img src="/assets/melody3.gif" alt="My Melody Dancing" loading="lazy" />
+        <img src="https://s6.imgcdn.dev/YDIF7B.gif" alt="YDIF7B.gif" border="0" loading="lazy">
         <h3 class="focus-time" :class="{ dark: isDarkMode }">
           {{ store.mode === "work" ? "Focus Time!" : "Take a Break!" }}
         </h3>
@@ -180,6 +182,11 @@ onUnmounted(() => {
   background-color: #1a1a1a;
   color: #ffffff;
 }
+.peekingMelody {
+  position: absolute;
+  top: -2.8rem;
+  width: 12rem;
+}
 .mode-indicator {
   text-align: center;
   font-size: 1.25rem;
@@ -190,6 +197,14 @@ onUnmounted(() => {
 }
 .mode-indicator.work {
   background-color: #f472b6;
+  color: white;
+}
+.mode-indicator.shortBreak {
+  background-color: #60a5fa;
+  color: white;
+}
+.mode-indicator.longBreak {
+  background-color: #f9a8d4;
   color: white;
 }
 .mode-indicator.break {
@@ -244,7 +259,7 @@ onUnmounted(() => {
   padding: 1.5rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   max-width: 24rem;
-  margin: 0 auto;
+  margin: 4.5rem 0 0 0;
   border: 4px solid #fbcfe8;
   display: flex;
   flex-direction: column;

@@ -50,8 +50,8 @@ const generateSWConfig = {
       options: {
         cacheName: "assets-cache-v1",
         expiration: {
-          maxEntries: 50,
-          maxAgeSeconds: 60 * 60 * 24,
+          maxEntries: 100,
+          maxAgeSeconds: 7 * 24 * 60 * 60, 
         },
       },
     },
@@ -60,6 +60,10 @@ const generateSWConfig = {
       handler: "StaleWhileRevalidate",
       options: {
         cacheName: "static-resources-cache-v1",
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 7 * 24 * 60 * 60, 
+        }
       },
     },
   ],
