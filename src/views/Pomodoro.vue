@@ -162,7 +162,7 @@ onUnmounted(() => {
         role="status"
         aria-label="Timer is running"
       >
-        <img src="/assets/melody3.gif" alt="My Melody Dancing" loading="lazy" />
+        <img src="https://s6.imgcdn.dev/YDIF7B.gif" alt="YDIF7B.gif" border="0" loading="lazy">
         <h3 class="focus-time" :class="{ dark: isDarkMode }">
           {{ store.mode === "work" ? "Focus Time!" : "Take a Break!" }}
         </h3>
