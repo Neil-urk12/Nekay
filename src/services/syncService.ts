@@ -100,7 +100,6 @@ export class SyncService {
                 break;
             }
           } catch (error) {
-            console.error(`Sync error for ${collection}:`, error);
             this.updateSyncState(collectionName, "error", error as Error);
           }
         }
@@ -154,7 +153,8 @@ export class SyncService {
           break;
       }
     } catch (error) {
-      console.error(`Failed to delete ${collection} item locally:`, error);
+      console.error('Error handling remote delete:', error);
+      throw error;
     }
   }
 
@@ -172,8 +172,6 @@ export class SyncService {
   }
 
   private async syncFromFirestore(collectionToSync: SyncableCollection) {
-    console.log(`Syncing from Firestore for collection: ${collectionToSync}`); // Debug log
-
     try {
       const collectionName = collectionToSync === "journal" ? "entries" : collectionToSync;
       const querySnapshot = await getDocs(collection(fireDb, collectionName));
@@ -186,7 +184,7 @@ export class SyncService {
         });
       }
     } catch (error) {
-      console.error(`Error syncing from Firestore for ${collectionToSync}:`, error);
+      console.error('Error syncing from Firestore:', error);
       throw error;
     }
   }
@@ -196,8 +194,6 @@ export class SyncService {
     id: string,
     data: any
   ) {
-    console.log(`Updating/Creating local item in ${collection}:`, data);
-
     try {
       const existingItem = await this.getLocalItem(collection, id);
       
@@ -225,23 +221,19 @@ export class SyncService {
           break;
       }
     } catch (error) {
-      console.error(`Error updating/creating local item in ${collection}:`, error);
+      console.error('Error updating local item:', error);
       throw error;
     }
   }
 
   private async getPendingItems(collection: SyncableCollection) {
-    console.log(`Getting pending items for ${collection}`); // Debug log
-
     try {
       switch (collection) {
         case "tasks":
-          const tasks = await db.tasks
+          return await db.tasks
             .where("syncStatus")
             .equals("pending")
             .toArray();
-          console.log(`Found ${tasks.length} pending tasks`); // Debug log
-          return tasks;
         case "folders":
           return await db.folders
             .where("syncStatus")
@@ -256,23 +248,19 @@ export class SyncService {
           return [];
       }
     } catch (error) {
-      console.error(`Error getting pending items for ${collection}:`, error);
+      console.error('Error getting pending items:', error);
       throw error;
     }
   }
 
   private async getDeletedItems(collection: SyncableCollection) {
-    console.log(`Getting deleted items for ${collection}`);
-
     try {
       switch (collection) {
         case "tasks":
-          const tasks = await db.tasks
+          return await db.tasks
             .where("syncStatus")
-            .equals("deleted")  
+            .equals("deleted")
             .toArray();
-          console.log(`Found ${tasks.length} pending tasks`);
-          return tasks;
         case "folders":
           return await db.folders
             .where("syncStatus")
@@ -287,7 +275,7 @@ export class SyncService {
           return [];
       }
     } catch (error) {
-      console.error(`Error getting pending items for ${collection}:`, error);
+      console.error('Error getting deleted items:', error);
       throw error;
     }
   }
@@ -323,14 +311,12 @@ export class SyncService {
         this.setupRealtimeListener(collection);
         this.updateSyncState(collection, "synced");
       } catch (error) {
-        console.error(`Failed to sync ${collection}:`, error);
         this.updateSyncState(collection, "error", error as Error);
       }
     }
   }
 
   private async syncCollection(collection: SyncableCollection) {
-    console.log(`Starting sync for collection: ${collection}`);
     try {
       const pendingItems = await this.getPendingItems(collection);
       const deletedItems = await this.getDeletedItems(collection);  
@@ -384,7 +370,7 @@ export class SyncService {
         );
       }
     } catch (error) {
-      console.error(`Error syncing collection ${collection}:`, error);
+      console.error('Error syncing collection:', error);
       this.updateSyncState(collection, "error", error instanceof Error ? error : new Error(String(error)));
       throw error; // Propagate error up
     }
@@ -422,22 +408,14 @@ export class SyncService {
 
     for (const collection of collections) {
       try {
-        console.log(`Starting initial sync for ${collection}`);
-        
-        // First check if we already have data
         const localData = await this.getLocalItems(collection);
         if (!localData || localData.length === 0) {
-          console.log(`No local data found for ${collection}, syncing from Firestore`);
           await this.syncFromFirestore(collection);
-          
-          // Verify the sync was successful
-          const syncedData = await this.getLocalItems(collection);
-          console.log(`Successfully synced ${syncedData?.length || 0} items for ${collection}`);
-        } else {
-          console.log(`Found ${localData.length} existing items for ${collection}`);
+          await this.getLocalItems(collection);
         }
       } catch (error) {
-        console.error(`Failed to sync ${collection} from Firestore:`, error);
+        console.error('Error loading from cache:', error);
+        throw error;
       }
     }
   }

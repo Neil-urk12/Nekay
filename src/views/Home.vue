@@ -64,7 +64,7 @@ onMounted(async () => {
   >
     <MelodyHeader />
     <div class="cloud-icon animate-float">
-      <img src="/assets/cloud.png" alt="Cloud" class="cloud" loading="lazy" />
+      <img src="/assets/cloud.png" alt="Cloud" class="cloud" loading="eager" />
     </div>
     <div class="message-container animate-float">
       <div class="message-box animate-fade-in">
