@@ -11,19 +11,26 @@ const notesStore = useNotesStore()
 const isLoading = ref(true);
 const error = ref<Error | null>(null);
 
-onMounted(async () => {
+const initializeApp = async () => {
   try {
-    backgroundStore.determineTimeOfDay();
-    setInterval(() => backgroundStore.determineTimeOfDay, 60000);
-    notesStore.initializeStore();
-
     await syncService.loadFromCache();
-    
     if (navigator.onLine) {
-      await syncService.syncAll().catch(err => {
+      await syncService.syncAll().catch((err) => {
         console.error("Background sync failed:", err);
       });
     }
+  } catch (err) {
+    console.error("Failed to initialize app:", err);
+    error.value = err as Error;
+  }
+};
+
+onMounted(async () => {
+  try {
+    await initializeApp();
+    backgroundStore.determineTimeOfDay();
+    setInterval(() => backgroundStore.determineTimeOfDay, 60000);
+    await notesStore.initializeStore();
   } catch (err) {
     console.error("Failed to initialize app:", err);
     error.value = err as Error;
