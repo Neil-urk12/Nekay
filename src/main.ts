@@ -18,16 +18,6 @@ const initApp = async () => {
 
   try {
     registerServiceWorker();
-    // if ("serviceWorker" in navigator && (window.location.protocol === "https:" || window.location.hostname === "localhost" || window.location.href.startsWith("http://localhost"))) {
-    //   const swPath = import.meta.env.PROD ? "/service-worker.js" : "/dev-sw.js";
-    //   navigator.serviceWorker.register(swPath)
-    //   .then((registration) => {
-    //     console.log("Service worker registered with scope : ", registration.scope)
-    //   })
-    //   .catch((error) => {
-    //     console.error ("Service worker registration failed: ", error)
-    //   })
-    // }
     app.mount("#app");
   } catch (err) {
     const error = err as IndexedDBError;
@@ -40,8 +30,6 @@ const initApp = async () => {
     } else {
       alert("Unable to initialize app storage. Some features may be unavailable.");
     }
-    
-    // Mount the app anyway so users can at least see error messages
     app.mount("#app");
   }
 };
