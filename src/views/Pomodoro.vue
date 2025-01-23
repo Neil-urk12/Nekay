@@ -49,7 +49,7 @@ onUnmounted(() => {
 <template>
   <div class="pomodoro-container" :class="{ dark: isDarkMode }">
     <DarkModeToggle :isDarkMode="isDarkMode" @toggle="toggleDarkMode" />
-    <img class="peekingMelody" src="/src/assets/peekingmelody.png" alt="Peeking Melody" loading="lazy" />
+    <img class="peekingMelody" src="https://s6.imgcdn.dev/YDIqCq.png" alt="YDIqCq.png" border="0" loading="lazy">
     <div v-if="error" class="error-message" role="alert">
       {{ error }}
     </div>
