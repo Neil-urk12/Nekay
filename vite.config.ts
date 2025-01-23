@@ -60,6 +60,10 @@ const generateSWConfig = {
       handler: "StaleWhileRevalidate",
       options: {
         cacheName: "static-resources-cache-v1",
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 7 * 24 * 60 * 60, 
+        }
       },
     },
   ],
