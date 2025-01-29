@@ -29,7 +29,7 @@ defineProps<{ dailyAffirmation: string }>()
   >
     <MelodyHeader />
     <div class="cloud-icon animate-float">
-      <img src="/src/assets/cloud.webp" alt="Cloud" class="cloud" loading="lazy" />
+      <img src="/assets/cloud.webp" alt="Cloud" class="cloud" loading="lazy" />
     </div>
     <div class="message-container animate-float">
       <div class="message-box animate-fade-in">
