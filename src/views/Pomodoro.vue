@@ -49,7 +49,7 @@ onUnmounted(() => {
 <template>
   <div class="pomodoro-container" :class="{ dark: isDarkMode }">
     <DarkModeToggle :isDarkMode="isDarkMode" @toggle="toggleDarkMode" />
-    <img class="peekingMelody" src="https://s6.imgcdn.dev/YDIqCq.png" alt="YDIqCq.png" border="0" loading="lazy">
+    <img class="peekingMelody" src="/assets/peekingmelody.webp" alt="YDIqCq.png" border="0" loading="lazy">
     <div v-if="error" class="error-message" role="alert">
       {{ error }}
     </div>
@@ -162,7 +162,7 @@ onUnmounted(() => {
         role="status"
         aria-label="Timer is running"
       >
-        <img src="https://s6.imgcdn.dev/YDIF7B.gif" alt="YDIF7B.gif" border="0" loading="lazy">
+        <img src="/assets/melody3.gif" alt="YDIF7B.gif" border="0" loading="lazy">
         <h3 class="focus-time" :class="{ dark: isDarkMode }">
           {{ store.mode === "work" ? "Focus Time!" : "Take a Break!" }}
         </h3>

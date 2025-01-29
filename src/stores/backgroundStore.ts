@@ -17,22 +17,23 @@ export const useBackgroundStore = defineStore("background", () => {
 
     if (hour >= 5 && hour < 12) {
       timeOfDay.value = "morning";
-      setBackground("url(/src/assets/bgsky.webp)");
+      setBackground("url(/assets/bgsky.webp)");
     } else if (hour >= 12 && hour < 13) {
       timeOfDay.value = "noon";
-      setBackground("url(/src/assets/noonbg.webp)");
+      setBackground("url(/assets/noonbg.webp)");
     } else if (hour >= 13 && hour < 17) {
       timeOfDay.value = "afternoon";
-      setBackground("url(/src/assets/afternoon.webp)");
+      setBackground("url(/assets/afternoon.webp)");
     } else if (hour >= 17 && hour < 19) {
       timeOfDay.value = "evening";
-      setBackground("url(/src/assets/newsunset.webp)");
+      setBackground("url(/assets/newsunset.webp)");
     } else {
       timeOfDay.value = "night";
       if (randomNumber === 1) {
-        setBackground("url(/src/assets/moonbg.gif)");
+        setBackground("url(/assets/galaxy.webp)");
+
       } else {
-        setBackground("url(/src/assets/galaxy.webp)");
+        setBackground("url(/assets/moonbg.gif)");
       }
     }
   };
