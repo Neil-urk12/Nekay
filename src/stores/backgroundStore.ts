@@ -9,6 +9,8 @@ export const useBackgroundStore = defineStore("background", () => {
   const setBackground = (url: string) => (backgroundImage.value = url);
   const timeOfDay = ref<TimeOfDay>("morning");
 
+  const getRandomNumber = () => Math.floor(Math.random() * 2) + 1;
+
   const determineTimeOfDay = () => {
     const hour = new Date().getHours();
 
@@ -26,7 +28,11 @@ export const useBackgroundStore = defineStore("background", () => {
       setBackground("url(/src/assets/newsunset.webp)");
     } else {
       timeOfDay.value = "night";
-      setBackground("url(/src/assets/moonbg.gif)");
+      if (getRandomNumber() === 1) {
+        setBackground("url(/src/assets/moonbg.gif)");
+      } else {
+        setBackground("url(/src/assets/galaxy.jpg)");
+      }
     }
   };
 
