@@ -1,41 +1,9 @@
 <script lang="ts" setup>
-import { computed, defineAsyncComponent, ref, onMounted, watch } from "vue";
+import { computed, defineAsyncComponent } from "vue";
 import { TimeOfDay, useBackgroundStore } from "../stores/backgroundStore";
 const MelodyHeader = defineAsyncComponent(
   () => import("../components/MelodyHeader.vue")
 );
-
-const dailyAffirmation = ref("")
-
-watch(dailyAffirmation, (newVal) => {
-  console.log("Affirmation updated:", newVal);
-});
-
-async function fetchAffirmation() {
-  try {
-    console.log("Fetching affirmation...")
-    const response = await fetch("https://affi-rm.vercel.app/daily-affirmation")
-    console.log("Response status: ", response.status)
-    if (!response.ok) {
-      throw new Error('Failed to fetch affirmation');
-    }
-
-    if (response.status === 204) {
-      dailyAffirmation.value = "You are doing great! Keep up the good work!"
-      return;
-    }
-
-    if (!response) {  
-      throw new Error('Failed to fetch affirmation');
-    }
-
-    const data = await response.json()
-    dailyAffirmation.value = data.message
-  } catch (err) {
-    console.error('Error fetching affirmation: ', err);
-    dailyAffirmation.value = "You are doing great! Keep up the good work!"
-  }
-}
 
 const backgroundStore = useBackgroundStore();
 
@@ -51,10 +19,7 @@ const greetingMessage = computed(() => {
     messages[backgroundStore.timeOfDay as TimeOfDay] || "Have a great day!"
   );
 })
-
-onMounted(async () => {
-  await fetchAffirmation()
-}) 
+defineProps<{ dailyAffirmation: string }>()
 </script>
 
 <template>
