@@ -13,6 +13,7 @@ export const useBackgroundStore = defineStore("background", () => {
 
   const determineTimeOfDay = () => {
     const hour = new Date().getHours();
+    const randomNumber = getRandomNumber();
 
     if (hour >= 5 && hour < 12) {
       timeOfDay.value = "morning";
@@ -28,10 +29,10 @@ export const useBackgroundStore = defineStore("background", () => {
       setBackground("url(/src/assets/newsunset.webp)");
     } else {
       timeOfDay.value = "night";
-      if (getRandomNumber() === 1) {
+      if (randomNumber === 1) {
         setBackground("url(/src/assets/moonbg.gif)");
       } else {
-        setBackground("url(/src/assets/galaxy.jpg)");
+        setBackground("url(/src/assets/galaxy.webp)");
       }
     }
   };
