@@ -14,19 +14,19 @@ export const useBackgroundStore = defineStore("background", () => {
 
     if (hour >= 5 && hour < 12) {
       timeOfDay.value = "morning";
-      setBackground("url(https://s6.imgcdn.dev/pSKhw.png)");
+      setBackground("url(/src/assets/bgsky.webp)");
     } else if (hour >= 12 && hour < 13) {
       timeOfDay.value = "noon";
-      setBackground("url(https://s6.imgcdn.dev/pSsaL.jpg)");
-    } else if (hour >= 13 && hour < 18) {
+      setBackground("url(/src/assets/noonbg.webp)");
+    } else if (hour >= 13 && hour < 17) {
       timeOfDay.value = "afternoon";
-      setBackground("url(https://s6.imgcdn.dev/pSimB.png)");
-    } else if (hour >= 18 && hour < 20) {
+      setBackground("url(/src/assets/afternoon.webp)");
+    } else if (hour >= 17 && hour < 19) {
       timeOfDay.value = "evening";
-      setBackground("url(https://s6.imgcdn.dev/pSyWa.jpg)");
+      setBackground("url(/src/assets/newsunset.webp)");
     } else {
       timeOfDay.value = "night";
-      setBackground("url(https://s6.imgcdn.dev/pSnuu.gif)");
+      setBackground("url(/src/assets/moonbg.gif)");
     }
   };
 
