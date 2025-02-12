@@ -6,6 +6,7 @@ const BottomNav = defineAsyncComponent(
   () => import("./components/BottomNav.vue")
 );
 import { syncService } from "./services/syncService";
+import { notificationService } from "./services/notificationService";
 const backgroundStore = useBackgroundStore();
 const notesStore = useNotesStore()
 const isLoading = ref(true);
@@ -53,6 +54,8 @@ const initializeApp = async () => {
         console.error("Background sync failed:", err);
       });
     }
+    // Initialize notifications
+    notificationService.scheduleReminders();
   } catch (err) {
     console.error("Failed to initialize app:", err);
     error.value = err as Error;
