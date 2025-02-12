@@ -1,10 +1,11 @@
 <script lang="ts" setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
+import { getFirestore, collection, addDoc } from 'firebase/firestore'
 import { useRouter } from 'vue-router'
 
 let lrtAudio: HTMLAudioElement | null = null;
+let heartsInterval: ReturnType<typeof setInterval> | null = null;
 
-// Play lrt.mp3 when LetterView is opened
 onMounted(() => {
   lrtAudio = new Audio('/lrt.mp3');
   lrtAudio.play().catch((err) => {
@@ -12,13 +13,20 @@ onMounted(() => {
   });
 });
 
-// When the component is unmounted, stop the lrt.mp3 from playing
 onUnmounted(() => {
   if (lrtAudio) {
     lrtAudio.pause();
     lrtAudio.currentTime = 0;
   }
+  if (heartsInterval) {
+    clearInterval(heartsInterval);
+  }
 });
+
+const showAcceptModal = ref(false)
+const closeAcceptModal = () => {
+  showAcceptModal.value = false
+}
 
 const isExpanded = ref(false)
 const router = useRouter()
@@ -26,8 +34,7 @@ const declineClickCount = ref(0)
 const declineButtonStyle = ref({})
 const showFinalMessage = ref(false)
 
-// Reactive array to hold hearts data
-const floatingHearts = ref<{ id: number; left: number }[]>([])
+const floatingHearts = ref<{ id: number; left: number; style?: { fontSize: string; transform?: string; animationDuration: string; animationDelay: string } }[]>([])
 
 const hiddenClass = computed(() => isExpanded.value ? 'hidden' : '')
 const isDeclineHidden = computed(() => declineClickCount.value >= 4)
@@ -38,57 +45,82 @@ const toggleExpand = () => {
 
 let heartId = 0
 
+const createHeart = () => {
+  const newHeartId = heartId++;
+  const randomSize = Math.random() * (1.8 - 1.2) + 1.2;
+  const randomDuration = Math.random() * (8 - 6) + 6;
+  const randomDelay = Math.random() * 0.5;
+
+  floatingHearts.value.push({
+    id: newHeartId,
+    left: Math.random() * 100,
+    style: {
+      fontSize: `${randomSize}rem`,
+      animationDuration: `${randomDuration}s`,
+      animationDelay: `${randomDelay}s`
+    }
+  });
+
+  setTimeout(() => {
+    floatingHearts.value = floatingHearts.value.filter(heart => heart.id !== newHeartId);
+  }, randomDuration * 1000 + (randomDelay * 1000));
+};
+
 const acceptLove = () => {
   console.log('Love accepted!')
+  showAcceptModal.value = true
 
-  // Play the accept sound
   const acceptAudio = new Audio('/accept.wav');
   acceptAudio.play().catch((err) => {
     console.error('Error playing accept.wav:', err);
   });
-  
-  // Add several hearts to the array
-  for (let i = 0; i < 10; i++) {
-    floatingHearts.value.push({ 
-      id: heartId++, 
-      left: Math.random() * 100  // position horizontally as a percentage
-    })
+
+  for (let i = 0; i < 15; i++) {
+    createHeart();
   }
-  
-  // Optionally, clear them after a delay (adjust as needed)
+
   setTimeout(() => {
-    floatingHearts.value = []
-  }, 3000)
-}
+    const burstInterval = setInterval(() => {
+      createHeart();
+    }, 100);
+
+    setTimeout(() => {
+      clearInterval(burstInterval);
+
+      heartsInterval = setInterval(() => {
+        createHeart();
+      }, 500);
+    }, 10000);
+  }, 500);
+};
 
 const declineLove = () => {
   declineClickCount.value++
-  
+
   if (declineClickCount.value >= 4) {
     showFinalMessage.value = true
     return
   }
 
   const scale = Math.max(0.6, 1 - (declineClickCount.value * 0.1))
-  
-  // Get viewport width
+
   const viewportWidth = window.innerWidth
   const buttonElement = document.querySelector('.decline-button') as HTMLElement
   if (!buttonElement) return
-  
+
   const buttonWidth = buttonElement.offsetWidth
-  
+
   const goToRight = Math.random() > 0.5
-  
+
   const padding = 20
   let xPosition
-  
+
   if (goToRight) {
     xPosition = viewportWidth - buttonWidth - padding
   } else {
     xPosition = padding
   }
-  
+
   declineButtonStyle.value = {
     position: 'fixed',
     left: `${xPosition}px`,
@@ -98,13 +130,44 @@ const declineLove = () => {
     color: '#333'
   }
 }
+
+const checkboxes = reactive({
+  pizza: false,
+  cake: false,
+  movies: false,
+  stardew: false
+});
+
+const showSuccessModal = ref(false)
+const closeSuccessModal = () => {
+  showSuccessModal.value = false
+}
+
+const db = getFirestore()
+
+const submitAgreement = async () => {
+  try {
+    await addDoc(collection(db, 'agreements'), {
+      pizza: checkboxes.pizza,
+      cake: checkboxes.cake,
+      movies: checkboxes.movies,
+      stardew: checkboxes.stardew,
+      timestamp: new Date()
+    });
+    console.log('Agreement stored successfully!');
+    showAcceptModal.value = false;
+    showSuccessModal.value = true;
+  } catch (error) {
+    console.error('Error storing agreement:', error);
+    closeAcceptModal();
+  }
+}
 </script>
 
 <template>
   <div class="letter-container">
     <button class="return-button" :class="hiddenClass" @click="router.push('/home')">Return Home</button>
-    
-    <!-- Cover view: shown if not expanded -->
+
     <div v-if="!isExpanded" class="letter-cover" @click="toggleExpand">
       <div class="cover-content">
         <div class="arrow top">▼</div>
@@ -112,11 +175,9 @@ const declineLove = () => {
         <div class="arrow bottom">▼</div>
       </div>
     </div>
-    
-    <!-- Full letter view, inside a transition for smooth expand/contract -->
+
     <transition name="expand">
       <div v-show="isExpanded" class="full-letter">
-        <!-- Toggle arrows inside full letter view -->
         <div class="toggle-arrow top" @click="toggleExpand">▼</div>
         <header>
           <h1 class="header">A Valentine's Note</h1>
@@ -125,25 +186,22 @@ const declineLove = () => {
         <div class="letter-content">
           <p>Dear Kaykay,</p>
           <p>
-            Advanced Happy Valentine's Babiee! I'm not sure how I should sound for this letter but know that it's written with lots of love and you in my mind. 
+            Advanced Happy Valentine's Babiee! I'm not sure how I should sound for this letter but know that it's written with lots of love and you in my mind.
           </p>
           <p>
-            As Valentine's Day is nearing, I want to remind you of my love, our love. I found myself thinking..about us..about the joy..the sadness..and the experiences that we shared, the journey, and our story. You have been a blessing to my life babie. You decorated my life. Every moment we share paints my heart with love and joy. I reminisce about the first karaoke we had, it was just before valentine's day. From that moment, I knew that I wanted to be with you for all my life, I wanted to be your partner in this journey called life. Your smile lights up my days and you voice and laughter calms the chaos in my heart and mind. 
+            As Valentine's Day is nearing, I want to remind you of my love, our love. I found myself thinking..about us..about the joy..the sadness..and the experiences that we shared, the journey, and our story. You have been a blessing to my life babie. You decorated my life. Every moment we share paints my heart with love and joy. I reminisce about the first karaoke we had, it was just before valentine's day. From that moment, I knew that I wanted to be with you for all my life, I wanted to be your partner in this journey called life. Your <b>smile</b> lights up my days and you <b>voice</b> and <b>laughter</b> calms the chaos in my heart and mind.
           </p>
           <p>
-            This Valentine's Day, I want to remind you of the depth of my love. It is a love that transcends time and space, a love that grows stronger with each passing day. Thank you for being comforting and caring babie. Thank you for being my safe space. I can't wait to hug and kiss youuu my babiee. 
-          </p>
-          <p>
-            Happy Valentine's Day Babiee!! Am lovee youuuuuu<b> 💖 </b><br>
             May our journey together be as enchanting as a starlit night and as warm as the first bloom of spring. I eagerly await each new day wrapped in your loving embrace.
           </p>
+          <p>Happy Valentine's Day Babiee!! Am lovee youuuuuu<b> 💖 </b><br></p>
           <p>
-            I love youuuu my babiee. I'm so grateful for you. I'm so grateful for us. I'm so grateful for our story. I'm so grateful for our love. I'm so grateful for our journey. I'm so grateful for our future. I'm so grateful for youuuu.
+            Thank you for being comforting and caring babie. Thank you for being my safe space. I can't wait to hug and kiss youuu my babiee. I love youuuu my babiee. I'm so grateful for you. I'm so grateful for us. I'm so grateful for our story. I'm so grateful for our love. I'm so grateful for our journey. I'm so grateful for our future. I'm so grateful for youuuu. <br><b>I LOVEEE YOUUUUUU</b>
           </p>
           <p>Sincerely,</p>
           <p>Sharky Babie</p>
         </div>
-        
+
         <div class="toggle-arrow bottom" @click="toggleExpand">▼</div>
       </div>
     </transition>
@@ -158,22 +216,45 @@ const declineLove = () => {
           This is your only choice &#128521;
         </span>
       </div>
-      <button v-if="!isDeclineHidden" 
-              class="decline-button" 
+      <button v-if="!isDeclineHidden"
+              class="decline-button"
               @click="declineLove"
               :style="declineButtonStyle">&#128148; Decline</button>
     </div>
 
-    <!-- Floating hearts container -->
-    <div class="floating-hearts">
-      <div 
-        v-for="heart in floatingHearts" 
-        :key="heart.id" 
-        class="floating-heart" 
-        :style="{ left: heart.left + '%' }">
-        ♥
-      </div>
+    <div
+      v-for="heart in floatingHearts"
+      :key="heart.id"
+      class="floating-heart"
+      :style="{ left: heart.left + '%', ...heart.style }">
+      ♥
     </div>
+
+    <transition name="fade">
+      <div v-if="showAcceptModal" class="accept-overlay" @click.self="closeAcceptModal">
+        <div class="modal-content">
+          <h2>Date? Sunday?</h2>
+          <p>Do you agree to have a date on Sunday? Please select your preferences:</p>
+          <div class="checkbox-list">
+            <label><input type="checkbox" v-model="checkboxes.pizza"> Pizza?</label>
+            <label><input type="checkbox" v-model="checkboxes.cake"> Cake?</label>
+            <label><input type="checkbox" v-model="checkboxes.movies"> Movies?</label>
+            <label><input type="checkbox" v-model="checkboxes.stardew"> Stardew?</label>
+          </div>
+          <button @click="submitAgreement">Agree</button>
+        </div>
+      </div>
+    </transition>
+
+    <transition name="fade">
+      <div v-if="showSuccessModal" class="accept-overlay" @click.self="closeSuccessModal">
+        <div class="modal-content">
+          <h2>Woohoo!</h2>
+          <p>Your preferences have been recorded. We can't wait for Sunday's date!</p>
+          <button @click="closeSuccessModal">Close</button>
+        </div>
+      </div>
+    </transition>
 
   </div>
 </template>
@@ -194,7 +275,6 @@ const declineLove = () => {
   overflow-y: auto;
 }
 
-/* Return Home button */
 .return-button {
   position: fixed;
   top: 1rem;
@@ -215,7 +295,6 @@ const declineLove = () => {
   pointer-events: none;
 }
 
-/* Cover style: initial paper-letter look with heart and arrows */
 .letter-cover {
   width: 100%;
   max-width: 400px;
@@ -254,7 +333,6 @@ const declineLove = () => {
   margin-top: 0.5rem;
 }
 
-/* Full letter view styling */
 .full-letter {
   width: 100%;
   max-width: 600px;
@@ -266,7 +344,6 @@ const declineLove = () => {
   position: relative;
 }
 
-/* Toggle arrows inside expanded view */
 .toggle-arrow {
   font-size: 2rem;
   color: #a62644;
@@ -385,7 +462,6 @@ header {
   background: #d6d8db;
 }
 
-/* Transition for expanding/contracting full letter view */
 .expand-enter-active, .expand-leave-active {
   transition: all 0.3s ease;
 }
@@ -412,7 +488,6 @@ header {
   pointer-events: none;
 }
 
-/* Responsive Design Adjustments */
 @media (max-width: 600px) {
   .letter-container {
     padding: 1rem;
@@ -420,51 +495,51 @@ header {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   .letter-cover {
     margin-top: 3rem;
     margin-bottom: 1rem;
   }
-  
+
   .full-letter {
     margin: 2rem 0;
   }
-  
+
   .return-button {
     padding: 0.5rem;
     font-size: 0.9rem;
   }
-  
+
   .letter-cover {
     max-width: 90%;
     height: auto;
     padding: 1rem;
   }
-  
+
   .cover-content .heart {
     font-size: 3rem;
   }
-  
+
   .cover-content .arrow {
     font-size: 1.5rem;
   }
-  
+
   header .header {
     font-size: 2rem;
   }
-  
+
   header .subheader {
     font-size: 1rem;
   }
-  
+
   .letter-content {
     font-size: 1rem;
   }
-  
+
   .toggle-arrow {
     font-size: 1.5rem;
   }
-  
+
   .heart-button, .decline-button {
     font-size: 0.9rem;
     padding: 0.5rem 1rem;
@@ -484,21 +559,31 @@ header {
 
 .floating-heart {
   position: absolute;
-  font-size: 1.5rem;
   color: #d6336c;
-  animation: floatUp 3s ease-out forwards;
+  animation: floatUp cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  opacity: 0;
+  will-change: transform, opacity;
 }
 
 @keyframes floatUp {
   0% {
-    bottom: 0;
+    top: 100%;
+    opacity: 0;
+    transform: translateY(0) translateX(-50%) scale(0.5);
+  }
+  10% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-100vh) translateX(calc(-50% + 30px)) scale(1);
+  }
+  90% {
+    opacity: 1;
   }
   100% {
-    bottom: 150%;
+    top: -20%;
     opacity: 0;
-    transform: translateY(-20px) scale(1.5);
+    transform: translateY(-100vh) translateX(calc(-50% - 30px)) scale(0.8);
   }
 }
 
@@ -524,5 +609,57 @@ header {
   to {
     opacity: 1;
   }
+}
+
+.modal-content {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.modal-content h2 {
+  margin-bottom: 1rem;
+  color: #d6336c;
+}
+
+.modal-content p {
+  margin-bottom: 1.5rem;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.modal-content button {
+  padding: 0.5rem 1rem;
+  background: #d6336c;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.modal-content button:hover {
+  background: #bf285c;
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+.fade-enter-to, .fade-leave-from {
+  opacity: 1;
+}
+
+.checkbox-list {
+  margin: 1rem 0;
+  text-align: left;
+}
+.checkbox-list label {
+  display: block;
+  margin-bottom: 0.5rem;
 }
 </style>
