@@ -30,12 +30,12 @@ const router = createRouter({
     {
       path: "/letter",
       component: () => import("../views/LetterView.vue"),
-      meta: { requiresAuth: false },
+      meta: { requiresAuth: true },
     },
     {
       path: "/home",
       component: () => import("../views/Home.vue"),
-      meta: { requiresAuth: false },
+      meta: { requiresAuth: true },
     },
     {
       path: "/water_tracker",
