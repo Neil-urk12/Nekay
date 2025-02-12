@@ -1,41 +1,9 @@
 <script lang="ts" setup>
-import { computed, defineAsyncComponent, ref, onMounted, watch } from "vue";
+import { computed, defineAsyncComponent } from "vue";
 import { TimeOfDay, useBackgroundStore } from "../stores/backgroundStore";
 const MelodyHeader = defineAsyncComponent(
   () => import("../components/MelodyHeader.vue")
 );
-
-const dailyAffirmation = ref("")
-
-watch(dailyAffirmation, (newVal) => {
-  console.log("Affirmation updated:", newVal);
-});
-
-async function fetchAffirmation() {
-  try {
-    console.log("Fetching affirmation...")
-    const response = await fetch("https://affi-rm.vercel.app/daily-affirmation")
-    console.log("Response status: ", response.status)
-    if (!response.ok) {
-      throw new Error('Failed to fetch affirmation');
-    }
-
-    if (response.status === 204) {
-      dailyAffirmation.value = "You are doing great! Keep up the good work!"
-      return;
-    }
-
-    if (!response) {  
-      throw new Error('Failed to fetch affirmation');
-    }
-
-    const data = await response.json()
-    dailyAffirmation.value = data.message
-  } catch (err) {
-    console.error('Error fetching affirmation: ', err);
-    dailyAffirmation.value = "You are doing great! Keep up the good work!"
-  }
-}
 
 const backgroundStore = useBackgroundStore();
 
@@ -50,11 +18,8 @@ const greetingMessage = computed(() => {
   return (
     messages[backgroundStore.timeOfDay as TimeOfDay] || "Have a great day!"
   );
-})
-
-onMounted(async () => {
-  await fetchAffirmation()
-}) 
+});
+defineProps<{ dailyAffirmation: string }>();
 </script>
 
 <template>
@@ -64,7 +29,7 @@ onMounted(async () => {
   >
     <MelodyHeader />
     <div class="cloud-icon animate-float">
-      <img src="/assets/cloud.png" alt="Cloud" class="cloud" loading="eager" />
+      <img src="/assets/cloud.webp" alt="Cloud" class="cloud" loading="lazy" />
     </div>
     <div class="message-container animate-float">
       <div class="message-box animate-fade-in">
@@ -72,7 +37,7 @@ onMounted(async () => {
         <p class="greetingMessage">{{ greetingMessage }}</p>
       </div>
     </div>
-    
+
     <div class="affirmation-container">
       <p class="affirmation">{{ dailyAffirmation }}</p>
     </div>
@@ -80,15 +45,62 @@ onMounted(async () => {
     <div class="app-icons-container">
       <router-link to="/water_tracker">
         <div class="app-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="1.5rem"><path fill="#74C0FC" d="M192 512C86 512 0 426 0 320C0 228.8 130.2 57.7 166.6 11.7C172.6 4.2 181.5 0 191.1 0l1.8 0c9.6 0 18.5 4.2 24.5 11.7C253.8 57.7 384 228.8 384 320c0 106-86 192-192 192zM96 336c0-8.8-7.2-16-16-16s-16 7.2-16 16c0 61.9 50.1 112 112 112c8.8 0 16-7.2 16-16s-7.2-16-16-16c-44.2 0-80-35.8-80-80z"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 384 512"
+            width="1.5rem"
+          >
+            <path
+              fill="#74C0FC"
+              d="M192 512C86 512 0 426 0 320C0 228.8 130.2 57.7 166.6 11.7C172.6 4.2 181.5 0 191.1 0l1.8 0c9.6 0 18.5 4.2 24.5 11.7C253.8 57.7 384 228.8 384 320c0 106-86 192-192 192zM96 336c0-8.8-7.2-16-16-16s-16 7.2-16 16c0 61.9 50.1 112 112 112c8.8 0 16-7.2 16-16s-7.2-16-16-16c-44.2 0-80-35.8-80-80z"
+            />
+          </svg>
           <span class="app-name">Water Tracker</span>
         </div>
       </router-link>
 
       <router-link to="/breathing_exercise">
         <div class="app-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" width="1.5rem"><path fill="#63E6BE" d="M384 312.7c-55.1 136.7-187.1 54-187.1 54-40.5 81.8-107.4 134.4-184.6 134.7-16.1 0-16.6-24.4 0-24.4 64.4-.3 120.5-42.7 157.2-110.1-41.1 15.9-118.6 27.9-161.6-82.2 109-44.9 159.1 11.2 178.3 45.5 9.9-24.4 17-50.9 21.6-79.7 0 0-139.7 21.9-149.5-98.1 119.1-47.9 152.6 76.7 152.6 76.7 1.6-16.7 3.3-52.6 3.3-53.4 0 0-106.3-73.7-38.1-165.2 124.6 43 61.4 162.4 61.4 162.4 .5 1.6 .5 23.8 0 33.4 0 0 45.2-89 136.4-57.5-4.2 134-141.9 106.4-141.9 106.4-4.4 27.4-11.2 53.4-20 77.5 0 0 83-91.8 172-20z"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 384 512"
+            width="1.5rem"
+          >
+            <path
+              fill="#63E6BE"
+              d="M384 312.7c-55.1 136.7-187.1 54-187.1 54-40.5 81.8-107.4 134.4-184.6 134.7-16.1 0-16.6-24.4 0-24.4 64.4-.3 120.5-42.7 157.2-110.1-41.1 15.9-118.6 27.9-161.6-82.2 109-44.9 159.1 11.2 178.3 45.5 9.9-24.4 17-50.9 21.6-79.7 0 0-139.7 21.9-149.5-98.1 119.1-47.9 152.6 76.7 152.6 76.7 1.6-16.7 3.3-52.6 3.3-53.4 0 0-106.3-73.7-38.1-165.2 124.6 43 61.4 162.4 61.4 162.4 .5 1.6 .5 23.8 0 33.4 0 0 45.2-89 136.4-57.5-4.2 134-141.9 106.4-141.9 106.4-4.4 27.4-11.2 53.4-20 77.5 0 0 83-91.8 172-20z"
+            />
+          </svg>
           <span class="app-name">Breathing Exercise</span>
+        </div> </router-link
+      ><br />
+      <router-link to="/letter">
+        <div class="app-icon" style="text-align: center; width: 100%">
+          <svg
+            width="1.5rem"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <g id="SVGRepo_bgCarrier" stroke-width="0" />
+
+            <g
+              id="SVGRepo_tracerCarrier"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+
+            <g id="SVGRepo_iconCarrier">
+              <path
+                d="M21 8H3M16 2V5M8 2V5M7.8 22H16.2C17.8802 22 18.7202 22 19.362 21.673C19.9265 21.3854 20.3854 20.9265 20.673 20.362C21 19.7202 21 18.8802 21 17.2V8.8C21 7.11984 21 6.27976 20.673 5.63803C20.3854 5.07354 19.9265 4.6146 19.362 4.32698C18.7202 4 17.8802 4 16.2 4H7.8C6.11984 4 5.27976 4 4.63803 4.32698C4.07354 4.6146 3.6146 5.07354 3.32698 5.63803C3 6.27976 3 7.11984 3 8.8V17.2C3 18.8802 3 19.7202 3.32698 20.362C3.6146 20.9265 4.07354 21.3854 4.63803 21.673C5.27976 22 6.11984 22 7.8 22ZM11.9973 12.3306C11.1975 11.4216 9.8639 11.1771 8.86188 12.0094C7.85986 12.8418 7.71879 14.2335 8.50568 15.2179C9.077 15.9327 10.6593 17.3397 11.4833 18.0569C11.662 18.2124 11.7513 18.2902 11.856 18.321C11.9466 18.3477 12.0479 18.3477 12.1386 18.321C12.2432 18.2902 12.3325 18.2124 12.5112 18.0569C13.3353 17.3397 14.9175 15.9327 15.4888 15.2179C16.2757 14.2335 16.1519 12.8331 15.1326 12.0094C14.1134 11.1858 12.797 11.4216 11.9973 12.3306Z"
+                stroke="#ed333b"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </g>
+          </svg>
+          <span class="app-name">Turn up your volume to 60% first</span>
         </div>
       </router-link>
     </div>
@@ -105,7 +117,7 @@ a {
   background-position: center;
   background-repeat: no-repeat;
   padding: 0rem;
-  transition: background-image 1s ease-in-out;
+  transition: background-image 1s ease-in-outi;
   display: flex;
   flex-direction: column;
 }
@@ -165,6 +177,7 @@ a {
   gap: 2rem;
   margin: 2rem 0;
   text-decoration: none;
+  flex-wrap: wrap;
 }
 @keyframes float {
   0%,
@@ -214,6 +227,6 @@ a {
   background: rgba(255, 255, 255, 0.8);
   border-radius: 1rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  font-family: 'Courier New', Courier, monospace;
+  font-family: "Courier New", Courier, monospace;
 }
 </style>

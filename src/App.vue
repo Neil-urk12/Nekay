@@ -1,24 +1,61 @@
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, ref } from "vue";
+import { defineAsyncComponent, onMounted, ref, watch } from "vue";
 import { useBackgroundStore } from "./stores/backgroundStore";
 import { useNotesStore } from "./stores/notes";
 const BottomNav = defineAsyncComponent(
   () => import("./components/BottomNav.vue")
 );
 import { syncService } from "./services/syncService";
+import { notificationService } from "./services/notificationService";
 const backgroundStore = useBackgroundStore();
 const notesStore = useNotesStore()
 const isLoading = ref(true);
 const error = ref<Error | null>(null);
+const dailyAffirmation = ref("")
+
+watch(dailyAffirmation, (newVal) => {
+  console.log("Affirmation updated:", newVal);
+});
+
+async function fetchAffirmation() {
+  try {
+    console.log("Fetching affirmation...")
+    const response = await fetch("https://affi-rm.vercel.app/daily-affirmation")
+    console.log("Response status: ", response.status)
+    if (!response.ok) {
+      throw new Error('Failed to fetch affirmation');
+    }
+
+    if (response.status === 204) {
+      dailyAffirmation.value = "You are doing great! Keep up the good work!"
+      return;
+    }
+
+    if (!response) {  
+      throw new Error('Failed to fetch affirmation');
+    }
+
+    const data = await response.json()
+    dailyAffirmation.value = data.message
+  } catch (err) {
+    console.error('Error fetching affirmation: ', err);
+    dailyAffirmation.value = "You are doing great! Keep up the good work!"
+  }
+}
 
 const initializeApp = async () => {
   try {
-    await syncService.loadFromCache();
+    await Promise.all([
+      syncService.loadFromCache(),
+      fetchAffirmation(),
+    ])
     if (navigator.onLine) {
       await syncService.syncAll().catch((err) => {
         console.error("Background sync failed:", err);
       });
     }
+    // Initialize notifications
+    notificationService.scheduleReminders();
   } catch (err) {
     console.error("Failed to initialize app:", err);
     error.value = err as Error;
@@ -50,7 +87,7 @@ onMounted(async () => {
     </div>
     <div v-else-if="isLoading" class="loading">Loading...</div>
     <template v-else>
-      <router-view></router-view>
+      <router-view :dailyAffirmation="dailyAffirmation"></router-view>
       <BottomNav v-if="$route.path !== '/' && $route.path !== '/login'" />
     </template>
   </div>
