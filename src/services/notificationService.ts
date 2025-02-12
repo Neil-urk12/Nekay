@@ -1,6 +1,10 @@
+import { isNotificationSupported } from '../utils/functions';
+
 class NotificationService {
   private static instance: NotificationService;
   private permission: NotificationPermission = 'default';
+  private hydrationInterval: number | null = null;
+  private breathingInterval: number | null = null;
 
   private constructor() {
     this.init();
@@ -14,17 +18,22 @@ class NotificationService {
   }
 
   private async init() {
-    if ('Notification' in window) {
-      this.permission = await Notification.requestPermission();
+    if (!isNotificationSupported()) {
+      console.log('Notifications are not supported');
+      return;
     }
+
+    this.permission = await Notification.requestPermission();
   }
 
   async sendNotification(title: string, options: NotificationOptions = {}) {
-    if (this.permission !== 'granted') return;
+    if (!isNotificationSupported() || this.permission !== 'granted') return;
 
     try {
       const notification = new Notification(title, {
         icon: '/assets/melody.webp',
+        badge: '/assets/melody.webp',
+        requireInteraction: true,
         ...options
       });
 
@@ -38,8 +47,16 @@ class NotificationService {
   }
 
   scheduleReminders() {
+    if (!isNotificationSupported() || this.permission !== 'granted') {
+      console.log('Notifications are not supported or not permitted');
+      return;
+    }
+
+    // Clear any existing intervals
+    this.clearReminders();
+
     // Hydration reminder every 2 hours
-    setInterval(() => {
+    this.hydrationInterval = window.setInterval(() => {
       this.sendNotification("Stay Hydrated!", {
         body: "Don't forget to hydrate properly babiee.",
         tag: 'hydration-reminder'
@@ -47,12 +64,23 @@ class NotificationService {
     }, 2 * 60 * 60 * 1000);
 
     // Breathing reminder every 4 hours
-    setInterval(() => {
+    this.breathingInterval = window.setInterval(() => {
       this.sendNotification("Time to Breathe", {
         body: "A breathing exercise might help babie.",
         tag: 'breathing-reminder'
       });
     }, 4 * 60 * 60 * 1000);
+  }
+
+  clearReminders() {
+    if (this.hydrationInterval) {
+      clearInterval(this.hydrationInterval);
+      this.hydrationInterval = null;
+    }
+    if (this.breathingInterval) {
+      clearInterval(this.breathingInterval);
+      this.breathingInterval = null;
+    }
   }
 }
 
