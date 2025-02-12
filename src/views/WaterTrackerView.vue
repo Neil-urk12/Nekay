@@ -275,14 +275,14 @@ onMounted(() => {
 
     <div class="fish-tank">
       <div class="empty-state" v-if="currentWater < 500">
-        <img src="/src/assets/sadShark.svg" alt="Sad shark" loading="lazy" />
+        <img src="/assets/sadShark.svg" alt="Sad shark" loading="lazy" />
       </div>
       <div class="water" :style="{ height: waterHeight + '%' }">
         <div
           class="shark"
           :style="{ display: sharkDisplay, bottom: sharkPosition + '%' }"
         >
-          <img src="/src/assets/shark.svg" alt="Shark" loading="lazy" />
+          <img src="/assets/shark.svg" alt="Shark" loading="lazy" />
         </div>
       </div>
       <div

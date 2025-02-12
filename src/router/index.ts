@@ -28,6 +28,11 @@ const router = createRouter({
       component: () => import("../components/SyncTester.vue"),
     },
     {
+      path: "/letter",
+      component: () => import("../views/LetterView.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
       path: "/home",
       component: () => import("../views/Home.vue"),
       meta: { requiresAuth: true },

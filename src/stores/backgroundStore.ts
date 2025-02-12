@@ -9,24 +9,32 @@ export const useBackgroundStore = defineStore("background", () => {
   const setBackground = (url: string) => (backgroundImage.value = url);
   const timeOfDay = ref<TimeOfDay>("morning");
 
+  const getRandomNumber = () => Math.floor(Math.random() * 2) + 1;
+
   const determineTimeOfDay = () => {
     const hour = new Date().getHours();
+    const randomNumber = getRandomNumber();
 
     if (hour >= 5 && hour < 12) {
       timeOfDay.value = "morning";
-      setBackground("url(https://s6.imgcdn.dev/pSKhw.png)");
+      setBackground("url(/assets/bgsky.webp)");
     } else if (hour >= 12 && hour < 13) {
       timeOfDay.value = "noon";
-      setBackground("url(https://s6.imgcdn.dev/pSsaL.jpg)");
-    } else if (hour >= 13 && hour < 18) {
+      setBackground("url(/assets/noonbg.webp)");
+    } else if (hour >= 13 && hour < 17) {
       timeOfDay.value = "afternoon";
-      setBackground("url(https://s6.imgcdn.dev/pSimB.png)");
-    } else if (hour >= 18 && hour < 20) {
+      setBackground("url(/assets/afternoon.webp)");
+    } else if (hour >= 17 && hour < 19) {
       timeOfDay.value = "evening";
-      setBackground("url(https://s6.imgcdn.dev/pSyWa.jpg)");
+      setBackground("url(/assets/newsunset.webp)");
     } else {
       timeOfDay.value = "night";
-      setBackground("url(https://s6.imgcdn.dev/pSnuu.gif)");
+      if (randomNumber === 1) {
+        setBackground("url(/assets/galaxy.webp)");
+
+      } else {
+        setBackground("url(/assets/moonbg.gif)");
+      }
     }
   };
 
