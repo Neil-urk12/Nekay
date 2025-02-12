@@ -1,12 +1,33 @@
 <script lang="ts" setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+
+let lrtAudio: HTMLAudioElement | null = null;
+
+// Play lrt.mp3 when LetterView is opened
+onMounted(() => {
+  lrtAudio = new Audio('/lrt.mp3');
+  lrtAudio.play().catch((err) => {
+    console.error('Error playing lrt.mp3:', err);
+  });
+});
+
+// When the component is unmounted, stop the lrt.mp3 from playing
+onUnmounted(() => {
+  if (lrtAudio) {
+    lrtAudio.pause();
+    lrtAudio.currentTime = 0;
+  }
+});
 
 const isExpanded = ref(false)
 const router = useRouter()
 const declineClickCount = ref(0)
 const declineButtonStyle = ref({})
 const showFinalMessage = ref(false)
+
+// Reactive array to hold hearts data
+const floatingHearts = ref<{ id: number; left: number }[]>([])
 
 const hiddenClass = computed(() => isExpanded.value ? 'hidden' : '')
 const isDeclineHidden = computed(() => declineClickCount.value >= 4)
@@ -15,8 +36,29 @@ const toggleExpand = () => {
   isExpanded.value = !isExpanded.value
 }
 
+let heartId = 0
+
 const acceptLove = () => {
   console.log('Love accepted!')
+
+  // Play the accept sound
+  const acceptAudio = new Audio('/accept.wav');
+  acceptAudio.play().catch((err) => {
+    console.error('Error playing accept.wav:', err);
+  });
+  
+  // Add several hearts to the array
+  for (let i = 0; i < 10; i++) {
+    floatingHearts.value.push({ 
+      id: heartId++, 
+      left: Math.random() * 100  // position horizontally as a percentage
+    })
+  }
+  
+  // Optionally, clear them after a delay (adjust as needed)
+  setTimeout(() => {
+    floatingHearts.value = []
+  }, 3000)
 }
 
 const declineLove = () => {
@@ -120,6 +162,17 @@ const declineLove = () => {
               class="decline-button" 
               @click="declineLove"
               :style="declineButtonStyle">&#128148; Decline</button>
+    </div>
+
+    <!-- Floating hearts container -->
+    <div class="floating-hearts">
+      <div 
+        v-for="heart in floatingHearts" 
+        :key="heart.id" 
+        class="floating-heart" 
+        :style="{ left: heart.left + '%' }">
+        ♥
+      </div>
     </div>
 
   </div>
@@ -416,6 +469,60 @@ header {
     font-size: 0.9rem;
     padding: 0.5rem 1rem;
     margin: 0.5rem;
+  }
+}
+
+.floating-hearts {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 20;
+}
+
+.floating-heart {
+  position: absolute;
+  font-size: 1.5rem;
+  color: #d6336c;
+  animation: floatUp 3s ease-out forwards;
+}
+
+@keyframes floatUp {
+  0% {
+    bottom: 0;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    bottom: 150%;
+    opacity: 0;
+    transform: translateY(-20px) scale(1.5);
+  }
+}
+
+.accept-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 50;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 </style>
