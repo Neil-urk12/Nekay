@@ -3,25 +3,23 @@ import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
 import { getFirestore, collection, addDoc } from 'firebase/firestore'
 import { useRouter } from 'vue-router'
 
-let lrtAudio: HTMLAudioElement | null = null;
-let heartsInterval: ReturnType<typeof setInterval> | null = null;
+let lrtAudio: HTMLAudioElement | null = null
+let heartsInterval: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
-  lrtAudio = new Audio('/lrt.mp3');
+  lrtAudio = new Audio('/lrt.mp3')
   lrtAudio.play().catch((err) => {
-    console.error('Error playing lrt.mp3:', err);
-  });
-});
+    console.error('Error playing lrt.mp3:', err)
+  })
+})
 
 onUnmounted(() => {
   if (lrtAudio) {
-    lrtAudio.pause();
-    lrtAudio.currentTime = 0;
+    lrtAudio.pause()
+    lrtAudio.currentTime = 0
   }
-  if (heartsInterval) {
-    clearInterval(heartsInterval);
-  }
-});
+  if (heartsInterval) clearInterval(heartsInterval)
+})
 
 const showAcceptModal = ref(false)
 const closeAcceptModal = () => {
@@ -39,16 +37,14 @@ const floatingHearts = ref<{ id: number; left: number; style?: { fontSize: strin
 const hiddenClass = computed(() => isExpanded.value ? 'hidden' : '')
 const isDeclineHidden = computed(() => declineClickCount.value >= 4)
 
-const toggleExpand = () => {
-  isExpanded.value = !isExpanded.value
-}
+const toggleExpand = () => isExpanded.value = !isExpanded.value
 
 let heartId = 0
 
 const createHeart = () => {
-  const newHeartId = heartId++;
-  const randomSize = Math.random() * (1.8 - 1.2) + 1.2;
-  const randomDuration = Math.random() * (8 - 6) + 6;
+  const newHeartId = heartId++
+  const randomSize = Math.random() * (1.8 - 1.2) + 1.2
+  const randomDuration = Math.random() * (8 - 6) + 6
   const randomDelay = Math.random() * 0.5;
 
   floatingHearts.value.push({
@@ -59,40 +55,38 @@ const createHeart = () => {
       animationDuration: `${randomDuration}s`,
       animationDelay: `${randomDelay}s`
     }
-  });
+  })
 
   setTimeout(() => {
-    floatingHearts.value = floatingHearts.value.filter(heart => heart.id !== newHeartId);
-  }, randomDuration * 1000 + (randomDelay * 1000));
-};
+    floatingHearts.value = floatingHearts.value.filter(heart => heart.id !== newHeartId)
+  }, randomDuration * 1000 + (randomDelay * 1000))
+}
 
 const acceptLove = () => {
   console.log('Love accepted!')
   showAcceptModal.value = true
 
-  const acceptAudio = new Audio('/accept.wav');
+  const acceptAudio = new Audio('/accept.wav')
   acceptAudio.play().catch((err) => {
-    console.error('Error playing accept.wav:', err);
-  });
+    console.error('Error playing accept.wav:', err)
+  })
 
-  for (let i = 0; i < 15; i++) {
-    createHeart();
-  }
+  for (let i = 0; i < 15; i++) createHeart()
 
   setTimeout(() => {
     const burstInterval = setInterval(() => {
-      createHeart();
-    }, 100);
+      createHeart()
+    }, 100)
 
     setTimeout(() => {
-      clearInterval(burstInterval);
+      clearInterval(burstInterval)
 
       heartsInterval = setInterval(() => {
-        createHeart();
+        createHeart()
       }, 500);
     }, 10000);
   }, 500);
-};
+}
 
 const declineLove = () => {
   declineClickCount.value++
@@ -115,12 +109,9 @@ const declineLove = () => {
   const padding = 20
   let xPosition
 
-  if (goToRight) {
-    xPosition = viewportWidth - buttonWidth - padding
-  } else {
-    xPosition = padding
-  }
-
+  if (goToRight) xPosition = viewportWidth - buttonWidth - padding
+  else xPosition = padding
+  
   declineButtonStyle.value = {
     position: 'fixed',
     left: `${xPosition}px`,
@@ -136,12 +127,10 @@ const checkboxes = reactive({
   cake: false,
   movies: false,
   stardew: false
-});
+})
 
 const showSuccessModal = ref(false)
-const closeSuccessModal = () => {
-  showSuccessModal.value = false
-}
+const closeSuccessModal = () => showSuccessModal.value = false
 
 const db = getFirestore()
 
@@ -153,13 +142,13 @@ const submitAgreement = async () => {
       movies: checkboxes.movies,
       stardew: checkboxes.stardew,
       timestamp: new Date()
-    });
-    console.log('Agreement stored successfully!');
-    showAcceptModal.value = false;
-    showSuccessModal.value = true;
+    })
+    console.log('Agreement stored successfully!')
+    showAcceptModal.value = false
+    showSuccessModal.value = true
   } catch (error) {
-    console.error('Error storing agreement:', error);
-    closeAcceptModal();
+    console.error('Error storing agreement:', error)
+    closeAcceptModal()
   }
 }
 </script>
