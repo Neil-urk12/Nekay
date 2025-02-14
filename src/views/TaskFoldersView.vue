@@ -12,9 +12,7 @@ const deleteConfirm = ref<{ id: string; name: string } | null>(null);
 
 const folders = computed(() => noteStore.getTaskFolders)
 
-const navigateToFolder = (folderId: string) => {
-  router.push(`/folders/${folderId}`);
-};
+const navigateToFolder = (folderId: string) => router.push(`/folders/${folderId}`);
 
 const addFolder = async () => {
   if (!newFolderName.value.trim()) return;
@@ -39,9 +37,7 @@ const saveEdit = async () => {
   }
 };
 
-const cancelEdit = () => {
-  editingFolder.value = null;
-};
+const cancelEdit = () => editingFolder.value = null;
 
 const confirmDelete = async () => {
   if (!deleteConfirm.value) return;
@@ -54,9 +50,7 @@ const confirmDelete = async () => {
   }
 };
 
-const cancelDelete = () => {
-  deleteConfirm.value = null;
-};
+const cancelDelete = () => deleteConfirm.value = null;
 
 onMounted(() => {
   if (folders.value.length === 0) noteStore.loadFolders();
