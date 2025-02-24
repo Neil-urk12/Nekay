@@ -85,11 +85,17 @@ onMounted(async () => {
     <div v-if="error" class="error-message">
       {{ error.message }}
     </div>
-    <div v-else-if="isLoading" class="loading">Loading...</div>
-    <template v-else>
+    <div
+      v-if="isLoading"
+      class="loading-overlay"
+    >
+      <div class="spinner"></div>
+      Please wait...
+    </div>
+    <div v-else class="app-content">
       <router-view :dailyAffirmation="dailyAffirmation"></router-view>
       <BottomNav v-if="$route.path !== '/' && $route.path !== '/login'" />
-    </template>
+    </div>
   </div>
 </template>
 
@@ -119,6 +125,38 @@ onMounted(async () => {
   border-radius: 0.5rem;
   color: #dc2626;
 }
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.5);
+  z-index: 10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2rem;
+}
+
+.spinner {
+  border: 5px solid #f3f3f3; /* Light grey */
+  border-top: 5px solid #3498db; /* Blue */
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 2s linear infinite;
+  margin-bottom: 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 input {
   flex: 1;
   padding: 0.5rem;
