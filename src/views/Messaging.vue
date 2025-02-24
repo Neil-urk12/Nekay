@@ -1,43 +1,151 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { rdb } from '../firebase/firebase-config'
+import { useAuthStore } from '../stores/authStore'
+import {
+  ref as dbRef,
+  push,
+  onValue,
+  query,
+  orderByChild
+} from 'firebase/database'
+import CryptoJS from 'crypto-js';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+const authStore = useAuthStore();
+
+let messageListener: any = null;
+
+const encryptionKey = import.meta.env.VITE_ENCRYPTION_KEY;
+
+const encryptMessage = (message: string) => {
+  return CryptoJS.AES.encrypt(message, encryptionKey).toString();
+};
+
+const decryptMessage = (encryptedMessage: string) => {
+  try {
+    const bytes = CryptoJS.AES.decrypt(encryptedMessage, encryptionKey);
+    return bytes.toString(CryptoJS.enc.Utf8) || '';
+  } catch (e) {
+    console.error('Decryption error', e);
+    return ''; // Handle decryption errors gracefully
+  }
+};
 
 interface Message {
   id: string
   content: string
-  timestamp: Date
+  timestamp: number
   isSelf: boolean
+  senderId: string
+  senderNickname: string
+  receiverNickname: string
 }
 
-const messages = ref<Message[]>([
-  {
-    id: '1',
-    content: 'Hey there!',
-    timestamp: new Date(),
-    isSelf: true
-  },
-  {
-    id: '2',
-    content: 'Hi! How are you?',
-    timestamp: new Date(),
-    isSelf: false
-  }
-])
-
+const messages = ref<Message[]>([])
 const newMessage = ref('')
 const messageTimestampsVisible = ref<{ [key: string]: boolean }>({})
 
-const sendMessage = () => {
-  if (!newMessage.value.trim()) return
+// Use the imported rdb instance
+const messagesRef = dbRef(rdb, 'messages')
 
-  const message: Message = {
-    id: Date.now().toString(),
-    content: newMessage.value,
-    timestamp: new Date(),
-    isSelf: true
+// Subscribe to messages
+onMounted(() => {
+  const currentUserId = authStore.getCurrentUserId
+  if (!currentUserId) {
+    router.push('/login');
+    return;
   }
 
-  messages.value.push(message)
-  newMessage.value = ''
+  const currentNickname = 'bubu1112041823';
+  const otherNickname = 'dudu0618051823';
+
+  setupMessageListener(currentUserId, currentNickname, otherNickname);
+});
+
+const setupMessageListener = (currentUserId: string, currentNickname: string, otherNickname: string) => {
+  const messagesQuery = query(
+    messagesRef,
+    orderByChild('timestamp')
+  );
+
+  messageListener = onValue(messagesQuery, (snapshot) => {
+    const newMessages: Message[] = []
+    snapshot.forEach((childSnapshot) => {
+      const data = childSnapshot.val();
+      if (isRelevantMessage(data, currentUserId, currentNickname, otherNickname)) {
+        newMessages.push(createMessageObject(data, childSnapshot.key, currentUserId));
+      }
+    });
+    messages.value = newMessages;
+  });
+};
+
+const isRelevantMessage = (data: any, currentUserId: string, currentNickname: string, otherNickname: string) => {
+  return (
+    (data.senderId === currentUserId && data.receiverNickname === otherNickname) ||
+    (data.senderNickname === currentNickname && data.receiverNickname === otherNickname) ||
+    (data.senderNickname === otherNickname && data.receiverNickname === currentNickname)
+  );
+};
+
+const createMessageObject = (data: any, key: string | null, currentUserId: string): Message => {
+  const decryptedContent = decryptMessage(data.content);
+  return {
+    id: key || '',
+    content: decryptedContent,
+    timestamp: data.timestamp,
+    isSelf: data.senderId === currentUserId,
+    senderId: data.senderId,
+    senderNickname: data.senderNickname,
+    receiverNickname: data.receiverNickname
+  };
+};
+
+onUnmounted(() => {
+  if (messageListener) {
+    messageListener();
+  }
+});
+
+const isLoading = ref(false);
+const error = ref<string | null>(null);
+
+const sendMessage = async () => {
+  if (!newMessage.value.trim()) return;
+
+  const senderNickname = 'bubu1112041823';
+  const receiverNickname = 'dudu0618051823'
+
+  const currentUserId : string | null = authStore.getCurrentUserId
+  if (!currentUserId) {
+    router.push('/login');
+    return;
+  }
+
+  isLoading.value = true;
+  error.value = null;
+
+  try {
+    const encryptedContent = encryptMessage(newMessage.value);
+    const message: Message = {
+      id: Date.now().toString(),
+      content: encryptedContent,
+      timestamp: new Date().getTime(),
+      isSelf: true,
+      senderId: currentUserId,
+      senderNickname: senderNickname,
+      receiverNickname: receiverNickname
+    }
+    await push(messagesRef, message);
+    newMessage.value = '';
+  } catch (e) {
+    error.value = 'Failed to send message';
+    console.error(e);
+  } finally {
+    isLoading.value = false;
+  }
 }
 
 const toggleTimestamp = (messageId: string) => {
@@ -66,7 +174,7 @@ const toggleTimestamp = (messageId: string) => {
             :class="{ 'timestamp-visible': messageTimestampsVisible[message.id] }"
           >
             {{
-              message.timestamp.toLocaleTimeString([], {
+              new Date(message.timestamp).toLocaleTimeString([], {
                 hour: '2-digit',
                 minute: '2-digit'
               })
@@ -82,6 +190,7 @@ const toggleTimestamp = (messageId: string) => {
         type="text"
         placeholder="Type a message..."
         @keyup.enter="sendMessage"
+        :disabled="newMessage.length < 1"
       >
       <button @click="sendMessage">
         <svg
@@ -124,7 +233,7 @@ const toggleTimestamp = (messageId: string) => {
   flex: 1;
   overflow-y: auto;
   padding: 1rem;
-  padding-bottom: calc(6rem + 1px); /* Account for bottom nav and input height */
+  padding-bottom: calc(6rem + 1px);
   display: flex;
   flex-direction: column;
   gap: 1rem;
