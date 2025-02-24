@@ -10,6 +10,7 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "crypto-js": "^4.2.0",
     "dexie": "^4.0.10",
     "dotenv": "^16.4.5",
     "firebase": "^11.0.1",
@@ -20,9 +21,10 @@
     "vue-router": "^4.2.5"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
     "@types/lodash": "^4.17.14",
     "@vitejs/plugin-vue": "^5.1.4",
-    "@vue/cli-plugin-pwa": "~5.0.0",
+    "@vue/cli-plugin-pwa": "^4.5.19",
     "@vue/test-utils": "^2.4.6",
     "jsdom": "^25.0.1",
     "typescript": "^5.5.3",
