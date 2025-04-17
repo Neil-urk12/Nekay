@@ -21,7 +21,16 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
   if (isAuthenticated) {
     router.push('/');
   }
-});
+})
+
+async function handleLogin() {
+  try {
+    await authStore.handleLogin();
+    router.push('/');
+  } catch (error) {
+    console.error('Login failed:', error);
+  }
+}
 </script>
 
 <template>
@@ -36,7 +45,7 @@ watch(() => authStore.isAuthenticated, (isAuthenticated) => {
     <div class="login-card">
       <h1>Welcome Back!</h1>
 
-      <form @submit.prevent="authStore.handleLogin" class="login-form">
+      <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-group">
           <label for="email">Email</label>
           <input

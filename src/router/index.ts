@@ -47,11 +47,6 @@ const router = createRouter({
       component: () => import("../views/BreathingExercisesView.vue"),
       meta: { requiresAuth: true },
     },
-    // {
-    //   path: "/home",
-    //   redirect: "/",
-    //   meta: { requiresAuth: true },
-    // },
     {
       path: "/pomodoro",
       component: () => import("../views/Pomodoro.vue"),
@@ -87,7 +82,12 @@ const router = createRouter({
     {
       path: "/messaging",
       component: () => import("../views/Messaging.vue"),
-      meta: { requiresAuth: false }
+      meta: { requiresAuth: true }
+    },
+    {
+      path: "/archive",
+      component: () => import("../views/ArchivePage.vue"),
+      meta: { requiresAuth: true }
     },
     // {
     //   path: "/settings",
