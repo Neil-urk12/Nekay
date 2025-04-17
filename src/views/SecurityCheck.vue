@@ -1,89 +1,47 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
-import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
-import { auth } from "../firebase/firebase-config";
+import { onMounted, watch, ref } from "vue";
 import { useRouter } from "vue-router";
-import { AuthError } from "firebase/auth/cordova";
+import { useAuthStore } from "../stores/authStore";
 
-const email = ref("");
-const password = ref("");
-const error = ref("");
-const isLoading = ref(false);
+const authStore = useAuthStore();
 const router = useRouter();
+const isLoading = ref(true);
 
-const getErrorMessage = (errorCode: string) => {
-  switch (errorCode) {
-    case "auth/invalid-credential":
-      return "Invalid email or password. Please check your credentials and try again.";
-    case "auth/user-not-found":
-      return "No account found with this email address.";
-    case "auth/wrong-password":
-      return "Incorrect password. Please try again.";
-    case "auth/invalid-email":
-      return "Please enter a valid email address.";
-    case "auth/user-disabled":
-      return "This account has been disabled. Please contact support.";
-    case "auth/too-many-requests":
-      return "Too many failed login attempts. Please try again later.";
-    default:
-      return "An error occurred during login. Please try again.";
-  }
-};
-
-const handleLogin = async () => {
-  if (!email.value || !password.value) {
-    error.value = "Please enter both email and password";
-    return;
-  }
-
+onMounted(async () => {
   try {
-    isLoading.value = true;
-    error.value = "";
-
-    const userCredential = await signInWithEmailAndPassword(
-      auth,
-      email.value.trim(),
-      password.value.trim()
-    );
-
-    if (userCredential.user) {
-      localStorage.setItem("isAuthenticated", "true");
-      router.push("/");
-    }
-  } catch (err: any) {
-    console.error("Login error:", err);
-    const authError = err as AuthError;
-    error.value = getErrorMessage(authError.code);
+    await authStore.setupAuthListener();
+  } catch (error) {
+    console.error('Auth listener setup failed:', error);
   } finally {
     isLoading.value = false;
   }
-};
-
-let unsubscribe: (() => void) | null = null;
-
-onMounted(() => {
-  unsubscribe = onAuthStateChanged(auth, (user) => {
-    if (user) {
-      localStorage.setItem("isAuthenticated", "true");
-      router.push("/");
-    } else localStorage.removeItem("isAuthenticated");
-  });
 });
 
-onUnmounted(async () => {
-  try {
-    onAuthStateChanged(auth, (user) => {
-      if (user) router.push("/");
-    });
-  } catch (err) {
-    console.error("Auth setup error: ", err);
+watch(() => authStore.isAuthenticated, (isAuthenticated) => {
+  if (isAuthenticated) {
+    router.push('/');
   }
-  if (unsubscribe) unsubscribe();
-});
+})
+
+async function handleLogin() {
+  try {
+    await authStore.handleLogin();
+    router.push('/');
+  } catch (error) {
+    console.error('Login failed:', error);
+  }
+}
 </script>
 
 <template>
-  <div class="login-container">
+  <div v-if="isLoading" class="loading-container">
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <p>Loading...</p>
+    </div>
+  </div>
+
+  <div v-else class="login-container">
     <div class="login-card">
       <h1>Welcome Back!</h1>
 
@@ -93,10 +51,10 @@ onUnmounted(async () => {
           <input
             id="email"
             type="email"
-            v-model="email"
+            v-model="authStore.email"
             required
             placeholder="Enter your email"
-            :disabled="isLoading"
+            :disabled="authStore.isLoading"
           />
         </div>
 
@@ -105,20 +63,20 @@ onUnmounted(async () => {
           <input
             id="password"
             type="password"
-            v-model="password"
+            v-model="authStore.password"
             required
             placeholder="Enter your password"
-            :disabled="isLoading"
+            :disabled="authStore.isLoading"
             autocomplete="current-password"
           />
         </div>
 
-        <div v-if="error" class="error-message">
-          {{ error }}
+        <div v-if="authStore.error" class="error-message">
+          {{ authStore.error }}
         </div>
 
-        <button type="submit" class="login-button" :disabled="isLoading">
-          {{ isLoading ? "Logging in..." : "Login" }}
+        <button type="submit" class="login-button" :disabled="authStore.isLoading">
+          {{ authStore.isLoading ? "Logging in..." : "Login" }}
         </button>
       </form>
     </div>
@@ -226,5 +184,40 @@ input:disabled {
   h1 {
     font-size: 1.5rem;
   }
+}
+
+.loading-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.loading-spinner p {
+  color: rgb(219, 39, 119);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #fbcfe8;
+  border-top: 4px solid rgb(219, 39, 119);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>
