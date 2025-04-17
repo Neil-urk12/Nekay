@@ -12,6 +12,9 @@ const notesStore = useNotesStore()
 const isLoading = ref(true);
 const error = ref<Error | null>(null);
 const dailyAffirmation = ref("")
+import { useAuthStore } from "./stores/authStore";
+
+const authStore = useAuthStore();
 
 watch(dailyAffirmation, (newVal) => {
   console.log("Affirmation updated:", newVal);
@@ -68,6 +71,7 @@ onMounted(async () => {
     backgroundStore.determineTimeOfDay();
     setInterval(() => backgroundStore.determineTimeOfDay, 60000);
     await notesStore.initializeStore();
+    await authStore.setUser();
   } catch (err) {
     console.error("Failed to initialize app:", err);
     error.value = err as Error;
@@ -94,7 +98,7 @@ onMounted(async () => {
     </div>
     <div v-else class="app-content">
       <router-view :dailyAffirmation="dailyAffirmation"></router-view>
-      <BottomNav v-if="$route.path !== '/' && $route.path !== '/login'" />
+      <BottomNav v-if="$route.path !== '/' && $route.path !== '/login' && $route.path !== '/messaging'" />
     </div>
   </div>
 </template>
