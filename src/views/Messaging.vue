@@ -190,7 +190,7 @@ const toggleTimestamp = (messageId: string) => {
         type="text"
         placeholder="Type a message..."
         @keyup.enter="sendMessage"
-        :disabled="newMessage.length < 1"
+        
       >
       <button @click="sendMessage">
         <svg

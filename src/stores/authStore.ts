@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
-import { signInWithEmailAndPassword, onAuthStateChanged, AuthError } from 'firebase/auth';
+import { signInWithEmailAndPassword, onAuthStateChanged, AuthError, getAuth } from 'firebase/auth';
 import { auth } from '../firebase/firebase-config';
-import { useRouter } from 'vue-router';
 import { User } from 'firebase/auth';
 
 export const useAuthStore = defineStore('auth', {
@@ -41,8 +40,6 @@ export const useAuthStore = defineStore('auth', {
 
     actions: {
         async handleLogin() {
-            const router = useRouter();
-
             if (!this.email || !this.password) {
                 this.error = "Please enter both email and password";
                 return;
@@ -61,7 +58,6 @@ export const useAuthStore = defineStore('auth', {
                 if (userCredential.user) {
                     this.currentUser = userCredential.user;
                     localStorage.setItem("isAuthenticated", "true");
-                    router.push("/");
                 }
             } catch (err: any) {
                 console.error("Login error:", err);
@@ -73,17 +69,19 @@ export const useAuthStore = defineStore('auth', {
         },
 
         async setupAuthListener() {
-            const router = useRouter();
-            return onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    this.currentUser = user;
-                    localStorage.setItem("isAuthenticated", "true");
-                    router.push("/");
-                } else {
-                    this.currentUser = null;
-                    localStorage.removeItem("isAuthenticated");
-                }
-            });
+            const auth = getAuth()
+            if (!auth) {
+                console.error("Auth instance not found.")
+                return;
+            }
+            this.authInitialized = false
+            return new Promise<void>((resolve) => {
+                onAuthStateChanged(auth, (user) => {
+                    this.currentUser = user || null
+                    this.authInitialized = true
+                    resolve();
+                });
+            })
         }
     }
 });
