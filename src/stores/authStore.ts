@@ -10,7 +10,8 @@ export const useAuthStore = defineStore('auth', {
         error: '',
         isLoading: false,
         currentUser: null as User | null,
-        authInitialized: false
+        authInitialized: false,
+        uid: null as string | null,
     }),
 
     getters: {
@@ -39,6 +40,13 @@ export const useAuthStore = defineStore('auth', {
     },
 
     actions: {
+        async setUser() {
+            this.currentUser = localStorage.getItem("isAuthenticated") === "true" ? auth.currentUser : null;
+            if (this.currentUser) {
+                this.authInitialized = true;
+                this.uid = this.currentUser.uid;
+            }
+        },
         async handleLogin() {
             if (!this.email || !this.password) {
                 this.error = "Please enter both email and password";

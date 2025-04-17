@@ -85,6 +85,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: "/profile/:nickname",
+      name: "Profile",
+      component: () => import("../views/ProfileView.vue"),
+      meta: { requiresAuth: true }
+    },
+    {
       path: "/archive",
       component: () => import("../views/ArchivePage.vue"),
       meta: { requiresAuth: true }
@@ -99,11 +105,18 @@ const router = createRouter({
 // Navigation guard
 router.beforeEach(async (to, _from, next) => {
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
+  // console.log(requiresAuth)
+  
+  const isAuthenticated = localStorage.getItem("isAuthenticated");
 
   return new Promise((resolve) => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       unsubscribe();
-
+      
+      if (!isAuthenticated) {
+        localStorage.setItem("isAuthenticated", "false");
+        resolve(next("/login"))
+      }
       if (requiresAuth && !user) {
         resolve(next("/login"));
       } else if (to.path === "/login" && user) {
