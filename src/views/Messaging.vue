@@ -17,7 +17,10 @@ const authStore = useAuthStore();
 
 let messageListener: any = null;
 
-const encryptionKey = import.meta.env.VITE_ENCRYPTION_KEY;
+const encryptionKey: string = import.meta.env.VITE_ENCRYPTION_KEY;
+if (!encryptionKey) {
+  throw new Error('Missing VITE_ENCRYPTION_KEY in environment variables');
+}
 
 const encryptMessage = (message: string) => {
   return CryptoJS.AES.encrypt(message, encryptionKey).toString();
@@ -120,7 +123,7 @@ const sendMessage = async () => {
   const senderNickname = 'bubu1112041823';
   const receiverNickname = 'dudu0618051823'
 
-  const currentUserId : string | null = authStore.getCurrentUserId
+  const currentUserId = authStore.getCurrentUserId;
   if (!currentUserId) {
     router.push('/login');
     return;
