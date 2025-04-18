@@ -3,9 +3,10 @@ import { createPinia } from "pinia";
 import router from "./router";
 import App from "./App.vue";
 import { registerServiceWorker } from "../src/utils/serviceWorker";
+import VueVirtualScroller from "vue-virtual-scroller";
 
 const initApp = async () => {
-  const app = createApp(App).use(router).use(createPinia());
+  const app = createApp(App).use(router).use(createPinia()).use(VueVirtualScroller);
 
   try {
     registerServiceWorker();

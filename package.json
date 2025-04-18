@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "vue-tsc -b && vite build",
+    "build": "rm -rf dist && vue-tsc -b && vite build",
     "dev": "vite",
     "preview": "vite preview",
     "test": "vitest",
@@ -19,7 +19,8 @@
     "pinia": "^2.3.1",
     "register-service-worker": "^1.7.2",
     "vue": "^3.5.13",
-    "vue-router": "^4.5.0"
+    "vue-router": "^4.5.0",
+    "vue-virtual-scroller": "^2.0.0-beta.8"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",

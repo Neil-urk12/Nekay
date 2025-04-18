@@ -12,6 +12,8 @@ import {
 import AES from 'crypto-js/aes';
 import Utf8 from 'crypto-js/enc-utf8';
 import { useRouter } from 'vue-router';
+import { RecycleScroller } from 'vue-virtual-scroller'
+import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -50,9 +52,9 @@ interface Message {
 const messages = ref<Message[]>([])
 const newMessage = ref('')
 const messageTimestampsVisible = ref<{ [key: string]: boolean }>({})
-const conversationData = ref({
-  receiverNickname: 'dudu0618051823'
-})
+// const conversationData = ref({
+//   receiverNickname: 'dudu0618051823'
+// })
 
 // Use the imported rdb instance
 const messagesRef = dbRef(rdb, 'messages')
@@ -184,7 +186,7 @@ const toggleTimestamp = (messageId: string) => {
       </button>
       <div class="chat-info">
         <span class="chat-avatar">🐱</span>
-        <span class="chat-title">{{ conversationData.receiverNickname }}</span>
+        <span class="chat-title">Dudu</span>
       </div>
       <!-- Dropdown disabled -->
       <button class="menu-btn" disabled>⋮</button>
@@ -196,31 +198,26 @@ const toggleTimestamp = (messageId: string) => {
       </div> -->
     </div>
     <div class="messaging-container">
-      <div class="messages-list">
-        <div
-          v-for="message in messages"
-          :key="message.id"
-          :class="['message', { 'message-self': message.isSelf }]"
-        >
-          <div class="message-content" @click="toggleTimestamp(message.id)">
-            {{ message.content }}
-            <div
-              class="message-timestamp"
-              :class="{ 'timestamp-visible': messageTimestampsVisible[message.id] }"
-            >
-              {{
-                new Date(message.timestamp).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })
-              }}
-            </div>
-            <div class="message-status" v-if="message.isSelf">
-              ✓✓
+      <RecycleScroller
+        :items="messages"
+        :item-size="60"
+        :min-item-size="40"
+        :variable="true"
+        key-field="id"
+        class="messages-list"
+      >
+        <template #default="{ item: message }">
+          <div :class="['message', { 'message-self': message.isSelf }]">
+            <div class="message-content" @click="toggleTimestamp(message.id)">
+              {{ message.content }}
+              <div class="message-timestamp" :class="{ 'timestamp-visible': messageTimestampsVisible[message.id] }">
+                {{ new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
+              </div>
+              <div class="message-status" v-if="message.isSelf">✓✓</div>
             </div>
           </div>
-        </div>
-      </div>
+        </template>
+      </RecycleScroller>
     </div>
     <div class="message-input">
       <button class="input-action-btn">
