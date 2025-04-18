@@ -9,7 +9,7 @@ import {
   query,
   orderByChild
 } from 'firebase/database'
-import CryptoJS from 'crypto-js';
+import * as CryptoJS from 'crypto-js';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -17,7 +17,10 @@ const authStore = useAuthStore();
 
 let messageListener: any = null;
 
-const encryptionKey = import.meta.env.VITE_ENCRYPTION_KEY;
+const encryptionKey: string = import.meta.env.VITE_ENCRYPTION_KEY;
+if (!encryptionKey) {
+  throw new Error('Missing VITE_ENCRYPTION_KEY in environment variables');
+}
 
 const encryptMessage = (message: string) => {
   return CryptoJS.AES.encrypt(message, encryptionKey).toString();
@@ -63,7 +66,6 @@ onMounted(() => {
 
   const currentNickname = 'bubu1112041823';
   const otherNickname = 'dudu0618051823';
-
   setupMessageListener(currentUserId, currentNickname, otherNickname);
 });
 
@@ -121,7 +123,7 @@ const sendMessage = async () => {
   const senderNickname = 'bubu1112041823';
   const receiverNickname = 'dudu0618051823'
 
-  const currentUserId : string | null = authStore.getCurrentUserId
+  const currentUserId = authStore.getCurrentUserId;
   if (!currentUserId) {
     router.push('/login');
     return;
@@ -221,11 +223,17 @@ const toggleTimestamp = (messageId: string) => {
     </div>
     <div class="message-input">
       <button class="input-action-btn">
-        <span class="emoji-icon">😊</span>
+        <span class="emoji-icon">
+          <svg width="1.5rem" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g id="SVGRepo_bgCarrier" stroke-width="0"/>
+            <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"/>
+            <g id="SVGRepo_iconCarrier"> <path d="M8.9126 15.9336C10.1709 16.249 11.5985 16.2492 13.0351 15.8642C14.4717 15.4793 15.7079 14.7653 16.64 13.863" stroke="#1C274C" stroke-width="1.5" stroke-linecap="round"/> <ellipse cx="14.5094" cy="9.77405" rx="1" ry="1.5" transform="rotate(-15 14.5094 9.77405)" fill="#1C274C"/> <ellipse cx="8.71402" cy="11.3278" rx="1" ry="1.5" transform="rotate(-15 8.71402 11.3278)" fill="#1C274C"/> <path d="M13 16.0004L13.478 16.9742C13.8393 17.7104 14.7249 18.0198 15.4661 17.6689C16.2223 17.311 16.5394 16.4035 16.1708 15.6524L15.7115 14.7168" stroke="#1C274C" stroke-width="1.5"/> <path d="M4.92847 4.92663C6.12901 3.72408 7.65248 2.81172 9.41185 2.34029C14.7465 0.910876 20.2299 4.0767 21.6593 9.41136C23.0887 14.746 19.9229 20.2294 14.5882 21.6588C9.25357 23.0882 3.7702 19.9224 2.34078 14.5877C1.86936 12.8284 1.89775 11.0528 2.33892 9.41186" stroke="#1C274C" stroke-width="1.5" stroke-linecap="round"/> </g>
+          </svg>
+        </span>
       </button>
-      <button class="input-action-btn">
+      <!-- <button class="input-action-btn">
         <span class="attach-icon">📎</span>
-      </button>
+      </button> -->
       <input
         v-model="newMessage"
         type="text"
