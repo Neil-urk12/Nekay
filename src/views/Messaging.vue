@@ -9,7 +9,7 @@ import {
   query,
   orderByChild
 } from 'firebase/database'
-import CryptoJS from 'crypto-js';
+import * as CryptoJS from 'crypto-js';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
