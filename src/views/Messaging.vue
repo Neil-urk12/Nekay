@@ -9,7 +9,8 @@ import {
   query,
   orderByChild
 } from 'firebase/database'
-import * as CryptoJS from 'crypto-js';
+import AES from 'crypto-js/aes';
+import Utf8 from 'crypto-js/enc-utf8';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -23,13 +24,13 @@ if (!encryptionKey) {
 }
 
 const encryptMessage = (message: string) => {
-  return CryptoJS.AES.encrypt(message, encryptionKey).toString();
+  return AES.encrypt(message, encryptionKey).toString();
 };
 
 const decryptMessage = (encryptedMessage: string) => {
   try {
-    const bytes = CryptoJS.AES.decrypt(encryptedMessage, encryptionKey);
-    return bytes.toString(CryptoJS.enc.Utf8) || '';
+    const bytes = AES.decrypt(encryptedMessage, encryptionKey);
+    return bytes.toString(Utf8) || '';
   } catch (e) {
     console.error('Decryption error', e);
     return ''; // Handle decryption errors gracefully
@@ -239,6 +240,7 @@ const toggleTimestamp = (messageId: string) => {
         type="text"
         placeholder="Type a message..."
         @keyup.enter="sendMessage"
+        :disabled="isLoading"
       />
       <button class="send-btn" @click="sendMessage" :disabled="isLoading">
         <svg class="send-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
