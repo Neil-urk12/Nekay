@@ -52,10 +52,15 @@ const buttons = ref([
   { number: "", label: "" },
 ]);
 
-watch(inputValue, (inputValue) => {
-  if (inputValue === "041823") {
+// Use environment variable for passcode (more secure than hardcoding)
+const PASSCODE = import.meta.env.VITE_LOGIN_PASSCODE || "041823";
+
+watch(inputValue, (newValue) => {
+  if (newValue === PASSCODE) {
     localStorage.setItem("isAuthenticated", "true");
     router.push("/home");
+    // Clear input after successful login for security
+    inputValue.value = "";
   }
 });
 

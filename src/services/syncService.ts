@@ -321,23 +321,25 @@ export class SyncService {
       const pendingItems = await this.getPendingItems(collection);
       const deletedItems = await this.getDeletedItems(collection);  
 
+      // Process deleted items first
       for (const item of deletedItems) {
-        const docRef  = doc(fireDb, collection, item.id);
-        await deleteDoc(docRef);
-        await this.deleteLocalItem(collection, item.id);
+        try {
+          const docRef = doc(fireDb, collection, item.id);
+          await deleteDoc(docRef);
+          await this.deleteLocalItem(collection, item.id);
+        } catch (error) {
+          console.error(`Failed to delete item ${item.id}:`, error);
+          // Continue with other items even if one fails
+        }
       }
 
-      const itemsToSync = pendingItems.filter(item => item.syncStatus === 'pending');
-      if (itemsToSync.length === 0) {
-        await this.syncFromFirestore(collection);
-        return;
-      }
-
+      // If no pending items, sync from Firestore
       if (pendingItems.length === 0) {
         await this.syncFromFirestore(collection);
         return;
       }
 
+      // Process pending items in batches
       for (let i = 0; i < pendingItems.length; i += this.BATCH_SIZE) {
         const batch = writeBatch(fireDb);
         const chunk = pendingItems.slice(i, i + this.BATCH_SIZE);
@@ -358,11 +360,15 @@ export class SyncService {
 
         // Only update local items after successful batch commit
         for (const item of chunk) {
-          await this.updateLocalItem(collection, item.id, {
-            ...item,
-            syncStatus: "synced",
-            lastModified: Date.now(),
-          });
+          try {
+            await this.updateLocalItem(collection, item.id, {
+              ...item,
+              syncStatus: "synced",
+              lastModified: Date.now(),
+            });
+          } catch (error) {
+            console.error(`Failed to update local item ${item.id}:`, error);
+          }
         }
         this.updateSyncProgress(
           collection,

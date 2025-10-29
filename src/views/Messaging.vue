@@ -22,20 +22,33 @@ let messageListener: any = null;
 
 const encryptionKey: string = import.meta.env.VITE_ENCRYPTION_KEY;
 if (!encryptionKey) {
-  throw new Error('Missing VITE_ENCRYPTION_KEY in environment variables');
+  console.error('Missing VITE_ENCRYPTION_KEY in environment variables');
+  // Fallback to showing error to user instead of crashing
 }
 
 const encryptMessage = (message: string) => {
+  if (!encryptionKey) {
+    throw new Error('Encryption key not configured');
+  }
   return AES.encrypt(message, encryptionKey).toString();
 };
 
 const decryptMessage = (encryptedMessage: string) => {
+  if (!encryptionKey) {
+    console.error('Encryption key not configured');
+    return '[Encrypted message - key missing]';
+  }
   try {
     const bytes = AES.decrypt(encryptedMessage, encryptionKey);
-    return bytes.toString(Utf8) || '';
+    const decrypted = bytes.toString(Utf8);
+    if (!decrypted) {
+      console.warn('Decryption resulted in empty string');
+      return '[Unable to decrypt message]';
+    }
+    return decrypted;
   } catch (e) {
     console.error('Decryption error', e);
-    return ''; // Handle decryption errors gracefully
+    return '[Decryption failed]';
   }
 };
 

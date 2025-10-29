@@ -38,6 +38,7 @@ export const useTimerStore = defineStore("timer", {
   },
   actions: {
     startTimer() {
+      // Prevent multiple intervals from running
       if (this.intervalId) {
         clearInterval(this.intervalId);
         this.intervalId = null;
@@ -46,33 +47,53 @@ export const useTimerStore = defineStore("timer", {
         this.playStartSound()
         this.isRunning = true;
         this.intervalId = setInterval(() => {
-          this.timeRemaining--;
-          this.progress =
-            (1 - this.timeRemaining / this.currentDuration) * 100;
+          if (this.timeRemaining > 0) {
+            this.timeRemaining--;
+            this.progress =
+              (1 - this.timeRemaining / this.currentDuration) * 100;
 
+            const minutes = Math.floor(this.timeRemaining / 60);
+            const seconds = this.timeRemaining % 60;
+            this.formattedTime = `${minutes.toString().padStart(2, "0")}:${seconds
+              .toString()
+              .padStart(2, "0")}`;
+            this.formattedTotalTime = this.formatTime(this.totalTime);
+          }
+
+          // Check for completion after decrement to avoid race condition
           if (this.timeRemaining <= 0) {
             clearInterval(this.intervalId!);
+            this.intervalId = null;
+            this.isRunning = false;
             this.totalTime += this.currentDuration;
+            
             if (this.mode === "work") {
               this.stats.completedSessions++;
               this.sessionCount++;
               this.syncStats();
               if (this.sessionCount % this.longBreakInterval === 0) {
                 this.mode = "longBreak";
+                this.timeRemaining = this.longBreakDuration;
               } else {
                 this.mode = "shortBreak";
+                this.timeRemaining = this.shortBreakDuration;
               }
+            } else {
+              // After break, return to work mode
+              this.mode = "work";
+              this.timeRemaining = this.workDuration;
             }
+            
             this.playNotificationSound();
-            this.startTimer()
+            // Reset progress for new session
+            this.progress = 0;
+            // Update formatted time for new session
+            const minutes = Math.floor(this.timeRemaining / 60);
+            const seconds = this.timeRemaining % 60;
+            this.formattedTime = `${minutes.toString().padStart(2, "0")}:${seconds
+              .toString()
+              .padStart(2, "0")}`;
           }
-
-          const minutes = Math.floor(this.timeRemaining / 60);
-          const seconds = this.timeRemaining % 60;
-          this.formattedTime = `${minutes.toString().padStart(2, "0")}:${seconds
-            .toString()
-            .padStart(2, "0")}`;
-          this.formattedTotalTime = this.formatTime(this.totalTime);
         }, 1000);
       }
     },
@@ -120,14 +141,26 @@ export const useTimerStore = defineStore("timer", {
         .padStart(2, "0")}`;
     },
     playNotificationSound() {
-      const audio = new Audio("/notification.mp3");
-      audio.volume = 0.5;
-      audio.play();
+      try {
+        const audio = new Audio("/notification.mp3");
+        audio.volume = 0.5;
+        audio.play().catch(error => {
+          console.error("Failed to play notification sound:", error);
+        });
+      } catch (error) {
+        console.error("Error initializing notification audio:", error);
+      }
     },
     playStartSound() {
-      const audio = new Audio('/pomostart.wav')
-      audio.volume = 0.5
-      audio.play()
+      try {
+        const audio = new Audio('/pomostart.wav')
+        audio.volume = 0.5
+        audio.play().catch(error => {
+          console.error("Failed to play start sound:", error);
+        });
+      } catch (error) {
+        console.error("Error initializing start audio:", error);
+      }
     },
     async syncStats() {
       try {

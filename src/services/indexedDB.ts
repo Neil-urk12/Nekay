@@ -76,7 +76,7 @@ class NekayDatabase extends Dexie {
   }
 
   async updateFolder(folderId: string, changes: Folder) {
-    if (!changes && !folderId)
+    if (!folderId || !changes)
       throw new Error("Folder to update doesn't exist");
 
     await this.folders.update(folderId, changes);
@@ -93,7 +93,7 @@ class NekayDatabase extends Dexie {
   }
 
   async updateTask(taskId: string, changes: Task) {
-    if (!taskId && !changes) throw new Error("Failed to update task!");
+    if (!taskId || !changes) throw new Error("Failed to update task!");
 
     await this.tasks.update(taskId, changes);
   }
@@ -115,7 +115,7 @@ class NekayDatabase extends Dexie {
   }
 
   async updateEntry(entryId: string, changes: JournalEntry) {
-    if (!entryId && !changes) throw new Error("Failed to update entry!");
+    if (!entryId || !changes) throw new Error("Failed to update entry!");
 
     await this.journal.update(entryId, changes);
   }
@@ -142,19 +142,19 @@ class NekayDatabase extends Dexie {
     if (!id) throw new Error('Failed to mark for deletion');
 
     if (collection === 'tasks') {
-      this.tasks.update(id, {
+      await this.tasks.update(id, {
         syncStatus: 'deleted',
         lastModified: Date.now()
       });
       return;
     } else if (collection === 'folders') {
-      this.folders.update(id, {
+      await this.folders.update(id, {
         syncStatus: 'deleted',
         lastModified: Date.now()
       });
       return;
     } else if (collection === 'journal') {
-      this.journal.update(id, {
+      await this.journal.update(id, {
         syncStatus: 'deleted',
         lastModified: Date.now()
       });

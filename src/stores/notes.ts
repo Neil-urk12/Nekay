@@ -89,10 +89,20 @@ export const useNotesStore = defineStore("notes", {
 
     async addTask(taskContent: string, folderId: string | undefined) {
       try {
+        // Input validation
+        if (!taskContent || !taskContent.trim()) {
+          throw new Error("Task content cannot be empty");
+        }
+
+        const trimmedContent = taskContent.trim();
+        if (trimmedContent.length > 5000) {
+          throw new Error("Task content is too long (max 5000 characters)");
+        }
+
         const timestamp = Date.now();
         const newTask: Task = {
           id: generateUUID(),
-          taskContent: taskContent.trim(),
+          taskContent: trimmedContent,
           completed: false,
           folderId: folderId,
           syncStatus: "pending",
@@ -116,6 +126,7 @@ export const useNotesStore = defineStore("notes", {
       } catch (error) {
         this.setError(error);
         console.error("Failed to add task:", error);
+        throw error;
       }
     },
 
@@ -171,11 +182,21 @@ export const useNotesStore = defineStore("notes", {
 
     async addFolder(name: string, type: "task" | "journal") {
       try {
+        // Input validation
+        if (!name || !name.trim()) {
+          throw new Error("Folder name cannot be empty");
+        }
+
+        const trimmedName = name.trim();
+        if (trimmedName.length > 100) {
+          throw new Error("Folder name is too long (max 100 characters)");
+        }
+
         const timestamp = Date.now();
 
         const newFolder: Folder = {
           id: generateUUID(),
-          name: name,
+          name: trimmedName,
           type: type,
           syncStatus: "pending",
           numOfItems: 0,
@@ -194,6 +215,7 @@ export const useNotesStore = defineStore("notes", {
         this.error = null;
       } catch (error) {
         this.setError(error);
+        throw error;
       }
     },
 
@@ -208,7 +230,7 @@ export const useNotesStore = defineStore("notes", {
 
     async editFolder(folderId: string, updates: Partial<Folder>) {
       try {
-        if (!folderId && !updates)
+        if (!folderId || !updates)
           throw new Error("Folder ID and updates are required");
 
         const folderIndex = this.folders.findIndex((f) => f.id === folderId);
@@ -262,17 +284,34 @@ export const useNotesStore = defineStore("notes", {
     },
     async addEntry(entryTitle: string, entryContent: string, folderId: string) {
       try {
-        if (!entryTitle) return;
-        if (!entryContent) return;
-        if (!folderId) return;
+        // Input validation
+        if (!entryTitle || !entryTitle.trim()) {
+          throw new Error("Entry title cannot be empty");
+        }
+        if (!entryContent || !entryContent.trim()) {
+          throw new Error("Entry content cannot be empty");
+        }
+        if (!folderId) {
+          throw new Error("Folder ID is required");
+        }
+
+        const trimmedTitle = entryTitle.trim();
+        const trimmedContent = entryContent.trim();
+
+        if (trimmedTitle.length > 200) {
+          throw new Error("Entry title is too long (max 200 characters)");
+        }
+        if (trimmedContent.length > 50000) {
+          throw new Error("Entry content is too long (max 50000 characters)");
+        }
 
         const timestamp = Date.now();
         const date = new Date().toISOString();
 
         const newEntry: JournalEntry = {
           id: generateUUID(),
-          title: entryTitle,
-          content: entryContent,
+          title: trimmedTitle,
+          content: trimmedContent,
           status: "active",
           date: date,
           folderId: folderId,
@@ -297,6 +336,7 @@ export const useNotesStore = defineStore("notes", {
       } catch (err) {
         this.setError(err);
         console.error("Failed to add entry:", err);
+        throw err;
       }
     },
     async editJournalEntry(entryId: string, updates: Partial<JournalEntry>) {
