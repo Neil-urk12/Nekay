@@ -7,18 +7,26 @@ self.onmessage = function(e) {
   
   switch (type) {
     case 'START':
-      timeLeft = payload.timeLeft;
-      startTimer();
+      if (payload && typeof payload.timeLeft === 'number') {
+        timeLeft = payload.timeLeft;
+        startTimer();
+      }
       break;
     case 'PAUSE':
       pauseTimer();
       break;
     case 'RESET':
-      resetTimer(payload.duration);
+      if (payload && typeof payload.duration === 'number') {
+        resetTimer(payload.duration);
+      }
       break;
     case 'SYNC':
-      syncTime(payload.serverTime);
+      if (payload && typeof payload.serverTime === 'number') {
+        syncTime(payload.serverTime);
+      }
       break;
+    default:
+      console.warn('Unknown message type:', type);
   }
 };
 
@@ -27,17 +35,23 @@ function startTimer() {
   
   isRunning = true;
   const startTime = Date.now();
+  let lastTick = startTime;
   
   timer = setInterval(() => {
     const currentTime = Date.now();
-    const elapsedSeconds = Math.floor((currentTime - startTime) / 1000);
+    const elapsedSeconds = Math.floor((currentTime - lastTick) / 1000);
     
-    if (timeLeft > 0) {
-      timeLeft--;
-      self.postMessage({ type: 'TICK', timeLeft });
-    } else {
-      pauseTimer();
-      self.postMessage({ type: 'COMPLETE' });
+    if (elapsedSeconds >= 1) {
+      lastTick = currentTime;
+      if (timeLeft > 0) {
+        timeLeft--;
+        self.postMessage({ type: 'TICK', timeLeft });
+      }
+
+      if (timeLeft <= 0) {
+        pauseTimer();
+        self.postMessage({ type: 'COMPLETE' });
+      }
     }
   }, 1000);
 }
@@ -54,14 +68,15 @@ function pauseTimer() {
 
 function resetTimer(duration) {
   pauseTimer();
-  timeLeft = duration;
+  timeLeft = Math.max(0, duration); // Ensure non-negative
   self.postMessage({ type: 'TICK', timeLeft });
 }
 
 function syncTime(serverTime) {
   const timeDiff = Date.now() - serverTime;
   if (Math.abs(timeDiff) > 2000) { // If difference is more than 2 seconds
-    timeLeft = Math.max(0, timeLeft - Math.floor(timeDiff / 1000));
+    const adjustment = Math.floor(timeDiff / 1000);
+    timeLeft = Math.max(0, timeLeft - adjustment);
     self.postMessage({ type: 'TICK', timeLeft });
   }
 }

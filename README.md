@@ -22,3 +22,58 @@ A beautiful and cute girl needs a cute and fun app too! 💕
 - PWA-enabled for offline functionality (because our love doesn't need an internet connection)
 - IndexedDB for local data persistence (like memories, but digital)
 - Firebase backend for real-time sync (keeping us connected, one commit at a time)
+
+## Setup & Installation
+
+1. Clone this repository
+```bash
+git clone https://github.com/Neil-urk12/Nekay.git
+cd Nekay
+```
+
+2. Install dependencies
+```bash
+npm install
+```
+
+3. Configure environment variables
+   - Copy `.env.example` to `.env`
+   - Fill in your Firebase credentials
+   - Set your encryption key for messages
+   - Optionally set a custom login passcode
+
+4. Run development server
+```bash
+npm run dev
+```
+
+5. Build for production
+```bash
+npm run build
+```
+
+## Security Best Practices
+
+### Environment Variables
+- **Never commit** `.env` files to version control
+- Keep Firebase API keys secure
+- Use strong encryption keys (minimum 32 characters)
+- Rotate encryption keys periodically
+
+### Authentication
+- Rate limiting is enabled (5 attempts per 15 minutes)
+- Passwords are cleared from memory after login attempts
+- Email validation is performed before authentication
+- Use strong, unique passwords for Firebase authentication
+
+### Data Protection
+- Messages are encrypted using AES encryption
+- All sensitive data stored in IndexedDB is synced securely
+- Input validation prevents injection attacks
+- Maximum length limits prevent buffer overflow
+
+### Development Security
+- TypeScript strict mode is enabled
+- All async operations have proper error handling
+- Network requests include timeout protection
+- CORS and XSS protections are in place

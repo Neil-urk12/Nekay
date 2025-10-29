@@ -3,6 +3,11 @@ import { signInWithEmailAndPassword, onAuthStateChanged, AuthError, getAuth } fr
 import { auth } from '../firebase/firebase-config';
 import { User } from 'firebase/auth';
 
+interface LoginAttempt {
+  timestamp: number;
+  count: number;
+}
+
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         email: '',
@@ -12,6 +17,7 @@ export const useAuthStore = defineStore('auth', {
         currentUser: null as User | null,
         authInitialized: false,
         uid: null as string | null,
+        loginAttempts: { timestamp: 0, count: 0 } as LoginAttempt,
     }),
 
     getters: {
@@ -40,6 +46,28 @@ export const useAuthStore = defineStore('auth', {
     },
 
     actions: {
+        checkRateLimit(): boolean {
+            const now = Date.now();
+            const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
+            const MAX_ATTEMPTS = 5;
+
+            // Reset counter if window has passed
+            if (now - this.loginAttempts.timestamp > RATE_LIMIT_WINDOW) {
+                this.loginAttempts = { timestamp: now, count: 0 };
+            }
+
+            return this.loginAttempts.count < MAX_ATTEMPTS;
+        },
+
+        recordLoginAttempt() {
+            const now = Date.now();
+            if (now - this.loginAttempts.timestamp > 15 * 60 * 1000) {
+                this.loginAttempts = { timestamp: now, count: 1 };
+            } else {
+                this.loginAttempts.count++;
+            }
+        },
+
         async setUser() {
             this.currentUser = localStorage.getItem("isAuthenticated") === "true" ? auth.currentUser : null;
             if (this.currentUser) {
@@ -48,8 +76,25 @@ export const useAuthStore = defineStore('auth', {
             }
         },
         async handleLogin() {
+            // Input validation
             if (!this.email || !this.password) {
                 this.error = "Please enter both email and password";
+                return;
+            }
+
+            const trimmedEmail = this.email.trim();
+            const trimmedPassword = this.password.trim();
+
+            // Basic email format validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(trimmedEmail)) {
+                this.error = "Please enter a valid email address";
+                return;
+            }
+
+            // Rate limiting check
+            if (!this.checkRateLimit()) {
+                this.error = "Too many failed login attempts. Please try again in 15 minutes.";
                 return;
             }
 
@@ -59,18 +104,25 @@ export const useAuthStore = defineStore('auth', {
 
                 const userCredential = await signInWithEmailAndPassword(
                     auth,
-                    this.email.trim(),
-                    this.password.trim()
+                    trimmedEmail,
+                    trimmedPassword
                 );
 
                 if (userCredential.user) {
                     this.currentUser = userCredential.user;
                     localStorage.setItem("isAuthenticated", "true");
+                    // Reset login attempts on success
+                    this.loginAttempts = { timestamp: 0, count: 0 };
+                    // Clear password from memory
+                    this.password = "";
                 }
             } catch (err: any) {
                 console.error("Login error:", err);
+                this.recordLoginAttempt();
                 const authError = err as AuthError;
                 this.error = this.getErrorMessage(authError.code);
+                // Clear password on error for security
+                this.password = "";
             } finally {
                 this.isLoading = false;
             }
