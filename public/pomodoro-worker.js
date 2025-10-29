@@ -38,10 +38,12 @@ function startTimer() {
   
   timer = setInterval(() => {
     const currentTime = Date.now();
-    const elapsedSeconds = Math.floor((currentTime - lastTick) / 1000);
+    const elapsedMs = currentTime - lastTick;
     
     // Only update if at least 1 second has passed
-    if (elapsedSeconds >= 1) {
+    if (elapsedMs >= 1000) {
+      // Calculate seconds elapsed, but cap at 2 to prevent large jumps
+      const elapsedSeconds = Math.min(Math.floor(elapsedMs / 1000), 2);
       lastTick += elapsedSeconds * 1000; // Update lastTick by exact elapsed seconds
       
       if (timeLeft > 0) {
@@ -55,7 +57,7 @@ function startTimer() {
         self.postMessage({ type: 'COMPLETE' });
       }
     }
-  }, 100); // Check more frequently for better accuracy
+  }, 500); // Check every 500ms for balance between accuracy and CPU usage
 }
 
 function pauseTimer() {
