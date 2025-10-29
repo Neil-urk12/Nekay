@@ -34,17 +34,19 @@ function startTimer() {
   if (isRunning) return;
   
   isRunning = true;
-  const startTime = Date.now();
-  let lastTick = startTime;
+  let lastTick = Date.now();
   
   timer = setInterval(() => {
     const currentTime = Date.now();
     const elapsedSeconds = Math.floor((currentTime - lastTick) / 1000);
     
+    // Only update if at least 1 second has passed
     if (elapsedSeconds >= 1) {
-      lastTick = currentTime;
+      lastTick += elapsedSeconds * 1000; // Update lastTick by exact elapsed seconds
+      
       if (timeLeft > 0) {
-        timeLeft--;
+        // Decrement by actual elapsed seconds for accuracy
+        timeLeft = Math.max(0, timeLeft - elapsedSeconds);
         self.postMessage({ type: 'TICK', timeLeft });
       }
 
@@ -53,7 +55,7 @@ function startTimer() {
         self.postMessage({ type: 'COMPLETE' });
       }
     }
-  }, 1000);
+  }, 100); // Check more frequently for better accuracy
 }
 
 function pauseTimer() {

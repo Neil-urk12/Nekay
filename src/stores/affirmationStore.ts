@@ -9,14 +9,14 @@ export const useAffirmationStore = defineStore('affirmation', () => {
   const FETCH_TIMEOUT = 10000; // 10 seconds
 
   async function fetchAffirmation() {
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
     try {
       console.log('Fetching affirmation...');
       isLoading.value = true;
       error.value = null;
-
-      // Create abort controller for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
 
       const response = await fetch('https://affi-rm.vercel.app/daily-affirmation', {
         signal: controller.signal,
@@ -24,8 +24,6 @@ export const useAffirmationStore = defineStore('affirmation', () => {
           'Accept': 'application/json'
         }
       });
-
-      clearTimeout(timeoutId);
 
       console.log('Response status: ', response.status);
       
@@ -62,6 +60,7 @@ export const useAffirmationStore = defineStore('affirmation', () => {
       }
       dailyAffirmation.value = DEFAULT_AFFIRMATION;
     } finally {
+      clearTimeout(timeoutId);
       isLoading.value = false;
     }
   }

@@ -8,6 +8,9 @@ interface LoginAttempt {
   count: number;
 }
 
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
+const MAX_ATTEMPTS = 5;
+
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         email: '',
@@ -48,8 +51,6 @@ export const useAuthStore = defineStore('auth', {
     actions: {
         checkRateLimit(): boolean {
             const now = Date.now();
-            const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
-            const MAX_ATTEMPTS = 5;
 
             // Reset counter if window has passed
             if (now - this.loginAttempts.timestamp > RATE_LIMIT_WINDOW) {
@@ -61,7 +62,7 @@ export const useAuthStore = defineStore('auth', {
 
         recordLoginAttempt() {
             const now = Date.now();
-            if (now - this.loginAttempts.timestamp > 15 * 60 * 1000) {
+            if (now - this.loginAttempts.timestamp > RATE_LIMIT_WINDOW) {
                 this.loginAttempts = { timestamp: now, count: 1 };
             } else {
                 this.loginAttempts.count++;
