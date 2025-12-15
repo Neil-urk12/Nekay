@@ -9,10 +9,19 @@ const authStore = useAuthStore()
 
 const loading = ref(false)
 const editingName = ref(false)
+const editingEmail = ref(false)
 const userName = ref('')
 const userEmail = ref('')
 const newName = ref('')
+const newEmail = ref('')
 const showLogoutConfirm = ref(false)
+
+// Password Change State
+const showChangePassword = ref(false)
+const newPassword = ref('')
+const confirmPassword = ref('')
+const passwordError = ref('')
+const passwordSuccess = ref('')
 
 const userInitial = computed(() => {
   if (userName.value) return userName.value.charAt(0).toUpperCase()
@@ -28,6 +37,7 @@ onMounted(async () => {
       userEmail.value = session.user.email || ''
       userName.value = session.user.user_metadata?.name || session.user.user_metadata?.full_name || ''
       newName.value = userName.value
+      newEmail.value = userEmail.value
     }
   } catch (error) {
     console.error('Error loading profile:', error)
@@ -64,6 +74,84 @@ const saveName = async () => {
 const cancelEdit = () => {
   newName.value = userName.value
   editingName.value = false
+}
+
+// Email Logic
+const startEditEmail = () => {
+  newEmail.value = userEmail.value
+  editingEmail.value = true
+}
+
+const saveEmail = async () => {
+  if (!newEmail.value.trim() || newEmail.value === userEmail.value) {
+    editingEmail.value = false
+    return
+  }
+
+  loading.value = true
+  try {
+    const { error } = await supabase.auth.updateUser({
+      email: newEmail.value.trim()
+    })
+
+    if (error) throw error
+
+    alert('A confirmation email has been sent to your new address. Please check your inbox to complete the update.')
+    editingEmail.value = false
+  } catch (error: any) {
+    console.error('Error updating email:', error)
+    alert(error.message || 'Failed to update email')
+  } finally {
+    loading.value = false
+  }
+}
+
+const cancelEditEmail = () => {
+  newEmail.value = userEmail.value
+  editingEmail.value = false
+}
+
+// Password Logic
+const openChangePassword = () => {
+  newPassword.value = ''
+  confirmPassword.value = ''
+  passwordError.value = ''
+  passwordSuccess.value = ''
+  showChangePassword.value = true
+}
+
+const savePassword = async () => {
+  passwordError.value = ''
+  passwordSuccess.value = ''
+
+  if (newPassword.value.length < 6) {
+    passwordError.value = 'Password must be at least 6 characters long'
+    return
+  }
+
+  if (newPassword.value !== confirmPassword.value) {
+    passwordError.value = 'Passwords do not match'
+    return
+  }
+
+  loading.value = true
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword.value
+    })
+
+    if (error) throw error
+
+    passwordSuccess.value = 'Password updated successfully'
+    setTimeout(() => {
+      showChangePassword.value = false
+    }, 1500)
+  } catch (error: any) {
+    console.error('Error updating password:', error)
+    passwordError.value = error.message || 'Failed to update password'
+  } finally {
+    loading.value = false
+  }
 }
 
 const handleLogout = async () => {
@@ -108,6 +196,7 @@ const handleLogout = async () => {
           </div>
           
           <div class="user-info">
+            <!-- Name Section -->
             <div v-if="!editingName" class="name-display">
               <h2 class="user-name">{{ userName || 'Set your name' }}</h2>
               <button class="edit-btn" @click="startEditName" title="Edit Name">
@@ -131,14 +220,42 @@ const handleLogout = async () => {
               </div>
             </div>
             
-            <p class="user-email">{{ userEmail }}</p>
+            <!-- Email Section -->
+            <div v-if="!editingEmail" class="email-display">
+              <p class="user-email">{{ userEmail }}</p>
+              <button class="edit-btn" @click="startEditEmail" title="Edit Email">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+              </button>
+            </div>
+
+            <div v-else class="edit-name-form">
+              <input
+                v-model="newEmail"
+                type="email"
+                placeholder="Enter your email"
+                class="name-input"
+                @keydown.enter="saveEmail"
+                @keydown.escape="cancelEditEmail"
+              />
+              <div class="edit-actions">
+                <button class="btn-save" @click="saveEmail">Save</button>
+                <button class="btn-cancel" @click="cancelEditEmail">Cancel</button>
+              </div>
+            </div>
           </div>
         </div>
 
         <div class="divider"></div>
 
         <div class="actions-section">
-          <button class="logout-btn" @click="showLogoutConfirm = true">
+          <button class="action-btn change-password-btn" @click="openChangePassword">
+            <span class="icon-wrapper">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-lock"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </span>
+            <span>Change Password</span>
+          </button>
+
+          <button class="action-btn logout-btn" @click="showLogoutConfirm = true">
             <span class="icon-wrapper">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-log-out"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
             </span>
@@ -147,6 +264,39 @@ const handleLogout = async () => {
         </div>
       </div>
     </div>
+
+    <!-- Slide-up Change Password Sheet -->
+    <transition name="slide-up">
+      <div v-if="showChangePassword" class="sheet-overlay" @click.self="showChangePassword = false">
+        <div class="sheet-content">
+          <div class="sheet-header">
+            <h3>Change Password</h3>
+            <button class="close-btn" @click="showChangePassword = false">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+          
+          <div class="sheet-body">
+            <div class="input-group">
+              <label>New Password</label>
+              <input v-model="newPassword" type="password" placeholder="Min. 6 characters" class="sheet-input" />
+            </div>
+            
+            <div class="input-group">
+              <label>Confirm Password</label>
+              <input v-model="confirmPassword" type="password" placeholder="Re-enter password" class="sheet-input" />
+            </div>
+
+            <div v-if="passwordError" class="error-msg">{{ passwordError }}</div>
+            <div v-if="passwordSuccess" class="success-msg">{{ passwordSuccess }}</div>
+
+            <button class="btn-save sheet-save-btn" @click="savePassword" :disabled="loading">
+              {{ loading ? 'Saving...' : 'Update Password' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
 
     <!-- Logout confirmation modal -->
     <transition name="modal">
@@ -259,7 +409,7 @@ const handleLogout = async () => {
   gap: 2rem;
 }
 
-.fake-in-up {
+.fade-in-up {
   animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -332,14 +482,16 @@ const handleLogout = async () => {
 .user-info {
   text-align: center;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.name-display {
+.name-display, .email-display {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  margin-bottom: 0.25rem;
 }
 
 .user-name {
@@ -347,6 +499,13 @@ const handleLogout = async () => {
   font-size: 1.5rem;
   color: #1f2937;
   font-weight: 700;
+}
+
+.user-email {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.95rem;
+  font-weight: 500;
 }
 
 .edit-btn {
@@ -359,6 +518,7 @@ const handleLogout = async () => {
   transition: all 0.2s;
   opacity: 0.7;
   display: flex;
+  align-items: center;
 }
 
 .edit-btn:hover {
@@ -367,8 +527,8 @@ const handleLogout = async () => {
 }
 
 .edit-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 .edit-name-form {
@@ -437,13 +597,6 @@ const handleLogout = async () => {
   background: #e5e7eb;
 }
 
-.user-email {
-  margin: 0;
-  color: #6b7280;
-  font-size: 0.95rem;
-  font-weight: 500;
-}
-
 .divider {
   width: 100%;
   height: 1px;
@@ -452,33 +605,48 @@ const handleLogout = async () => {
 
 .actions-section {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.logout-btn {
+.action-btn {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
   padding: 1rem;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  border: none;
   border-radius: 16px;
-  color: white;
   font-size: 1.05rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  border: none;
+}
+
+.change-password-btn {
+  background: white;
+  color: #db2777;
+  border: 2px solid #fbcfe8;
+  box-shadow: 0 4px 15px -3px rgba(219, 39, 119, 0.1);
+}
+
+.change-password-btn:hover {
+  background: #fdf2f8;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -5px rgba(219, 39, 119, 0.2);
+}
+
+.logout-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
   box-shadow: 0 8px 20px -5px rgba(220, 38, 38, 0.3);
 }
 
 .logout-btn:hover {
   transform: translateY(-3px);
   box-shadow: 0 12px 25px -8px rgba(220, 38, 38, 0.4);
-}
-
-.logout-btn:active {
-  transform: translateY(-1px);
 }
 
 .icon-wrapper svg {
@@ -574,14 +742,144 @@ const handleLogout = async () => {
   transform: scale(0.95);
 }
 
-.modal-enter-active .modal-content,
-.modal-leave-active .modal-content {
-  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+/* Slide-up Sheet Styles */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
 }
 
-.modal-enter-from .modal-content,
-.modal-leave-to .modal-content {
+.sheet-content {
+  width: 100%;
+  background: white;
+  border-top-left-radius: 2rem;
+  border-top-right-radius: 2rem;
+  padding: 2rem;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.sheet-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.close-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.input-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4b5563;
+  margin-left: 0.25rem;
+}
+
+.sheet-input {
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.sheet-input:focus {
+  border-color: #db2777;
+  background: #fdf2f8;
+}
+
+.sheet-save-btn {
+  margin-top: 1rem;
+  padding: 1rem;
+  font-size: 1.1rem;
+}
+
+.sheet-save-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.error-msg {
+  color: #dc2626;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 0.5rem;
+  background: #fee2e2;
+  border-radius: 8px;
+}
+
+.success-msg {
+  color: #059669;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 0.5rem;
+  background: #d1fae5;
+  border-radius: 8px;
+}
+
+/* Slide-up Transition */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
   opacity: 0;
-  transform: translateY(20px) scale(0.95);
+}
+
+.slide-up-enter-active .sheet-content,
+.slide-up-leave-active .sheet-content {
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.slide-up-enter-from .sheet-content,
+.slide-up-leave-to .sheet-content {
+  transform: translateY(100%);
 }
 </style>
