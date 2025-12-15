@@ -43,7 +43,7 @@
       </div>
 
       <div class="remote-data">
-        <h3>Remote Data (Firestore):</h3>
+        <h3>Remote Data (Supabase):</h3>
         <div v-for="(items, type) in remoteData" :key="type">
           <h4>{{ type }} ({{ items.length }})</h4>
           <pre>{{ JSON.stringify(items, null, 2) }}</pre>
@@ -53,28 +53,34 @@
   </div>
 </template>
 
-<script setup lang="js">
+<script setup lang="ts">
 import { ref, onMounted, computed, watch } from "vue";
 import { syncService } from "../services/syncService";
 import { db } from "../services/indexedDB";
-import { db as fireDb } from "../firebase/firebase-config";
-import { collection, getDocs } from "firebase/firestore";
+import { supabase } from "../supabase/supabase-config";
 import { generateUUID } from "../utils/functions";
 
 const syncStates = ref({
   tasks: syncService.getSyncState("tasks"),
   folders: syncService.getSyncState("folders"),
   journal: syncService.getSyncState("journal"),
-  pomodoro: syncService.getSyncState("pomodoro"),
 });
 
-const localData = ref({
+const localData = ref<{
+  tasks: any[];
+  folders: any[];
+  journal: any[];
+}>({
   tasks: [],
   folders: [],
   journal: [],
 });
 
-const remoteData = ref({
+const remoteData = ref<{
+  tasks: any[];
+  folders: any[];
+  journal: any[];
+}>({
   tasks: [],
   folders: [],
   journal: [],
@@ -87,7 +93,7 @@ async function createPendingTask() {
     id: generateUUID(),
     taskContent: `Test Task ${Date.now()}`,
     completed: false,
-    syncStatus: "pending",
+    syncStatus: "pending" as const,
     lastModified: Date.now(),
     timestamp: Date.now(),
   };
@@ -100,8 +106,8 @@ async function createPendingFolder() {
   const folder = {
     id: generateUUID(),
     name: `Test Folder ${Date.now()}`,
-    type: "task",
-    syncStatus: "pending",
+    type: "task" as const,
+    syncStatus: "pending" as const,
     lastModified: Date.now(),
     timestamp: Date.now(),
     numOfItems: 0,
@@ -137,21 +143,24 @@ async function refreshLocalData() {
 
 async function refreshRemoteData() {
   try {
-    const collections = ["tasks", "folders", "entries"];
-    const fetchPromises = collections.map(async (collectionName) => {
-      const snapshot = await getDocs(collection(fireDb, collectionName));
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-    });
+    const { data: { session } } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    
+    if (!userId) {
+      console.warn('No user logged in');
+      return;
+    }
 
-    const [tasks, folders, entries] = await Promise.all(fetchPromises);
+    const [tasksResult, foldersResult, entriesResult] = await Promise.all([
+      supabase.from('tasks').select('*').eq('user_id', userId),
+      supabase.from('folders').select('*').eq('user_id', userId),
+      supabase.from('journal_entries').select('*').eq('user_id', userId),
+    ]);
 
     remoteData.value = {
-      tasks,
-      folders,
-      journal: entries,
+      tasks: tasksResult.data || [],
+      folders: foldersResult.data || [],
+      journal: entriesResult.data || [],
     };
   } catch (error) {
     console.error("Error fetching remote data:", error);

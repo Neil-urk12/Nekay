@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { db } from '../firebase/firebase-config'
-import { doc, getDoc, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore'
+import { supabase } from '../supabase/supabase-config'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 const myNickname = 'bubu1112041823'
 const route = useRoute()
@@ -13,23 +13,87 @@ const profile = ref<Profile>({ avatar: '', username: '', bio: '', highlights: []
 const activeTab = ref('posts')
 const newPostUrl = ref('')
 
+let postsChannel: RealtimeChannel | null = null;
+
 const loadProfile = async () => {
-  const pDoc = await getDoc(doc(db, 'profiles', nicknameParam))
-  if (pDoc.exists()) profile.value = pDoc.data() as Profile
-  // subscribe to posts
-  const postsQuery = query(collection(db, 'profiles', nicknameParam, 'posts'), orderBy('createdAt', 'desc'))
-  onSnapshot(postsQuery, snap => {
-    profile.value.posts = snap.docs.map(d => (d.data() as any).url)
-  })
+  // Load profile
+  const { data: profileData, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('nickname', nicknameParam)
+    .single();
+  
+  if (profileError) {
+    console.error('Error loading profile:', profileError);
+    return;
+  }
+  
+  if (profileData) {
+    profile.value = {
+      avatar: profileData.avatar || '',
+      username: profileData.username || '',
+      bio: profileData.bio || '',
+      highlights: profileData.highlights || [],
+      posts: [],
+    };
+  }
+  
+  // Load posts
+  const { data: postsData, error: postsError } = await supabase
+    .from('profile_posts')
+    .select('url, created_at')
+    .eq('profile_nickname', nicknameParam)
+    .order('created_at', { ascending: false });
+  
+  if (postsError) {
+    console.error('Error loading posts:', postsError);
+    return;
+  }
+  
+  profile.value.posts = (postsData || []).map(p => p.url);
+  
+  // Subscribe to real-time post updates
+  postsChannel = supabase
+    .channel('profile_posts_realtime')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'profile_posts',
+        filter: `profile_nickname=eq.${nicknameParam}`,
+      },
+      (payload) => {
+        const newPost = payload.new as any;
+        profile.value.posts.unshift(newPost.url);
+      }
+    )
+    .subscribe();
 }
 
 const addPost = async () => {
   if (!newPostUrl.value.trim()) return
-  await addDoc(collection(db, 'profiles', nicknameParam, 'posts'), { url: newPostUrl.value.trim(), createdAt: serverTimestamp() })
+  
+  const { error } = await supabase.from('profile_posts').insert({
+    profile_nickname: nicknameParam,
+    url: newPostUrl.value.trim(),
+  });
+  
+  if (error) {
+    console.error('Error adding post:', error);
+    return;
+  }
+  
   newPostUrl.value = ''
 }
 
 onMounted(loadProfile)
+
+onUnmounted(() => {
+  if (postsChannel) {
+    supabase.removeChannel(postsChannel);
+  }
+});
 </script>
 
 <template>
@@ -70,34 +134,6 @@ onMounted(loadProfile)
         </div>
       </div>
     </section>
-
-    <!-- Navigation Tabs -->
-    <!-- <nav class="profile-nav">
-      <button
-        :class="['profile-nav-item', { active: activeTab === 'posts' }]"
-        @click="activeTab = 'posts'"
-        aria-label="Posts"
-      >
-        <span v-html="IconGrid" class="nav-icon"></span>
-        <span class="nav-label">Posts</span>
-      </button>
-      <button
-        :class="['profile-nav-item', { active: activeTab === 'reels' }]"
-        @click="activeTab = 'reels'"
-        aria-label="Reels"
-      >
-        <span v-html="IconReels" class="nav-icon"></span>
-        <span class="nav-label">Reels</span>
-      </button>
-      <button
-        :class="['profile-nav-item', { active: activeTab === 'tagged' }]"
-        @click="activeTab = 'tagged'"
-        aria-label="Tagged Posts"
-      >
-        <span v-html="IconTagged" class="nav-icon"></span>
-        <span class="nav-label">Tagged</span>
-      </button>
-    </nav> -->
 
     <!-- Content Area (Posts Grid, Reels, Tagged) -->
     <main class="profile-content">

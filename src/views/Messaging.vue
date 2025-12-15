@@ -1,24 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { auth, rdb } from '../firebase/firebase-config'
-import { useAuthStore } from '../stores/authStore'
-import {
-  ref as dbRef,
-  push,
-  onValue,
-  query,
-  orderByChild
-} from 'firebase/database'
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
+import { supabase } from '../supabase/supabase-config'
 import AES from 'crypto-js/aes';
 import Utf8 from 'crypto-js/enc-utf8';
 import { useRouter } from 'vue-router';
 import { defineAsyncComponent } from 'vue'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
+import type { RealtimeChannel } from '@supabase/supabase-js'
 
 const router = useRouter();
-const authStore = useAuthStore();
 
-let messageListener: any = null;
+let messageChannel: RealtimeChannel | null = null;
 
 const encryptionKey: string = import.meta.env.VITE_ENCRYPTION_KEY;
 if (!encryptionKey) {
@@ -42,83 +34,141 @@ const decryptMessage = (encryptedMessage: string) => {
 interface Message {
   id: string
   content: string
-  timestamp: number
+  createdAt: string
   isSelf: boolean
   senderId: string
-  senderNickname: string
-  receiverNickname: string
+  readBy: string[] | null
+}
+
+interface Conversation {
+  id: string
+  user1Id: string
+  user2Id: string
+  otherUserName: string
 }
 
 const messages = ref<Message[]>([])
 const newMessage = ref('')
 const messageTimestampsVisible = ref<{ [key: string]: boolean }>({})
-// const conversationData = ref({
-//   receiverNickname: 'dudu0618051823'
-// })
+const currentConversation = ref<Conversation | null>(null)
+const currentUserId = ref<string | null>(null)
 
-// Use the imported rdb instance
-const messagesRef = dbRef(rdb, 'messages')
+// TODO: This is hardcoded for now - in a real app you'd get this from route params or user selection
+const otherUserId = ref<string | null>(null)
 
 // refs for auto-scroll and input focus
 const scrollerRef = ref<any>(null)
 const inputRef = ref<HTMLInputElement|null>(null)
 
-// Subscribe to messages
-onMounted(() => {
-  const currentUserId = auth.currentUser?.uid;
-  if (!currentUserId) {
+const otherUserDisplayName = computed(() => currentConversation.value?.otherUserName || 'Chat')
+
+// Initialize messaging
+onMounted(async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  currentUserId.value = session?.user?.id || null;
+  
+  if (!currentUserId.value) {
     router.push('/login');
     return;
   }
 
-  const currentNickname = 'bubu1112041823';
-  const otherNickname = 'dudu0618051823';
-  setupMessageListener(currentUserId, currentNickname, otherNickname);
+  // TODO: In a real app, get otherUserId from route params or conversation list
+  // For now, we'll try to fetch the first conversation or wait for user to start one
+  await loadConversations();
 });
 
-const setupMessageListener = (currentUserId: string, currentNickname: string, otherNickname: string) => {
-  const messagesQuery = query(
-    messagesRef,
-    orderByChild('timestamp')
-  );
+const loadConversations = async () => {
+  if (!currentUserId.value) return;
+  
+  // Get user's conversations
+  const { data: conversations, error } = await supabase
+    .from('conversations')
+    .select('*')
+    .or(`user1_id.eq.${currentUserId.value},user2_id.eq.${currentUserId.value}`);
+  
+  if (error) {
+    console.error('Error loading conversations:', error);
+    return;
+  }
+  
+  if (conversations && conversations.length > 0) {
+    // Load the first conversation for now
+    const convo = conversations[0];
+    const otherId = convo.user1_id === currentUserId.value ? convo.user2_id : convo.user1_id;
+    
+    currentConversation.value = {
+      id: convo.id,
+      user1Id: convo.user1_id,
+      user2Id: convo.user2_id,
+      otherUserName: 'Dudu', // TODO: Fetch actual user name
+    };
+    
+    otherUserId.value = otherId;
+    await loadMessages(convo.id);
+    setupRealtimeListener(convo.id);
+  }
+};
 
-  messageListener = onValue(messagesQuery, (snapshot) => {
-    const newMessages: Message[] = []
-    snapshot.forEach((childSnapshot) => {
-      const data = childSnapshot.val();
-      if (isRelevantMessage(data, currentUserId, currentNickname, otherNickname)) {
-        newMessages.push(createMessageObject(data, childSnapshot.key, currentUserId));
+const loadMessages = async (conversationId: string) => {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Error loading messages:', error);
+    return;
+  }
+
+  messages.value = (data || []).map(msg => ({
+    id: msg.id,
+    content: decryptMessage(msg.content),
+    createdAt: msg.created_at,
+    isSelf: msg.sender_id === currentUserId.value,
+    senderId: msg.sender_id,
+    readBy: msg.read_by,
+  }));
+
+  nextTick(() => scrollerRef.value?.scrollToItem(messages.value.length - 1));
+};
+
+const setupRealtimeListener = (conversationId: string) => {
+  messageChannel = supabase
+    .channel(`messages_${conversationId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `conversation_id=eq.${conversationId}`,
+      },
+      (payload) => {
+        const msg = payload.new as any;
+        
+        const newMsg: Message = {
+          id: msg.id,
+          content: decryptMessage(msg.content),
+          createdAt: msg.created_at,
+          isSelf: msg.sender_id === currentUserId.value,
+          senderId: msg.sender_id,
+          readBy: msg.read_by,
+        };
+        
+        // Avoid duplicates
+        if (!messages.value.find(m => m.id === newMsg.id)) {
+          messages.value.push(newMsg);
+          nextTick(() => scrollerRef.value?.scrollToItem(messages.value.length - 1));
+        }
       }
-    });
-    messages.value = newMessages;
-    nextTick(() => scrollerRef.value?.scrollToItem(newMessages.length - 1));
-  });
-};
-
-const isRelevantMessage = (data: any, currentUserId: string, currentNickname: string, otherNickname: string) => {
-  return (
-    (data.senderId === currentUserId && data.receiverNickname === otherNickname) ||
-    (data.senderNickname === currentNickname && data.receiverNickname === otherNickname) ||
-    (data.senderNickname === otherNickname && data.receiverNickname === currentNickname)
-  );
-};
-
-const createMessageObject = (data: any, key: string | null, currentUserId: string): Message => {
-  const decryptedContent = decryptMessage(data.content);
-  return {
-    id: key || '',
-    content: decryptedContent,
-    timestamp: data.timestamp,
-    isSelf: data.senderId === currentUserId,
-    senderId: data.senderId,
-    senderNickname: data.senderNickname,
-    receiverNickname: data.receiverNickname
-  };
+    )
+    .subscribe();
 };
 
 onUnmounted(() => {
-  if (messageListener) {
-    messageListener();
+  if (messageChannel) {
+    supabase.removeChannel(messageChannel);
   }
 });
 
@@ -127,30 +177,25 @@ const error = ref<string | null>(null);
 
 const sendMessage = async () => {
   if (!newMessage.value.trim()) return;
-
-  const senderNickname = 'bubu1112041823';
-  const receiverNickname = 'dudu0618051823'
-
-  const currentUserId = authStore.getCurrentUserId;
-  if (!currentUserId) {
-    router.push('/login');
+  if (!currentUserId.value || !currentConversation.value) {
+    error.value = 'No active conversation';
     return;
   }
+  
   isLoading.value = true;
   error.value = null;
 
   try {
     const encryptedContent = encryptMessage(newMessage.value);
-    const message: Message = {
-      id: Date.now().toString(),
+    
+    const { error: insertError } = await supabase.from('messages').insert({
+      conversation_id: currentConversation.value.id,
+      sender_id: currentUserId.value,
       content: encryptedContent,
-      timestamp: new Date().getTime(),
-      isSelf: true,
-      senderId: currentUserId,
-      senderNickname: senderNickname,
-      receiverNickname: receiverNickname
-    }
-    await push(messagesRef, message);
+    });
+    
+    if (insertError) throw insertError;
+    
     newMessage.value = '';
     nextTick(() => inputRef.value?.focus())
   } catch (e) {
@@ -168,13 +213,11 @@ const toggleTimestamp = (messageId: string) => {
   }
 }
 
-// const showMenu and toggleMenu disabled
-// const showMenu = ref(false)
-// const toggleMenu = () => { showMenu.value = !showMenu.value }
-// const goProfile = (nickname: string) => { router.push(`/profile/${nickname}`) }
-// const poke = () => { console.log('poke!') }
+const formatTimestamp = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 
-const MessagesList = defineAsyncComponent(() => import('../components/MessagesList.vue'))
 const MessageInput = defineAsyncComponent(() => import('../components/MessageInput.vue'))
 </script>
 
@@ -195,29 +238,44 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
       </button>
       <div class="chat-info">
         <span class="chat-avatar">🐱</span>
-        <span class="chat-title">Dudu</span>
+        <span class="chat-title">{{ otherUserDisplayName }}</span>
       </div>
-      <!-- Dropdown disabled -->
       <button class="menu-btn" disabled>⋮</button>
-      <!-- menu-dropdown disabled -->
-      <!-- <div v-if="showMenu" class="menu-dropdown">
-        <button @click="goProfile('dudu0618051823')">Go to Dudu's profile</button>
-        <button @click="goProfile('bubu1112041823')">Go to my profile</button>
-        <button @click="poke">poke</button>
-      </div> -->
     </div>
+    
     <div class="messaging-container">
-      <MessagesList
-        :messages="messages"
-        :messageTimestampsVisible="messageTimestampsVisible"
-        @toggle="toggleTimestamp"
-      />
+      <div v-if="!currentConversation" class="no-conversation">
+        <p>No conversation selected</p>
+      </div>
+      <div v-else class="messages-list">
+        <div
+          v-for="msg in messages"
+          :key="msg.id"
+          class="message"
+          :class="{ 'message-self': msg.isSelf }"
+          @click="toggleTimestamp(msg.id)"
+        >
+          <div class="message-content">
+            {{ msg.content }}
+            <span
+              class="message-timestamp"
+              :class="{ 'timestamp-visible': messageTimestampsVisible[msg.id] }"
+            >
+              {{ formatTimestamp(msg.createdAt) }}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
+    
     <MessageInput
+      v-if="currentConversation"
       v-model="newMessage"
       :isLoading="isLoading"
       @send="sendMessage"
     />
+    
+    <div v-if="error" class="error-message">{{ error }}</div>
   </div>
 </template>
 
@@ -233,19 +291,12 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.25rem;
+  padding: 0.5rem 1rem;
   background: #8a4fff;
   color: #fff;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   position: relative;
   z-index: 10;
-}
-
-.input-action-btn {
-  background: transparent;
-  padding: 0 0.25rem;
-  border: none;
-  cursor: pointer;
 }
 
 .back-btn, .menu-btn {
@@ -292,10 +343,18 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
   scroll-behavior: smooth;
 }
 
+.no-conversation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+}
+
 .messages-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
   padding-bottom: 1rem;
 }
 
@@ -321,6 +380,7 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   word-break: break-word;
   width: fit-content;
+  cursor: pointer;
 }
 
 .message-self .message-content {
@@ -329,114 +389,24 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
 }
 
 .message-timestamp {
-  position: absolute;
-  bottom: -1.5rem;
-  right: 0;
+  display: block;
   font-size: 0.7rem;
   color: #666;
   opacity: 0;
+  max-height: 0;
+  overflow: hidden;
   transition: all 0.3s;
-  background: rgba(255,255,255,0.9);
-  padding: 0.2rem 0.5rem;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  margin-top: 0;
 }
 
 .message-self .message-timestamp {
-  right: auto;
-  left: 0;
+  color: rgba(255,255,255,0.7);
 }
 
 .timestamp-visible {
   opacity: 1;
-  transform: translateY(-2px);
-}
-
-.message-input {
-  display: flex;
-  padding: 0.75rem 1rem;
-  background: #fff;
-  align-items: center;
-  gap: 0.75rem;
-  border-top: 1px solid #eee;
-}
-
-.message-input input {
-  flex: 1;
-  padding: 0.75rem 1rem;
-  border: 1px solid #ddd;
-  border-radius: 1.5rem;
-  font-size: 1rem;
-  transition: border-color 0.2s;
-}
-
-.message-input input:focus {
-  outline: none;
-  border-color: #8a4fff;
-}
-
-.send-btn {
-  background: transparent;
-  border: none;
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 1.5rem;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.2s, transform 0.2s;
-}
-
-.send-btn:hover {
-  background: #7b3aff;
-  transform: scale(1.05);
-}
-
-.send-btn:active {
-  transform: scale(0.98);
-}
-
-.send-icon {
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
-.menu-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0.75rem;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  border-radius: 0.5rem;
-  padding: 0.25rem 0;
-  z-index: 20;
-}
-
-.menu-dropdown button {
-  display: block;
-  width: 100%;
-  padding: 0.5rem 1rem;
-  border: none;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-}
-
-.menu-dropdown button:hover {
-  background: #f0f0f0;
-}
-
-@media (max-width: 480px) {
-  .message {
-    max-width: 90%;
-  }
-  
-  .message-input {
-    padding: 0.75rem 0.5rem;
-  }
-  
-  .send-btn {
-    padding: 0.5rem 1rem;
-  }
+  max-height: 1.5rem;
+  margin-top: 0.25rem;
 }
 
 .error-message {
@@ -457,17 +427,9 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
   to { opacity: 1; transform: translate(-50%, 0); }
 }
 
-.message-status {
-  position: absolute;
-  right: -1.5rem;
-  bottom: 0;
-  font-size: 0.7rem;
-  color: #8a4fff;
-}
-
-.message-self .message-status {
-  right: auto;
-  left: -1.5rem;
-  color: #fff;
+@media (max-width: 480px) {
+  .message {
+    max-width: 90%;
+  }
 }
 </style>

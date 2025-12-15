@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { auth } from "../firebase/firebase-config";
-import { onAuthStateChanged } from "firebase/auth";
+import { supabase } from "../supabase/supabase-config";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -95,50 +94,34 @@ const router = createRouter({
       component: () => import("../views/ArchivePage.vue"),
       meta: { requiresAuth: true }
     },
-    // {
-    //   path: "/settings",
-    //   component: () => import("../views/SettingsView.vue"),
-    // },
   ],
 });
 
-// Navigation guard
+// Navigation guard using Supabase
 router.beforeEach(async (to, _from, next) => {
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
-  // console.log(requiresAuth)
-  
-  const isAuthenticated = localStorage.getItem("isAuthenticated");
 
-  return new Promise((resolve) => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      unsubscribe();
-      
-      if (!isAuthenticated) {
-        localStorage.setItem("isAuthenticated", "false");
-        resolve(next("/login"))
-      }
-      if (requiresAuth && !user) {
-        resolve(next("/login"));
-      } else if (to.path === "/login" && user) {
-        resolve(next("/"));
-      } else {
-        resolve(next());
-      }
-    });
-  });
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const isAuthenticated = !!session?.user;
+
+    if (!isAuthenticated) {
+      localStorage.setItem("isAuthenticated", "false");
+    } else {
+      localStorage.setItem("isAuthenticated", "true");
+    }
+
+    if (requiresAuth && !isAuthenticated) {
+      next("/login");
+    } else if (to.path === "/login" && isAuthenticated) {
+      next("/");
+    } else {
+      next();
+    }
+  } catch (error) {
+    console.error("Auth check error:", error);
+    next("/login");
+  }
 });
-// router.beforeEach((to, _from, next) => {
-//   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
-
-//   onAuthStateChanged(auth, (user) => {
-//     if (requiresAuth && !user) {
-//       next("/login");
-//     } else if (to.path === "/login" && user) {
-//       next("/");
-//     } else {
-//       next();
-//     }
-//   });
-// });
 
 export default router;

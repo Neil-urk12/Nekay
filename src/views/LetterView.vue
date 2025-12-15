@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
-import { getFirestore, collection, addDoc } from 'firebase/firestore'
+import { supabase } from '../supabase/supabase-config'
 import { useRouter } from 'vue-router'
 
 let lrtAudio: HTMLAudioElement | null = null
@@ -132,17 +132,17 @@ const checkboxes = reactive({
 const showSuccessModal = ref(false)
 const closeSuccessModal = () => showSuccessModal.value = false
 
-const db = getFirestore()
-
 const submitAgreement = async () => {
   try {
-    await addDoc(collection(db, 'agreements'), {
+    const { error } = await supabase.from('agreements').insert({
       pizza: checkboxes.pizza,
       cake: checkboxes.cake,
       movies: checkboxes.movies,
       stardew: checkboxes.stardew,
-      timestamp: new Date()
-    })
+    });
+    
+    if (error) throw error;
+    
     console.log('Agreement stored successfully!')
     showAcceptModal.value = false
     showSuccessModal.value = true

@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { supabase } from "../supabase/supabase-config";
 
 interface Stats {
   completedSessions: number;
@@ -37,6 +37,11 @@ export const useTimerStore = defineStore("timer", {
     },
   },
   actions: {
+    async getUserId(): Promise<string | null> {
+      const { data: { session } } = await supabase.auth.getSession();
+      return session?.user?.id || null;
+    },
+
     startTimer() {
       if (this.intervalId) {
         clearInterval(this.intervalId);
@@ -56,7 +61,7 @@ export const useTimerStore = defineStore("timer", {
             if (this.mode === "work") {
               this.stats.completedSessions++;
               this.sessionCount++;
-              this.syncStats();
+              this.saveSession();
               if (this.sessionCount % this.longBreakInterval === 0) {
                 this.mode = "longBreak";
               } else {
@@ -129,36 +134,49 @@ export const useTimerStore = defineStore("timer", {
       audio.volume = 0.5
       audio.play()
     },
-    async syncStats() {
+
+    // Save individual session to Supabase (Option A approach)
+    async saveSession() {
       try {
-        if (navigator.onLine) {
-          const { db } = await import("../firebase/firebase-config");
-          const statsRef = doc(db, "pomodoroStats", "userStats");
-          await setDoc(statsRef, {
-            completedSessions: this.stats.completedSessions,
-            totalTime: this.totalTime,
-            sessionCount: this.sessionCount,
-            formattedTotalTime: this.formattedTotalTime
-          });
+        const userId = await this.getUserId();
+        if (!navigator.onLine || !userId) return;
+
+        const { error } = await supabase.from('pomodoro_sessions').insert({
+          user_id: userId,
+          duration_minutes: Math.floor(this.workDuration / 60),
+          task_id: null, // Can be linked to a task later
+        });
+
+        if (error) {
+          console.error("Failed to save pomodoro session:", error);
         }
-        
       } catch (error) {
-        console.error("Failed to sync pomodoro stats:", error);
+        console.error("Failed to save pomodoro session:", error);
       }
     },
+
+    // Load stats by computing from individual sessions
     async loadStats() {
       try {
-        if (navigator.onLine) {
-          const { db } = await import("../firebase/firebase-config");
-          const statsRef = doc(db, "pomodoroStats", "userStats");
-          const docSnap = await getDoc(statsRef);
-          if (docSnap.exists()) {
-            const data = docSnap.data();
-            this.stats.completedSessions = data.completedSessions;
-            this.totalTime = data.totalTime;
-            this.sessionCount = data.sessionCount;
-            this.formattedTotalTime = data.formattedTotalTime
-          }
+        const userId = await this.getUserId();
+        if (!navigator.onLine || !userId) return;
+
+        const { data, error } = await supabase
+          .from('pomodoro_sessions')
+          .select('duration_minutes, completed_at')
+          .eq('user_id', userId);
+
+        if (error) {
+          console.error("Failed to load pomodoro stats:", error);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          // Compute stats from individual sessions
+          this.stats.completedSessions = data.length;
+          this.totalTime = data.reduce((acc, session) => acc + (session.duration_minutes * 60), 0);
+          this.sessionCount = data.length;
+          this.formattedTotalTime = this.formatTime(this.totalTime);
         }
       } catch (error) {
         console.error("Failed to load pomodoro stats:", error);

@@ -1,23 +1,9 @@
-import { db as fireDb } from "../firebase/firebase-config";
+import { supabase } from "../supabase/supabase-config";
 import { db } from "./indexedDB";
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  onSnapshot,
-  setDoc,
-  writeBatch,
-  // query,
-  // where,
-  // getDocs,
-  // doc,
-  // setDoc,
-  // deleteDoc,
-} from "firebase/firestore";
 import debounce from "lodash/debounce";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
-type SyncableCollection = "tasks" | "folders" | "journal" | "pomodoro";
+type SyncableCollection = "tasks" | "folders" | "journal" | "pomodoro" | "water_logs";
 type SyncStatus = "pending" | "syncing" | "synced" | "error";
 
 interface SyncState {
@@ -27,18 +13,27 @@ interface SyncState {
   progress: number;
 }
 
+// Map local collection names to Supabase table names
+const tableNameMap: Record<SyncableCollection, string> = {
+  tasks: 'tasks',
+  folders: 'folders',
+  journal: 'journal_entries',
+  pomodoro: 'pomodoro_sessions',
+  water_logs: 'water_logs',
+};
+
 export class SyncService {
   private static instance: SyncService;
-  private listeners: Map<string, () => void> = new Map();
+  private channels: Map<string, RealtimeChannel> = new Map();
   private syncState: Map<SyncableCollection, SyncState> = new Map();
-  // private retryAttempts: Map<string, number> = new Map();
-  // private readonly MAX_RETRY_ATTEMPTS = 3;
   private readonly BATCH_SIZE = 500;
   private isOnline: boolean = navigator.onLine;
+  private userId: string | null = null;
 
   private constructor() {
     this.setupNetworkListeners();
     this.initializeSyncStates();
+    this.initializeUserId();
   }
 
   static getInstance(): SyncService {
@@ -48,12 +43,23 @@ export class SyncService {
     return SyncService.instance;
   }
 
+  private async initializeUserId() {
+    const { data: { session } } = await supabase.auth.getSession();
+    this.userId = session?.user?.id || null;
+
+    // Listen for auth changes
+    supabase.auth.onAuthStateChange((_event, session) => {
+      this.userId = session?.user?.id || null;
+    });
+  }
+
   private initializeSyncStates() {
     const collections: SyncableCollection[] = [
       "tasks",
       "folders",
       "journal",
       "pomodoro",
+      "water_logs",
     ];
     collections.forEach((collection) => {
       this.syncState.set(collection, {
@@ -73,69 +79,133 @@ export class SyncService {
 
     window.addEventListener("offline", () => {
       this.isOnline = false;
-      this.removeAllListeners();
+      this.removeAllChannels();
     });
   }
 
   private async setupRealtimeListener(collectionName: SyncableCollection) {
-    const collectionRef = collection(fireDb, collectionName);
+    const tableName = tableNameMap[collectionName];
 
-    const unsubscribe = onSnapshot(
-      collectionRef,
-      debounce(async (snapshot) => {
-        if (!this.isOnline) return;
-
-        for (const change of snapshot.docChanges()) {
-          const data = change.doc.data();
-          const id = change.doc.id;
+    const channel = supabase
+      .channel(`${tableName}_changes`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: tableName,
+          filter: this.userId ? `user_id=eq.${this.userId}` : undefined,
+        },
+        debounce(async (payload) => {
+          if (!this.isOnline) return;
 
           try {
-            switch (change.type) {
-              case "added":
-              case "modified":
-                await this.handleIncomingChange(collectionName, id, data);
+            switch (payload.eventType) {
+              case 'INSERT':
+              case 'UPDATE':
+                await this.handleIncomingChange(collectionName, payload.new);
                 break;
-              case "removed":
-                await this.handleRemoteDelete(collectionName, id);
+              case 'DELETE':
+                await this.handleRemoteDelete(collectionName, payload.old.id);
                 break;
             }
           } catch (error) {
             this.updateSyncState(collectionName, "error", error as Error);
           }
-        }
-      }, 1500)
-    );
+        }, 1500)
+      )
+      .subscribe();
 
-    this.listeners.set(collectionName, unsubscribe);
+    this.channels.set(collectionName, channel);
   }
 
   private async handleIncomingChange(
     collection: SyncableCollection,
-    id: string,
     data: any
   ) {
-    const localData = await this.getLocalItem(collection, id);
+    const localData = await this.getLocalItem(collection, data.id);
+    const mappedData = this.mapFromSupabase(collection, data);
 
     if (!localData) {
-      await this.updateLocalItem(collection, id, data);
-      return
-    } 
+      await this.updateLocalItem(collection, data.id, mappedData);
+      return;
+    }
 
     const localModified = localData.lastModified;
-    const remoteModified = data.lastModified;
+    const remoteModified = new Date(data.created_at || data.completed_at || data.logged_at).getTime();
 
     if (localModified < remoteModified) {
-      await this.updateLocalItem(collection, id, data);
-    } else if (localModified > remoteModified) {
-      const docRef = doc(fireDb, collection, id);
-      await setDoc (docRef, {
-        ...localData,
-        syncStatus: "synced"
-      });
-      await this.updateLocalItem(collection, id, {
-        ...localData,
-        syncStatus: "synced"
-      });
+      await this.updateLocalItem(collection, data.id, mappedData);
+    }
+  }
+
+  private mapFromSupabase(collection: SyncableCollection, data: any): any {
+    switch (collection) {
+      case 'tasks':
+        return {
+          id: data.id,
+          taskContent: data.title,
+          completed: data.completed,
+          folderId: data.folder_id,
+          syncStatus: "synced",
+          lastModified: new Date(data.created_at).getTime(),
+          timestamp: new Date(data.created_at).getTime(),
+        };
+      case 'folders':
+        return {
+          id: data.id,
+          name: data.name,
+          type: data.type,
+          syncStatus: "synced",
+          numOfItems: 0,
+          lastModified: new Date(data.created_at).getTime(),
+          timestamp: new Date(data.created_at).getTime(),
+        };
+      case 'journal':
+        return {
+          id: data.id,
+          title: data.title || '',
+          content: data.content,
+          status: data.status || 'active',
+          date: data.created_at,
+          folderId: data.folder_id,
+          syncStatus: "synced",
+          lastModified: new Date(data.created_at).getTime(),
+          timestamp: new Date(data.created_at).getTime(),
+        };
+      default:
+        return { ...data, syncStatus: "synced" };
+    }
+  }
+
+  private mapToSupabase(collection: SyncableCollection, item: any): any {
+    switch (collection) {
+      case 'tasks':
+        return {
+          id: item.id,
+          user_id: this.userId,
+          title: item.taskContent,
+          completed: item.completed,
+          folder_id: item.folderId || null,
+        };
+      case 'folders':
+        return {
+          id: item.id,
+          user_id: this.userId,
+          name: item.name,
+          type: item.type,
+        };
+      case 'journal':
+        return {
+          id: item.id,
+          user_id: this.userId,
+          title: item.title,
+          content: item.content,
+          folder_id: item.folderId || null,
+          status: item.status,
+        };
+      default:
+        return item;
     }
   }
 
@@ -171,20 +241,24 @@ export class SyncService {
     }
   }
 
-  private async syncFromFirestore(collectionToSync: SyncableCollection) {
-    try {
-      const collectionName = collectionToSync === "journal" ? "entries" : collectionToSync;
-      const querySnapshot = await getDocs(collection(fireDb, collectionName));
+  private async syncFromSupabase(collectionToSync: SyncableCollection) {
+    if (!this.userId) return;
 
-      for (const doc of querySnapshot.docs) {
-        const data = { id: doc.id, ...doc.data() };
-        await this.updateLocalItem(collectionToSync, doc.id, {
-          ...data,
-          syncStatus: "synced",
-        });
+    try {
+      const tableName = tableNameMap[collectionToSync];
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('*')
+        .eq('user_id', this.userId);
+
+      if (error) throw error;
+
+      for (const item of data || []) {
+        const mappedData = this.mapFromSupabase(collectionToSync, item);
+        await this.updateLocalItem(collectionToSync, item.id, mappedData);
       }
     } catch (error) {
-      console.error('Error syncing from Firestore:', error);
+      console.error('Error syncing from Supabase:', error);
       throw error;
     }
   }
@@ -196,7 +270,7 @@ export class SyncService {
   ) {
     try {
       const existingItem = await this.getLocalItem(collection, id);
-      
+
       switch (collection) {
         case "tasks":
           if (existingItem) {
@@ -295,13 +369,12 @@ export class SyncService {
   }
 
   async syncAll() {
-    if (!this.isOnline) return;
+    if (!this.isOnline || !this.userId) return;
 
     const collections: SyncableCollection[] = [
       "tasks",
       "folders",
       "journal",
-      "pomodoro",
     ];
 
     for (const collection of collections) {
@@ -317,46 +390,46 @@ export class SyncService {
   }
 
   private async syncCollection(collection: SyncableCollection) {
+    if (!this.userId) return;
+
     try {
       const pendingItems = await this.getPendingItems(collection);
-      const deletedItems = await this.getDeletedItems(collection);  
+      const deletedItems = await this.getDeletedItems(collection);
+      const tableName = tableNameMap[collection];
 
+      // Handle deletions
       for (const item of deletedItems) {
-        const docRef  = doc(fireDb, collection, item.id);
-        await deleteDoc(docRef);
-        await this.deleteLocalItem(collection, item.id);
+        const { error } = await supabase
+          .from(tableName)
+          .delete()
+          .eq('id', item.id);
+
+        if (!error) {
+          await this.deleteLocalItem(collection, item.id);
+        }
       }
 
-      const itemsToSync = pendingItems.filter(item => item.syncStatus === 'pending');
-      if (itemsToSync.length === 0) {
-        await this.syncFromFirestore(collection);
-        return;
-      }
-
+      // Handle pending items
       if (pendingItems.length === 0) {
-        await this.syncFromFirestore(collection);
+        await this.syncFromSupabase(collection);
         return;
       }
 
+      // Batch upsert pending items
       for (let i = 0; i < pendingItems.length; i += this.BATCH_SIZE) {
-        const batch = writeBatch(fireDb);
         const chunk = pendingItems.slice(i, i + this.BATCH_SIZE);
+        const mappedChunk = chunk.map(item => this.mapToSupabase(collection, item));
 
-        for (const item of chunk) {
-          const docRef = doc(fireDb, collection, item.id);
+        const { error } = await supabase
+          .from(tableName)
+          .upsert(mappedChunk, { onConflict: 'id' });
 
-          const itemToSync = {
-            ...item,
-            lastModified: Date.now(),
-            timestamp: item.timestamp || Date.now(),
-            syncStatus: "synced"
-          };
-          batch.set(docRef, itemToSync);
+        if (error) {
+          console.error(`Error upserting ${collection}:`, error);
+          continue;
         }
 
-        await batch.commit();
-
-        // Only update local items after successful batch commit
+        // Update local items as synced
         for (const item of chunk) {
           await this.updateLocalItem(collection, item.id, {
             ...item,
@@ -364,6 +437,7 @@ export class SyncService {
             lastModified: Date.now(),
           });
         }
+
         this.updateSyncProgress(
           collection,
           ((i + chunk.length) / pendingItems.length) * 100
@@ -372,7 +446,7 @@ export class SyncService {
     } catch (error) {
       console.error('Error syncing collection:', error);
       this.updateSyncState(collection, "error", error instanceof Error ? error : new Error(String(error)));
-      throw error; // Propagate error up
+      throw error;
     }
   }
 
@@ -403,14 +477,13 @@ export class SyncService {
       "tasks",
       "folders",
       "journal",
-      "pomodoro",
     ];
 
     for (const collection of collections) {
       try {
         const localData = await this.getLocalItems(collection);
         if (!localData || localData.length === 0) {
-          await this.syncFromFirestore(collection);
+          await this.syncFromSupabase(collection);
           await this.getLocalItems(collection);
         }
       } catch (error) {
@@ -424,7 +497,7 @@ export class SyncService {
     switch (collection) {
       case "tasks":
         return await db.tasks.toArray();
-      case "folders": 
+      case "folders":
         return await db.folders.toArray();
       case "journal":
         return await db.journal.toArray();
@@ -433,9 +506,11 @@ export class SyncService {
     }
   }
 
-  removeAllListeners() {
-    this.listeners.forEach((unsubscribe) => unsubscribe());
-    this.listeners.clear();
+  removeAllChannels() {
+    this.channels.forEach((channel) => {
+      supabase.removeChannel(channel);
+    });
+    this.channels.clear();
   }
 
   getSyncState(collection: SyncableCollection): SyncState {

@@ -1,8 +1,7 @@
 import { defineStore } from "pinia";
 import { Task, JournalEntry, Folder } from "../composables/interfaces";
 import { generateUUID } from "../utils/functions";
-import { collection, deleteDoc, doc, getDocs, setDoc, updateDoc } from "firebase/firestore";
-import { db as fireDb } from "../firebase/firebase-config";
+import { supabase } from "../supabase/supabase-config";
 import { db } from "../services/indexedDB";
 
 export const useNotesStore = defineStore("notes", {
@@ -37,6 +36,11 @@ export const useNotesStore = defineStore("notes", {
       console.error("Store error:", error);
     },
 
+    async getUserId(): Promise<string | null> {
+      const { data: { session } } = await supabase.auth.getSession();
+      return session?.user?.id || null;
+    },
+
     async initializeStore() {
       try {
         await this.loadTasks();
@@ -52,12 +56,26 @@ export const useNotesStore = defineStore("notes", {
     async loadTasks() {
       try {
         this.tasksLoading = true;
-        if (navigator.onLine) {
-          const querySnapshot = await getDocs(collection(fireDb, "tasks"));
-          this.tasks = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as Task[];
+        const userId = await this.getUserId();
+
+        if (navigator.onLine && userId) {
+          const { data, error } = await supabase
+            .from('tasks')
+            .select('*')
+            .eq('user_id', userId);
+
+          if (error) throw error;
+
+          // Map Supabase fields to app fields
+          this.tasks = (data || []).map(task => ({
+            id: task.id,
+            taskContent: task.title,
+            completed: task.completed,
+            folderId: task.folder_id || undefined,
+            syncStatus: "synced" as const,
+            lastModified: new Date(task.created_at).getTime(),
+            timestamp: new Date(task.created_at).getTime(),
+          }));
           this.tasksLoading = false;
         } else {
           this.tasks = await db.getTasks();
@@ -65,18 +83,37 @@ export const useNotesStore = defineStore("notes", {
         }
       } catch (err) {
         console.error('Failed to load tasks', err);
+        // Fallback to local
+        this.tasks = await db.getTasks();
+        this.tasksLoading = false;
       }
     },
 
     async loadEntries() {
       try {
         this.loading = true;
-        if (navigator.onLine) {
-          const querySnapshot = await getDocs(collection(fireDb, "entries"));
-          this.journalEntries = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as JournalEntry[];
+        const userId = await this.getUserId();
+
+        if (navigator.onLine && userId) {
+          const { data, error } = await supabase
+            .from('journal_entries')
+            .select('*')
+            .eq('user_id', userId);
+
+          if (error) throw error;
+
+          // Map Supabase fields to app fields
+          this.journalEntries = (data || []).map(entry => ({
+            id: entry.id,
+            title: entry.title || '',
+            content: entry.content,
+            status: (entry.status as "active" | "archived" | "deleted") || "active",
+            date: entry.created_at,
+            folderId: entry.folder_id || undefined,
+            syncStatus: "synced" as const,
+            lastModified: new Date(entry.created_at).getTime(),
+            timestamp: new Date(entry.created_at).getTime(),
+          }));
           this.loading = false;
         } else {
           this.journalEntries = await db.getEntries();
@@ -84,14 +121,19 @@ export const useNotesStore = defineStore("notes", {
         }
       } catch (err) {
         console.error('Failed to load entries', err);
+        this.journalEntries = await db.getEntries();
+        this.loading = false;
       }
     },
 
     async addTask(taskContent: string, folderId: string | undefined) {
       try {
         const timestamp = Date.now();
+        const userId = await this.getUserId();
+        const taskId = generateUUID();
+
         const newTask: Task = {
-          id: generateUUID(),
+          id: taskId,
           taskContent: taskContent.trim(),
           completed: false,
           folderId: folderId,
@@ -100,10 +142,18 @@ export const useNotesStore = defineStore("notes", {
           timestamp: timestamp,
         };
 
-        if (navigator.onLine) {
+        if (navigator.onLine && userId) {
+          const { error } = await supabase.from('tasks').insert({
+            id: taskId,
+            user_id: userId,
+            title: taskContent.trim(),
+            completed: false,
+            folder_id: folderId || null,
+          });
+
+          if (error) throw error;
+
           newTask.syncStatus = "synced";
-          const docRef = doc(fireDb, "tasks", newTask.id)
-          await setDoc(docRef, newTask)
           await db.createTask(newTask);
           this.tasks = [...this.tasks, newTask];
           this.error = null;
@@ -124,7 +174,7 @@ export const useNotesStore = defineStore("notes", {
         const timestamp = Date.now();
         const taskIndex = this.tasks.findIndex((t) => t.id === id);
 
-        if (taskIndex === -1) 
+        if (taskIndex === -1)
           throw new Error("Task not found");
 
         const updatedTask = {
@@ -135,13 +185,23 @@ export const useNotesStore = defineStore("notes", {
         };
 
         if (navigator.onLine) {
-          const docRef = doc(fireDb, "tasks", id)
-          await updateDoc(docRef, updatedTask)
+          const { error } = await supabase
+            .from('tasks')
+            .update({
+              title: updatedTask.taskContent,
+              completed: updatedTask.completed,
+              folder_id: updatedTask.folderId || null,
+            })
+            .eq('id', id);
+
+          if (error) throw error;
+
+          (updatedTask as { syncStatus: string }).syncStatus = "synced";
           await db.updateTask(id, updatedTask);
-          this.tasks[taskIndex] = updatedTask;   
+          this.tasks[taskIndex] = updatedTask;
           this.error = null;
           return;
-        } 
+        }
         await db.updateTask(id, updatedTask);
         this.tasks[taskIndex] = updatedTask;
         this.error = null;
@@ -156,10 +216,16 @@ export const useNotesStore = defineStore("notes", {
         if (taskIndex === -1) throw new Error("Task not found");
 
         if (navigator.onLine) {
-          await deleteDoc(doc(fireDb, "tasks", taskId));
+          const { error } = await supabase
+            .from('tasks')
+            .delete()
+            .eq('id', taskId);
+
+          if (error) throw error;
+
           await db.deleteTask(taskId);
         } else {
-        await db.markForDeletion('tasks', taskId);
+          await db.markForDeletion('tasks', taskId);
         }
         this.tasks.splice(taskIndex, 1);
         this.error = null;
@@ -172,9 +238,11 @@ export const useNotesStore = defineStore("notes", {
     async addFolder(name: string, type: "task" | "journal") {
       try {
         const timestamp = Date.now();
+        const userId = await this.getUserId();
+        const folderId = generateUUID();
 
         const newFolder: Folder = {
-          id: generateUUID(),
+          id: folderId,
           name: name,
           type: type,
           syncStatus: "pending",
@@ -183,10 +251,17 @@ export const useNotesStore = defineStore("notes", {
           timestamp: timestamp,
         };
 
-        if (navigator.onLine) {
+        if (navigator.onLine && userId) {
+          const { error } = await supabase.from('folders').insert({
+            id: folderId,
+            user_id: userId,
+            name: name,
+            type: type,
+          });
+
+          if (error) throw error;
+
           newFolder.syncStatus = "synced";
-          const docRef = doc(fireDb, "folders", newFolder.id)
-          await setDoc(docRef, newFolder)
         }
 
         await db.createFolder(newFolder);
@@ -200,10 +275,36 @@ export const useNotesStore = defineStore("notes", {
     async loadFolders() {
       try {
         this.loading = true;
+        const userId = await this.getUserId();
 
+        if (navigator.onLine && userId) {
+          const { data, error } = await supabase
+            .from('folders')
+            .select('*')
+            .eq('user_id', userId);
+
+          if (error) throw error;
+
+          this.folders = (data || []).map(folder => ({
+            id: folder.id,
+            name: folder.name,
+            type: folder.type as "task" | "journal",
+            syncStatus: "synced" as const,
+            numOfItems: 0,
+            lastModified: new Date(folder.created_at).getTime(),
+            timestamp: new Date(folder.created_at).getTime(),
+          }));
+        } else {
+          const localFolders = (await db.getFolders()) || [];
+          this.folders = localFolders;
+        }
+        this.loading = false;
+      } catch (err) {
+        console.error('Failed to load folders', err);
         const localFolders = (await db.getFolders()) || [];
         this.folders = localFolders;
-      } catch (err) {}
+        this.loading = false;
+      }
     },
 
     async editFolder(folderId: string, updates: Partial<Folder>) {
@@ -224,8 +325,16 @@ export const useNotesStore = defineStore("notes", {
         };
 
         if (navigator.onLine) {
-          const docRef = doc(fireDb, "folders", folderId)
-          await updateDoc(docRef, updatedFolder)
+          const { error } = await supabase
+            .from('folders')
+            .update({
+              name: updatedFolder.name,
+            })
+            .eq('id', folderId);
+
+          if (error) throw error;
+
+          (updatedFolder as { syncStatus: string }).syncStatus = "synced";
         }
 
         await db.updateFolder(folderId, updatedFolder);
@@ -244,7 +353,13 @@ export const useNotesStore = defineStore("notes", {
         if (folderIndex === -1) throw new Error("Folder not found");
 
         if (navigator.onLine) {
-          await deleteDoc(doc(fireDb, "folders", folderId));
+          const { error } = await supabase
+            .from('folders')
+            .delete()
+            .eq('id', folderId);
+
+          if (error) throw error;
+
           await db.deleteFolder(folderId);
         } else {
           await db.markForDeletion('folders', folderId);
@@ -260,6 +375,7 @@ export const useNotesStore = defineStore("notes", {
         throw error;
       }
     },
+
     async addEntry(entryTitle: string, entryContent: string, folderId: string) {
       try {
         if (!entryTitle) return;
@@ -268,9 +384,11 @@ export const useNotesStore = defineStore("notes", {
 
         const timestamp = Date.now();
         const date = new Date().toISOString();
+        const userId = await this.getUserId();
+        const entryId = generateUUID();
 
         const newEntry: JournalEntry = {
-          id: generateUUID(),
+          id: entryId,
           title: entryTitle,
           content: entryContent,
           status: "active",
@@ -281,10 +399,19 @@ export const useNotesStore = defineStore("notes", {
           timestamp: timestamp,
         };
 
-        if (navigator.onLine) {
+        if (navigator.onLine && userId) {
+          const { error } = await supabase.from('journal_entries').insert({
+            id: entryId,
+            user_id: userId,
+            title: entryTitle,
+            content: entryContent,
+            folder_id: folderId,
+            status: "active",
+          });
+
+          if (error) throw error;
+
           newEntry.syncStatus = "synced";
-          const docRef = doc(fireDb, "entries", newEntry.id)
-          await setDoc(docRef, newEntry)
           await db.createEntry(newEntry);
           this.journalEntries = [...this.journalEntries, newEntry];
           this.error = null;
@@ -299,6 +426,7 @@ export const useNotesStore = defineStore("notes", {
         console.error("Failed to add entry:", err);
       }
     },
+
     async editJournalEntry(entryId: string, updates: Partial<JournalEntry>) {
       try {
         if (!entryId) throw new Error("Missing entry id");
@@ -319,14 +447,25 @@ export const useNotesStore = defineStore("notes", {
         };
 
         if (navigator.onLine) {
-          const docRef = doc(fireDb, "entries", entryId)
-          await updateDoc(docRef, updatedEntry)
+          const { error } = await supabase
+            .from('journal_entries')
+            .update({
+              title: updatedEntry.title,
+              content: updatedEntry.content,
+              status: updatedEntry.status,
+              folder_id: updatedEntry.folderId || null,
+            })
+            .eq('id', entryId);
+
+          if (error) throw error;
+
+          (updatedEntry as { syncStatus: string }).syncStatus = "synced";
           await db.updateEntry(entryId, updatedEntry);
           this.journalEntries[entryIndex] = updatedEntry;
           this.error = null;
           return;
         }
-        
+
         await db.updateEntry(entryId, updatedEntry);
         this.journalEntries[entryIndex] = updatedEntry;
         this.error = null;
@@ -347,9 +486,17 @@ export const useNotesStore = defineStore("notes", {
         if (entryIndex === -1) throw new Error("Journal entry not found!");
 
         if (navigator.onLine) {
-          await deleteDoc(doc(fireDb, "entries", entryId));
+          const { error } = await supabase
+            .from('journal_entries')
+            .delete()
+            .eq('id', entryId);
+
+          if (error) throw error;
+
           await db.deleteEntry(entryId);
-        } else await db.markForDeletion('journal', entryId);
+        } else {
+          await db.markForDeletion('journal', entryId);
+        }
 
         this.journalEntries.splice(entryIndex, 1);
         this.error = null;
