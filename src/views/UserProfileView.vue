@@ -8,13 +8,15 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const loading = ref(false)
-const editingName = ref(false)
-const editingEmail = ref(false)
 const userName = ref('')
 const userEmail = ref('')
+const showLogoutConfirm = ref(false)
+
+// Edit State
+const showEditName = ref(false)
+const showEditEmail = ref(false)
 const newName = ref('')
 const newEmail = ref('')
-const showLogoutConfirm = ref(false)
 
 // Password Change State
 const showChangePassword = ref(false)
@@ -36,8 +38,6 @@ onMounted(async () => {
     if (session?.user) {
       userEmail.value = session.user.email || ''
       userName.value = session.user.user_metadata?.name || session.user.user_metadata?.full_name || ''
-      newName.value = userName.value
-      newEmail.value = userEmail.value
     }
   } catch (error) {
     console.error('Error loading profile:', error)
@@ -46,9 +46,10 @@ onMounted(async () => {
   }
 })
 
+// Name Logic
 const startEditName = () => {
   newName.value = userName.value
-  editingName.value = true
+  showEditName.value = true
 }
 
 const saveName = async () => {
@@ -63,7 +64,7 @@ const saveName = async () => {
     if (error) throw error
     
     userName.value = newName.value.trim()
-    editingName.value = false
+    showEditName.value = false
   } catch (error) {
     console.error('Error updating name:', error)
   } finally {
@@ -71,20 +72,15 @@ const saveName = async () => {
   }
 }
 
-const cancelEdit = () => {
-  newName.value = userName.value
-  editingName.value = false
-}
-
 // Email Logic
 const startEditEmail = () => {
   newEmail.value = userEmail.value
-  editingEmail.value = true
+  showEditEmail.value = true
 }
 
 const saveEmail = async () => {
   if (!newEmail.value.trim() || newEmail.value === userEmail.value) {
-    editingEmail.value = false
+    showEditEmail.value = false
     return
   }
 
@@ -97,18 +93,13 @@ const saveEmail = async () => {
     if (error) throw error
 
     alert('A confirmation email has been sent to your new address. Please check your inbox to complete the update.')
-    editingEmail.value = false
+    showEditEmail.value = false
   } catch (error: any) {
     console.error('Error updating email:', error)
     alert(error.message || 'Failed to update email')
   } finally {
     loading.value = false
   }
-}
-
-const cancelEditEmail = () => {
-  newEmail.value = userEmail.value
-  editingEmail.value = false
 }
 
 // Password Logic
@@ -197,50 +188,19 @@ const handleLogout = async () => {
           
           <div class="user-info">
             <!-- Name Section -->
-            <div v-if="!editingName" class="name-display">
+            <div class="name-display">
               <h2 class="user-name">{{ userName || 'Set your name' }}</h2>
               <button class="edit-btn" @click="startEditName" title="Edit Name">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
               </button>
             </div>
             
-            <div v-else class="edit-name-form">
-              <input
-                v-model="newName"
-                type="text"
-                placeholder="Enter your name"
-                class="name-input"
-                @keydown.enter="saveName"
-                @keydown.escape="cancelEdit"
-                autoFocus
-              />
-              <div class="edit-actions">
-                <button class="btn-save" @click="saveName">Save</button>
-                <button class="btn-cancel" @click="cancelEdit">Cancel</button>
-              </div>
-            </div>
-            
             <!-- Email Section -->
-            <div v-if="!editingEmail" class="email-display">
+            <div class="email-display">
               <p class="user-email">{{ userEmail }}</p>
               <button class="edit-btn" @click="startEditEmail" title="Edit Email">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
               </button>
-            </div>
-
-            <div v-else class="edit-name-form">
-              <input
-                v-model="newEmail"
-                type="email"
-                placeholder="Enter your email"
-                class="name-input"
-                @keydown.enter="saveEmail"
-                @keydown.escape="cancelEditEmail"
-              />
-              <div class="edit-actions">
-                <button class="btn-save" @click="saveEmail">Save</button>
-                <button class="btn-cancel" @click="cancelEditEmail">Cancel</button>
-              </div>
             </div>
           </div>
         </div>
@@ -264,6 +224,58 @@ const handleLogout = async () => {
         </div>
       </div>
     </div>
+
+    <!-- Edit Name Sheet -->
+    <transition name="slide-up">
+      <div v-if="showEditName" class="sheet-overlay" @click.self="showEditName = false">
+        <div class="sheet-content">
+          <div class="sheet-header">
+            <h3>Edit Name</h3>
+            <button class="close-btn" @click="showEditName = false">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+          
+          <div class="sheet-body">
+            <div class="input-group">
+              <label>Full Name</label>
+              <input v-model="newName" type="text" placeholder="Enter your name" class="sheet-input" @keydown.enter="saveName" />
+            </div>
+
+            <button class="btn-save sheet-save-btn" @click="saveName" :disabled="loading">
+              {{ loading ? 'Saving...' : 'Save Changes' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- Edit Email Sheet -->
+    <transition name="slide-up">
+      <div v-if="showEditEmail" class="sheet-overlay" @click.self="showEditEmail = false">
+        <div class="sheet-content">
+          <div class="sheet-header">
+            <h3>Edit Email</h3>
+            <button class="close-btn" @click="showEditEmail = false">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+          
+          <div class="sheet-body">
+            <div class="input-group">
+              <label>Email Address</label>
+              <input v-model="newEmail" type="email" placeholder="Enter your email" class="sheet-input" @keydown.enter="saveEmail" />
+            </div>
+            
+            <p class="info-text">You will need to confirm the new email address.</p>
+
+            <button class="btn-save sheet-save-btn" @click="saveEmail" :disabled="loading">
+              {{ loading ? 'Saving...' : 'Update Email' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
 
     <!-- Slide-up Change Password Sheet -->
     <transition name="slide-up">
@@ -531,72 +543,6 @@ const handleLogout = async () => {
   height: 16px;
 }
 
-.edit-name-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  width: 100%;
-  max-width: 280px;
-  margin: 0 auto;
-}
-
-.name-input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 2px solid #fbcfe8;
-  border-radius: 12px;
-  font-size: 1.1rem;
-  text-align: center;
-  font-weight: 500;
-  color: #1f2937;
-  background: rgba(255, 255, 255, 0.8);
-  transition: all 0.2s;
-  outline: none;
-}
-
-.name-input:focus {
-  border-color: #db2777;
-  box-shadow: 0 0 0 4px rgba(219, 39, 119, 0.1);
-  background: white;
-}
-
-.edit-actions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.btn-save, .btn-cancel, .btn-danger {
-  flex: 1;
-  padding: 0.75rem;
-  border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-save {
-  background: #db2777;
-  color: white;
-  box-shadow: 0 4px 12px rgba(219, 39, 119, 0.25);
-}
-
-.btn-save:hover {
-  background: #be185d;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(219, 39, 119, 0.35);
-}
-
-.btn-cancel {
-  background: #f3f4f6;
-  color: #4b5563;
-}
-
-.btn-cancel:hover {
-  background: #e5e7eb;
-}
-
 .divider {
   width: 100%;
   height: 1px;
@@ -837,11 +783,33 @@ const handleLogout = async () => {
   margin-top: 1rem;
   padding: 1rem;
   font-size: 1.1rem;
+  border: none;
+  border-radius: 12px;
+  background: #db2777;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(219, 39, 119, 0.25);
+}
+
+.sheet-save-btn:hover {
+  background: #be185d;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(219, 39, 119, 0.35);
 }
 
 .sheet-save-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+  transform: none;
+}
+
+.info-text {
+  color: #6b7280;
+  font-size: 0.9rem;
+  text-align: center;
+  margin: -0.5rem 0 0;
 }
 
 .error-msg {
@@ -881,5 +849,35 @@ const handleLogout = async () => {
 .slide-up-enter-from .sheet-content,
 .slide-up-leave-to .sheet-content {
   transform: translateY(100%);
+}
+
+.btn-save, .btn-cancel {
+  flex: 1;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-save {
+  background: #db2777;
+  color: white;
+  box-shadow: 0 4px 12px rgba(219, 39, 119, 0.25);
+}
+
+.btn-save:hover {
+  background: #be185d;
+}
+
+.btn-cancel {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.btn-cancel:hover {
+  background: #e5e7eb;
 }
 </style>
