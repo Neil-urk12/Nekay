@@ -18,7 +18,7 @@
           >
             {{ new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
           </div>
-          <div class="message-status" v-if="message.isSelf">✓✓</div>
+          <div class="message-status" v-if="message.isSelf"><CheckCheck :size="14" /></div>
         </div>
       </div>
     </template>
@@ -26,8 +26,9 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { RecycleScroller } from 'vue-virtual-scroller'
+import { CheckCheck } from 'lucide-vue-next'
 
 const props = defineProps<{ messages: any[]; messageTimestampsVisible: Record<string, boolean> }>()
 const scrollerRef = ref<any>(null)

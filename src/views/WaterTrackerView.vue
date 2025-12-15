@@ -34,7 +34,7 @@ const goalStatus = computed(() => {
   if (currentWater.value < minGoal) {
     return `${minGoal - currentWater.value}ml below minimum goal`;
   } else if (currentWater.value <= maxGoal) {
-    return "Within recommended range! 👍";
+    return "Within recommended range!";
   } else {
     return `${currentWater.value - maxGoal}ml above maximum goal`;
   }

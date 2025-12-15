@@ -3,6 +3,7 @@ import { ref, computed, onMounted, defineAsyncComponent } from "vue";
 import { useRoute } from "vue-router";
 import { useNotesStore } from "../stores/notes";
 import { Task } from "../composables/interfaces";
+import { Pencil, Trash2 } from "lucide-vue-next";
 const ReturnButton = defineAsyncComponent(() => import("../components/ReturnButton.vue"));
 
 const route = useRoute();
@@ -159,8 +160,8 @@ onMounted(async () => {
             />
             <span class="task-content">{{ task.taskContent }}</span>
             <div class="task-actions">
-              <button class="icon-btn" @click="editTask(task)">✏️</button>
-              <button class="icon-btn" @click="deleteTask(task.id)">🗑️</button>
+              <button class="icon-btn" @click="editTask(task)"><Pencil :size="18" /></button>
+              <button class="icon-btn" @click="deleteTask(task.id)"><Trash2 :size="18" /></button>
             </div>
           </template>
         </div>

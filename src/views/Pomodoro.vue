@@ -7,6 +7,7 @@ import {
   ref,
 } from "vue";
 import { useTimerStore } from "../stores/timerStore";
+import { BarChart3, Target, Play, Pause, RotateCcw, ArrowLeftRight, Timer } from "lucide-vue-next";
 const DarkModeToggle = defineAsyncComponent(
   () => import("../components/DarkModeToggle.vue")
 );
@@ -93,7 +94,7 @@ onUnmounted(() => {
           @click="startTimer"
           aria-label="Start timer"
         >
-          <span class="button-icon" aria-hidden="true">▶</span>
+          <span class="button-icon" aria-hidden="true"><Play :size="16" /></span>
           Start
         </button>
         <button
@@ -102,7 +103,7 @@ onUnmounted(() => {
           @click="pauseTimer"
           aria-label="Pause timer"
         >
-          <span class="button-icon" aria-hidden="true">⏸</span>
+          <span class="button-icon" aria-hidden="true"><Pause :size="16" /></span>
           Pause
         </button>
         <button
@@ -110,7 +111,7 @@ onUnmounted(() => {
           @click="resetTimer"
           aria-label="Reset timer"
         >
-          <span class="button-icon" aria-hidden="true">↺</span>
+          <span class="button-icon" aria-hidden="true"><RotateCcw :size="16" /></span>
           Reset
         </button>
         <button
@@ -124,7 +125,7 @@ onUnmounted(() => {
               : 'Return to work timer'
           "
         >
-          <span class="button-icon" aria-hidden="true">⇄</span>
+          <span class="button-icon" aria-hidden="true"><ArrowLeftRight :size="16" /></span>
           {{
             store.mode === "work"
               ? "Take Short Break"
@@ -142,16 +143,16 @@ onUnmounted(() => {
         aria-label="Progress statistics"
       >
         <div class="stats-header">
-          <span class="stats-icon" aria-hidden="true">📊</span>
+          <span class="stats-icon" aria-hidden="true"><BarChart3 :size="20" color="#db2777" /></span>
           <h2>Your Progress</h2>
         </div>
         <div class="stats-content">
           <p>
-            <span class="stats-icon" aria-hidden="true">🎯</span>
+            <span class="stats-icon" aria-hidden="true"><Target :size="20" /></span>
             Completed Sessions: {{ store.stats.completedSessions }}
           </p>
           <p>
-            <span class="stats-icon" aria-hidden="true">⏱</span>
+            <span class="stats-icon" aria-hidden="true"><Timer :size="20" /></span>
             Total Focus Time: {{ store.formattedTotalTime }}
           </p>
         </div>

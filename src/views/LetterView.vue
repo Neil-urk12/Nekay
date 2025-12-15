@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
 import { supabase } from '../supabase/supabase-config'
 import { useRouter } from 'vue-router'
+import { Heart, X } from 'lucide-vue-next'
 
 let lrtAudio: HTMLAudioElement | null = null
 let heartsInterval: ReturnType<typeof setInterval> | null = null
@@ -160,7 +161,7 @@ const submitAgreement = async () => {
     <div v-if="!isExpanded" class="letter-cover" @click="toggleExpand">
       <div class="cover-content">
         <div class="arrow top">▼</div>
-        <div class="heart">♥</div>
+        <div class="heart"><Heart :size="64" fill="#d6336c" stroke="#d6336c" /></div>
         <div class="arrow bottom">▼</div>
       </div>
     </div>
@@ -183,7 +184,7 @@ const submitAgreement = async () => {
           <p>
             May our journey together be as enchanting as a starlit night and as warm as the first bloom of spring. I eagerly await each new day wrapped in your loving embrace.
           </p>
-          <p>Happy Valentine's Day Babiee!! Am lovee youuuuuu<b> 💖 </b><br></p>
+          <p>Happy Valentine's Day Babiee!! Am lovee youuuuuu<b> <Heart :size="20" fill="#d6336c" stroke="#d6336c" class="inline-heart" /> </b><br></p>
           <p>
             Thank you for being comforting and caring babie. Thank you for being my safe space. I can't wait to hug and kiss youuu my babiee. I love youuuu my babiee. I'm so grateful for you. I'm so grateful for us. I'm so grateful for our story. I'm so grateful for our love. I'm so grateful for our journey. I'm so grateful for our future. I'm so grateful for youuuu. <br><b>I LOVEEE YOUUUUUU</b>
           </p>
@@ -200,7 +201,7 @@ const submitAgreement = async () => {
     </div>
     <div class="button-container" :class="hiddenClass">
       <div class="accept-section">
-        <button class="heart-button" @click="acceptLove">&#10084; Accept</button>
+        <button class="heart-button" @click="acceptLove"><Heart :size="18" /> Accept</button>
         <span v-if="showFinalMessage" class="final-message">
           This is your only choice &#128521;
         </span>
@@ -208,7 +209,7 @@ const submitAgreement = async () => {
       <button v-if="!isDeclineHidden"
               class="decline-button"
               @click="declineLove"
-              :style="declineButtonStyle">&#128148; Decline</button>
+              :style="declineButtonStyle"><X :size="18" /> Decline</button>
     </div>
 
     <div
@@ -216,7 +217,7 @@ const submitAgreement = async () => {
       :key="heart.id"
       class="floating-heart"
       :style="{ left: heart.left + '%', ...heart.style }">
-      ♥
+      <Heart :size="32" fill="#d6336c" stroke="#d6336c" />
     </div>
 
     <transition name="fade">
