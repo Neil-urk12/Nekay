@@ -7,6 +7,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 const myNickname = 'bubu1112041823'
 const route = useRoute()
 const nicknameParam = route.params.nickname as string
+const currentUserId = ref<string | null>(null)
 
 interface Profile { avatar: string; username: string; bio: string; highlights: { image: string; label: string }[]; posts: string[] }
 const profile = ref<Profile>({ avatar: '', username: '', bio: '', highlights: [], posts: [] })
@@ -16,6 +17,10 @@ const newPostUrl = ref('')
 let postsChannel: RealtimeChannel | null = null;
 
 const loadProfile = async () => {
+  // Get current user
+  const { data: { session } } = await supabase.auth.getSession();
+  currentUserId.value = session?.user?.id || null;
+  
   // Load profile
   const { data: profileData, error: profileError } = await supabase
     .from('profiles')
@@ -73,8 +78,13 @@ const loadProfile = async () => {
 
 const addPost = async () => {
   if (!newPostUrl.value.trim()) return
+  if (!currentUserId.value) {
+    console.error('Not authenticated');
+    return;
+  }
   
   const { error } = await supabase.from('profile_posts').insert({
+    user_id: currentUserId.value,
     profile_nickname: nicknameParam,
     url: newPostUrl.value.trim(),
   });

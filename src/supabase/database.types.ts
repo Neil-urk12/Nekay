@@ -191,29 +191,46 @@ export interface Database {
             messages: {
                 Row: {
                     id: string;
-                    content: string;
-                    timestamp: string;
+                    conversation_id: string;
                     sender_id: string;
-                    sender_nickname: string;
-                    receiver_nickname: string;
+                    content: string;
+                    read_by: string[] | null;
                     created_at: string;
                 };
                 Insert: {
                     id?: string;
-                    content: string;
-                    timestamp?: string;
+                    conversation_id: string;
                     sender_id: string;
-                    sender_nickname: string;
-                    receiver_nickname: string;
+                    content: string;
+                    read_by?: string[] | null;
                     created_at?: string;
                 };
                 Update: {
                     id?: string;
-                    content?: string;
-                    timestamp?: string;
+                    conversation_id?: string;
                     sender_id?: string;
-                    sender_nickname?: string;
-                    receiver_nickname?: string;
+                    content?: string;
+                    read_by?: string[] | null;
+                    created_at?: string;
+                };
+            };
+            conversations: {
+                Row: {
+                    id: string;
+                    user1_id: string;
+                    user2_id: string;
+                    created_at: string;
+                };
+                Insert: {
+                    id?: string;
+                    user1_id: string;
+                    user2_id: string;
+                    created_at?: string;
+                };
+                Update: {
+                    id?: string;
+                    user1_id?: string;
+                    user2_id?: string;
                     created_at?: string;
                 };
             };
@@ -275,18 +292,21 @@ export interface Database {
             profile_posts: {
                 Row: {
                     id: string;
+                    user_id: string;
                     profile_nickname: string;
                     url: string;
                     created_at: string;
                 };
                 Insert: {
                     id?: string;
+                    user_id: string;
                     profile_nickname: string;
                     url: string;
                     created_at?: string;
                 };
                 Update: {
                     id?: string;
+                    user_id?: string;
                     profile_nickname?: string;
                     url?: string;
                     created_at?: string;
