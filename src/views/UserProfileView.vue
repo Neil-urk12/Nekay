@@ -21,10 +21,24 @@ const newEmail = ref('')
 
 // Password Change State
 const showChangePassword = ref(false)
+const currentPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
 const passwordError = ref('')
 const passwordSuccess = ref('')
+
+// Password strength validation
+const passwordStrength = computed(() => {
+  const password = newPassword.value
+  return {
+    hasLowercase: /[a-z]/.test(password),
+    hasUppercase: /[A-Z]/.test(password),
+    hasDigit: /[0-9]/.test(password),
+    hasSymbol: /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/;'`~]/.test(password),
+    minLength: password.length >= 8
+  }
+})
+
 
 const userInitial = computed(() => {
   if (userName.value) return userName.value.charAt(0).toUpperCase()
@@ -125,6 +139,7 @@ const saveEmail = async () => {
 
 // Password Logic
 const openChangePassword = () => {
+  currentPassword.value = ''
   newPassword.value = ''
   confirmPassword.value = ''
   passwordError.value = ''
@@ -136,8 +151,21 @@ const savePassword = async () => {
   passwordError.value = ''
   passwordSuccess.value = ''
 
-  if (newPassword.value.length < 6) {
-    passwordError.value = 'Password must be at least 6 characters long'
+  // Validate current password is provided
+  if (!currentPassword.value) {
+    passwordError.value = 'Please enter your current password'
+    return
+  }
+
+  const { hasLowercase, hasUppercase, hasDigit, hasSymbol, minLength } = passwordStrength.value
+
+  if (!minLength) {
+    passwordError.value = 'Password must be at least 8 characters long'
+    return
+  }
+
+  if (!hasLowercase || !hasUppercase || !hasDigit || !hasSymbol) {
+    passwordError.value = 'Password must contain at least 1 lowercase, 1 uppercase, 1 digit, and 1 symbol'
     return
   }
 
@@ -148,6 +176,19 @@ const savePassword = async () => {
 
   loading.value = true
   try {
+    // First, reauthenticate with current password
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: userEmail.value,
+      password: currentPassword.value
+    })
+
+    if (signInError) {
+      passwordError.value = 'Current password is incorrect'
+      loading.value = false
+      return
+    }
+
+    // Now update the password
     const { error } = await supabase.auth.updateUser({
       password: newPassword.value
     })
@@ -275,8 +316,47 @@ const handleLogout = async () => {
     <!-- Slide-up Change Password Sheet -->
     <SlideUpSheet :show="showChangePassword" title="Change Password" @close="showChangePassword = false">
       <div class="input-group">
+        <label>Current Password</label>
+        <input v-model="currentPassword" type="password" placeholder="Enter your current password" class="sheet-input" />
+      </div>
+      
+      <div class="input-group">
         <label>New Password</label>
-        <input v-model="newPassword" type="password" placeholder="Min. 6 characters" class="sheet-input" />
+        <input v-model="newPassword" type="password" placeholder="Min. 8 characters" class="sheet-input" />
+      </div>
+
+      <!-- Password Strength Meter -->
+      <div v-if="newPassword" class="password-strength-meter">
+        <div class="strength-requirement" :class="{ 'met': passwordStrength.minLength }">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="check-icon">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>At least 8 characters</span>
+        </div>
+        <div class="strength-requirement" :class="{ 'met': passwordStrength.hasLowercase }">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="check-icon">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>One lowercase letter</span>
+        </div>
+        <div class="strength-requirement" :class="{ 'met': passwordStrength.hasUppercase }">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="check-icon">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>One uppercase letter</span>
+        </div>
+        <div class="strength-requirement" :class="{ 'met': passwordStrength.hasDigit }">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="check-icon">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>One digit (0-9)</span>
+        </div>
+        <div class="strength-requirement" :class="{ 'met': passwordStrength.hasSymbol }">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="check-icon">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>One symbol (!@#$%^&*...)</span>
+        </div>
       </div>
       
       <div class="input-group">
@@ -779,4 +859,47 @@ const handleLogout = async () => {
 .btn-cancel:hover {
   background: #e5e7eb;
 }
+
+/* Password Strength Meter */
+.password-strength-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 12px;
+  margin-top: 0.75rem;
+}
+
+.strength-requirement {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #9ca3af;
+  transition: all 0.3s ease;
+}
+
+.strength-requirement .check-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  opacity: 0.3;
+  transition: all 0.3s ease;
+}
+
+.strength-requirement.met {
+  color: #059669;
+  font-weight: 500;
+}
+
+.strength-requirement.met .check-icon {
+  opacity: 1;
+  stroke: #059669;
+}
+
+.strength-requirement span {
+  line-height: 1.4;
+}
+
 </style>
