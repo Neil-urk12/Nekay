@@ -3,7 +3,7 @@ import { ref, computed, onMounted, defineAsyncComponent } from "vue";
 import { useRoute } from "vue-router";
 import { useNotesStore } from "../stores/notes";
 import { Task } from "../composables/interfaces";
-import { Pencil, Trash2 } from "lucide-vue-next";
+import TaskItem from "../components/TaskItem.vue";
 const SlideUpSheet = defineAsyncComponent(() => import("../components/SlideUpSheet.vue"));
 const FloatingActionButton = defineAsyncComponent(() => import("../components/FloatingActionButton.vue"));
 
@@ -15,8 +15,11 @@ const tasks = computed(() => [...taskStore.getTasks]);
 const folderId = computed(() => route.params.id as string);
 const newTask = ref("");
 const showAddSheet = ref(false);
-const editingTask = ref<string | null>(null);
-const editedContent = ref("");
+
+// Edit State
+const showEditSheet = ref(false);
+const editingTaskContent = ref("");
+const editingTaskId = ref<string | null>(null);
 
 const currentFolder = computed(() =>
   folders.value.find((f) => f.id === folderId.value)
@@ -41,34 +44,29 @@ const addTask = async () => {
   }
 };
 
-const editTask = async (task: Task) => {
-  editingTask.value = task.id;
-  editedContent.value = task.taskContent;
+const editTask = (task: Task) => {
+  editingTaskId.value = task.id;
+  editingTaskContent.value = task.taskContent;
+  showEditSheet.value = true;
 };
 
-const saveEdit = async (task: Task) => {
+const saveEdit = async () => {
   try {
-    if (
-      !editedContent.value.trim() ||
-      editedContent.value === task.taskContent
-    ) {
-      editingTask.value = null;
+    if (!editingTaskId.value || !editingTaskContent.value.trim()) {
+      showEditSheet.value = false;
       return;
     }
 
-    await taskStore.editTask(task.id, {
-      taskContent: editedContent.value.trim(),
+    await taskStore.editTask(editingTaskId.value, {
+      taskContent: editingTaskContent.value.trim(),
     });
 
-    editingTask.value = null;
+    showEditSheet.value = false;
+    editingTaskId.value = null;
+    editingTaskContent.value = "";
   } catch (err) {
     console.error("Error editing task: ", err);
   }
-};
-
-const cancelEdit = () => {
-  editingTask.value = null;
-  editedContent.value = "";
 };
 
 const toggleTask = async (task: Task) => {
@@ -109,62 +107,15 @@ onMounted(async () => {
 
     <div class="tasks-container">
       <div class="tasks-list">
-        <div
+        <TaskItem
           v-for="task in folderTasks"
           :key="task.id"
-          class="task-item"
-          :class="{ completed: task.completed }"
-          @change="toggleTask(task)"
-        >
-          <template v-if="editingTask === task.id">
-            <input
-              v-model="editedContent"
-              @keyup.enter="saveEdit(task)"
-              @keyup.esc="cancelEdit"
-              class="edit-input"
-              ref="editInput"
-              v-focus
-            />
-            <div class="task-actions">
-              <button class="icon-btn" @click="saveEdit(task)">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 448 512"
-                  width="0.95rem"
-                >
-                  <path
-                    fill="#63E6BE"
-                    d="M438.6 105.4c12.5 12.5 12.5 32.8 0 45.3l-256 256c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L160 338.7 393.4 105.4c12.5-12.5 32.8-12.5 45.3 0z"
-                  />
-                </svg>
-              </button>
-              <button class="icon-btn" @click="cancelEdit">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 384 512"
-                  width="0.95rem"
-                >
-                  <path
-                    fill="#f66151"
-                    d="M378.4 71.4c8.5-10.1 7.2-25.3-2.9-33.8s-25.3-7.2-33.8 2.9L192 218.7 42.4 40.6C33.9 30.4 18.7 29.1 8.6 37.6S-2.9 61.3 5.6 71.4L160.7 256 5.6 440.6c-8.5 10.2-7.2 25.3 2.9 33.8s25.3 7.2 33.8-2.9L192 293.3 341.6 471.4c8.5 10.2 23.7 11.5 33.8 2.9s11.5-23.7 2.9-33.8L223.3 256l155-184.6z"
-                  />
-                </svg>
-              </button>
-            </div>
-          </template>
-          <template v-else>
-            <input
-              type="checkbox"
-              :checked="task.completed"
-              @change="toggleTask(task)"
-            />
-            <span class="task-content">{{ task.taskContent }}</span>
-            <div class="task-actions">
-              <button class="icon-btn" @click="editTask(task)"><Pencil :size="18" /></button>
-              <button class="icon-btn" @click="deleteTask(task.id)"><Trash2 :size="18" /></button>
-            </div>
-          </template>
-        </div>
+          :task="task"
+          :is-editing="false"
+          @toggle="toggleTask"
+          @edit="editTask"
+          @delete="deleteTask"
+        />
       </div>
     </div>
 
@@ -184,6 +135,20 @@ onMounted(async () => {
         <button @click="addTask" class="btn-primary sheet-btn">Add Task</button>
       </div>
     </SlideUpSheet>
+
+    <!-- Slide Up Sheet for Editing Task -->
+    <SlideUpSheet :show="showEditSheet" title="Edit Task" @close="showEditSheet = false">
+      <div class="sheet-form">
+        <input
+          v-model="editingTaskContent"
+          placeholder="Edit task description"
+          @keyup.enter="saveEdit"
+          class="sheet-input"
+          autofocus
+        />
+        <button @click="saveEdit" class="btn-primary sheet-btn">Save Changes</button>
+      </div>
+    </SlideUpSheet>
   </div>
 </template>
 
@@ -193,6 +158,10 @@ onMounted(async () => {
   margin: 0 auto;
   min-height: 100vh;
   background-color: #fce7f3;
+}
+.tasks-list{
+  display: flex;
+  justify-content: center;
 }
 .page-header {
   display: flex;
@@ -225,40 +194,7 @@ onMounted(async () => {
   font-size: 1.5rem;
   color: rgb(219, 39, 119);
 }
-.icon-btn {
-  background: none;
-  padding: 0.25rem 0.5rem;
-}
-.btn-primary {
-  font-weight: bold;
-  color: white;
-}
-.tasks-list {
-  margin-top: 1.5rem;
-}
-.task-item {
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(10px);
-  border-radius: 8px;
-  padding: 1rem;
-  border: 1px solid #e1e3e6;
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.task-content {
-  color: #1a1c1e;
-  flex: 1;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  min-width: 0;
-}
-.task-actions {
-  display: flex;
-  gap: 0.5rem;
-}
+
 
 /* Sheet Form Styles */
 .sheet-form {
