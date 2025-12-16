@@ -124,15 +124,27 @@ export const useTimerStore = defineStore("timer", {
         .toString()
         .padStart(2, "0")}`;
     },
-    playNotificationSound() {
-      const audio = new Audio("/notification.mp3");
-      audio.volume = 0.5;
-      audio.play();
+    async playNotificationSound() {
+      try {
+        const audio = new Audio("/notification.mp3");
+        audio.volume = 0.5;
+        await audio.play();
+      } catch (error) {
+        // Audio playback can fail on mobile browsers without user gesture
+        // or if the audio file is not found. Fail silently with a warning.
+        console.warn("Failed to play notification sound:", error);
+      }
     },
-    playStartSound() {
-      const audio = new Audio('/pomostart.wav')
-      audio.volume = 0.5
-      audio.play()
+    async playStartSound() {
+      try {
+        const audio = new Audio('/pomostart.wav');
+        audio.volume = 0.5;
+        await audio.play();
+      } catch (error) {
+        // Audio playback can fail on mobile browsers without user gesture
+        // or if the audio file is not found. Fail silently with a warning.
+        console.warn("Failed to play start sound:", error);
+      }
     },
 
     // Save individual session to Supabase (Option A approach)
