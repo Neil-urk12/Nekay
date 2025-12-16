@@ -7,7 +7,7 @@ import {
   ref,
 } from "vue";
 import { useTimerStore } from "../stores/timerStore";
-import { BarChart3, Target, Play, Pause, RotateCcw, ArrowLeftRight, Timer } from "lucide-vue-next";
+import { Target, Play, Pause, RotateCcw, ArrowLeftRight, Timer } from "lucide-vue-next";
 const DarkModeToggle = defineAsyncComponent(
   () => import("../components/DarkModeToggle.vue")
 );
@@ -62,14 +62,16 @@ onUnmounted(() => {
 
     <div v-else class="timer-card" :class="{ dark: isDarkMode }">
 
-      <div class="mode-indicator" :class="store.mode">
-        {{
-          store.mode === "work"
-            ? "Work Time"
-            : store.mode === "shortBreak"
-            ? "Short Break Time"
-            : "Long Break Time"
-        }}
+      <div class="mode-indicator-wrapper">
+        <div class="mode-indicator" :class="store.mode">
+          {{
+            store.mode === "work"
+              ? "Work Time"
+              : store.mode === "shortBreak"
+              ? "Short Break Time"
+              : "Long Break Time"
+          }}
+        </div>
       </div>
 
       <div
@@ -88,75 +90,72 @@ onUnmounted(() => {
       </div>
 
       <div class="timer-controls" role="group" aria-label="Timer controls">
-        <button
-          v-if="!isRunning"
-          class="control-button primary"
-          @click="startTimer"
-          aria-label="Start timer"
-        >
-          <span class="button-icon" aria-hidden="true"><Play :size="16" /></span>
-          Start
-        </button>
-        <button
-          v-else
-          class="control-button secondary"
-          @click="pauseTimer"
-          aria-label="Pause timer"
-        >
-          <span class="button-icon" aria-hidden="true"><Pause :size="16" /></span>
-          Pause
-        </button>
-        <button
-          class="control-button secondary"
-          @click="resetTimer"
-          aria-label="Reset timer"
-        >
-          <span class="button-icon" aria-hidden="true"><RotateCcw :size="16" /></span>
-          Reset
-        </button>
-        <button
-          class="control-button secondary"
-          @click="toggleMode"
-          :aria-label="
-            store.mode === 'work'
-              ? 'Switch to short break timer'
-              : store.mode === 'shortBreak'
-              ? 'Return to work timer'
-              : 'Return to work timer'
-          "
-        >
-          <span class="button-icon" aria-hidden="true"><ArrowLeftRight :size="16" /></span>
-          {{
-            store.mode === "work"
-              ? "Take Short Break"
-              : store.mode === "shortBreak"
-              ? "Return to Work"
-              : "Return to Work"
-          }}
-        </button>
+        <div class="primary-controls">
+           <button
+            v-if="!isRunning"
+            class="control-button primary icon-only-large"
+            @click="startTimer"
+            aria-label="Start timer"
+          >
+            <span class="button-icon" aria-hidden="true"><Play :size="32" /></span>
+          </button>
+          <button
+            v-else
+            class="control-button secondary icon-only-large"
+            @click="pauseTimer"
+            aria-label="Pause timer"
+          >
+            <span class="button-icon" aria-hidden="true"><Pause :size="32" /></span>
+          </button>
+        </div>
+
+        <div class="secondary-controls">
+           <button
+            class="control-button secondary icon-only"
+            @click="resetTimer"
+            aria-label="Reset timer"
+            title="Reset"
+          >
+            <span class="button-icon" aria-hidden="true"><RotateCcw :size="20" /></span>
+          </button>
+          <button
+            class="control-button secondary icon-only"
+            @click="toggleMode"
+            :aria-label="
+              store.mode === 'work'
+                ? 'Switch to short break timer'
+                : store.mode === 'shortBreak'
+                ? 'Return to work timer'
+                : 'Return to work timer'
+            "
+             :title="
+              store.mode === 'work'
+                ? 'Take Short Break'
+                : 'Return to Work'
+            "
+          >
+             <span class="button-icon" aria-hidden="true"><ArrowLeftRight :size="20" /></span>
+          </button>
+        </div>
       </div>
 
       <div
         v-if="store.stats"
-        class="stats-container"
+        class="stats-container minimal"
         role="region"
         aria-label="Progress statistics"
       >
-        <div class="stats-header">
-          <span class="stats-icon" aria-hidden="true"><BarChart3 :size="20" color="#db2777" /></span>
-          <h2>Your Progress</h2>
-        </div>
-        <div class="stats-content">
-          <p>
-            <span class="stats-icon" aria-hidden="true"><Target :size="20" /></span>
-            Completed Sessions: {{ store.stats.completedSessions }}
-          </p>
-          <p>
-            <span class="stats-icon" aria-hidden="true"><Timer :size="20" /></span>
-            Total Focus Time: {{ store.formattedTotalTime }}
-          </p>
-        </div>
+         <div class="stats-item">
+            <span class="stats-icon" aria-hidden="true"><Target :size="18" /></span>
+            <span>{{ store.stats.completedSessions }}</span>
+         </div>
+          <div class="stats-divider">|</div>
+         <div class="stats-item">
+            <span class="stats-icon" aria-hidden="true"><Timer :size="18" /></span>
+            <span>{{ store.formattedTotalTime }}</span>
+         </div>
       </div>
+
       <div
         v-if="isRunning"
         class="dancing-melody"
@@ -188,13 +187,19 @@ onUnmounted(() => {
   top: -2.8rem;
   width: 12rem;
 }
+.mode-indicator-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
 .mode-indicator {
+  display: inline-block;
   text-align: center;
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: bold;
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  margin-bottom: 1rem;
+  padding: 0.4rem 1.5rem;
+  border-radius: 9999px; /* Pill shape */
+  margin: 0 auto 0.5rem auto; /* Center horizontally */
 }
 .mode-indicator.work {
   background-color: #f472b6;
@@ -214,57 +219,39 @@ onUnmounted(() => {
 }
 .timer-display {
   position: relative;
-  font-size: 3.75rem;
-  font-weight: bold;
+  font-size: 4rem; /* Slightly larger */
+  font-weight: 800; /* Bolder */
   text-align: center;
   color: #db2777;
   background-color: #fdf2f8;
   border-radius: 1rem;
-  padding: 1.5rem;
+  padding: 2rem 1.5rem; /* More padding */
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
   overflow: hidden;
+  margin-bottom: 1rem;
 }
 .progress-bar {
   position: absolute;
   bottom: 0;
   left: 0;
-  height: 4px;
+  height: 6px; /* Slightly thicker */
   background-color: #f472b6;
   transition: width 1s linear;
 }
 .progress-bar.break {
   background-color: #60a5fa;
 }
-.keyboard-shortcuts {
-  background-color: #fdf2f8;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  margin-top: 1rem;
-  font-size: 0.875rem;
-}
-.keyboard-shortcuts p {
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-}
-.keyboard-shortcuts ul {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-}
-.keyboard-shortcuts li {
-  margin: 0.25rem 0;
-}
 .timer-card {
   background-color: white;
   border-radius: 1.5rem;
-  padding: 1.5rem;
+  padding: 2rem 1.5rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   max-width: 24rem;
   margin: 4.5rem 0 0 0;
   border: 4px solid #fbcfe8;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
 }
 .timer-card.dark {
   background-color: #2d2d2d;
@@ -272,28 +259,56 @@ onUnmounted(() => {
 }
 .timer-controls {
   display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
   gap: 1rem;
+  width: 100%;
 }
+.primary-controls {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+.secondary-controls {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
 .control-button {
-  padding: 0.75rem 2rem;
   border-radius: 9999px;
-  font-weight: 500;
+  font-weight: 600;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  transition: background-color 0.3s;
+  transition: all 0.2s ease;
 }
+
+.control-button.icon-only-large {
+    padding: 1rem;
+    border-radius: 50%; /* Circle button */
+    width: 4.5rem;
+    height: 4.5rem;
+}
+
+.control-button.icon-only {
+    padding: 0.75rem;
+    border-radius: 50%; /* Circle buttons */
+    width: 3rem;
+    height: 3rem;
+}
+
 .control-button.primary {
-  background-color: #f472b6;
+  background-color: #da5add; /* More vibrant purple/pink match */
   color: white;
 }
 .control-button.primary:hover {
-  background-color: #db2777;
+  background-color: #c026d3;
+  transform: translateY(-2px);
 }
 .control-button.secondary {
   background-color: #fbcfe8;
@@ -301,43 +316,36 @@ onUnmounted(() => {
 }
 .control-button.secondary:hover {
   background-color: #f9a8d4;
+  transform: scale(1.05);
 }
 .button-icon {
-  font-size: 1.25rem;
-}
-.stats-container {
-  background-color: #fdf2f8;
-  border-radius: 1rem;
-  padding: 1.5rem;
-  border: 2px solid #fbcfe8;
-}
-.stats-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
 }
-.stats-header h2 {
-  font-size: 1.25rem;
-  font-weight: bold;
+
+.stats-container.minimal {
+  background-color: transparent; /* Remove container bg */
+  border: none;
+  padding: 0.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
   color: #db2777;
-  margin: 0;
+  font-weight: 500;
+  margin-top: 0.5rem;
 }
-.stats-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  color: #be185d;
+
+.stats-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
-.stats-content p {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0;
+
+.stats-divider {
+    opacity: 0.5;
 }
-.stats-icon {
-  font-size: 1.25rem;
-}
+
 .dancing-melody {
   position: absolute;
   color: black;
@@ -354,18 +362,10 @@ onUnmounted(() => {
   border: #d46e98 1px dashed;
   padding: 0.5rem;
   border-radius: 0.5rem;
+  background: white; /* readability */
 }
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
+
+/* Dark mode overrides */
 .dark .mode-indicator.work {
   background-color: #d946ef;
 }
@@ -376,21 +376,11 @@ onUnmounted(() => {
   background-color: #3d3d3d;
   color: #f472b6;
 }
-.dark .stats-container {
-  background-color: #3d3d3d;
-  border-color: #4a4a4a;
-}
-.dark .stats-header h2 {
-  color: #f472b6;
-}
-.dark .stats-content {
+.dark .stats-container.minimal {
   color: #f9a8d4;
 }
 .dark .control-button.primary {
   background-color: #d946ef;
-}
-.dark .control-button.primary:hover {
-  background-color: #c026d3;
 }
 .dark .control-button.secondary {
   background-color: #4a4a4a;
@@ -401,5 +391,7 @@ onUnmounted(() => {
 }
 .focus-time.dark {
   color: #f472b6;
+  background: #2d2d2d;
+  border-color: #f472b6;
 }
 </style>
