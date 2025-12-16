@@ -79,14 +79,14 @@ const route = useRoute();
   width: 100%;
   background-color: white;
   border-top: 1px solid #fbcfe8;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0rem;
 }
 .nav-container {
   display: flex;
-  justify-content: space-around;
   align-items: center;
 }
 .nav-link {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
