@@ -9,17 +9,17 @@ const generateSWConfig = {
   globPatterns: ["**/*.{html,js,css,png,jpg,jpeg,gif,svg,webp,wav,mp3,json}"],
   runtimeCaching: [
     {
-      urlPattern: /firestore\.googleapis\.com/,
+      urlPattern: /\.supabase\.co\/rest\/v1\//,
       handler: "NetworkFirst",
       options: {
-        cacheName: "firestore-cache-v1",
+        cacheName: "supabase-api-cache-v1",
         networkTimeoutSeconds: 10,
         expiration: {
           maxEntries: 100,
           maxAgeSeconds: 24 * 60 * 60 // 24 hours
         },
         backgroundSync: {
-          name: 'firestoreSync',
+          name: 'supabaseSync',
           options: {
             maxRetentionTime: 24 * 60 // Retry for up to 24 hours
           }
@@ -27,10 +27,10 @@ const generateSWConfig = {
       }
     },
     {
-      urlPattern: /identitytoolkit\.googleapis\.com/,
+      urlPattern: /\.supabase\.co\/auth\/v1\//,
       handler: "NetworkOnly",
       options: {
-        cacheName: "firebase-auth-cache",
+        cacheName: "supabase-auth-cache",
       },
     },
     {
@@ -51,7 +51,7 @@ const generateSWConfig = {
         cacheName: "assets-cache-v1",
         expiration: {
           maxEntries: 100,
-          maxAgeSeconds: 7 * 24 * 60 * 60, 
+          maxAgeSeconds: 7 * 24 * 60 * 60,
         },
       },
     },
@@ -62,7 +62,7 @@ const generateSWConfig = {
         cacheName: "static-resources-cache-v1",
         expiration: {
           maxEntries: 100,
-          maxAgeSeconds: 7 * 24 * 60 * 60, 
+          maxAgeSeconds: 7 * 24 * 60 * 60,
         }
       },
     },
