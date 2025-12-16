@@ -39,7 +39,7 @@ onMounted(async () => {
   try {
     await initializeApp();
     backgroundStore.determineTimeOfDay();
-    setInterval(() => backgroundStore.determineTimeOfDay, 60000);
+    setInterval(() => backgroundStore.determineTimeOfDay(), 60000);
     await Promise.allSettled([
       notesStore.initializeStore(),
       authStore.setUser(),
