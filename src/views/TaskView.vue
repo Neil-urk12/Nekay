@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, defineAsyncComponent } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useNotesStore } from "../stores/notes";
 import { Task } from "../composables/interfaces";
 import { Pencil, Trash2 } from "lucide-vue-next";
-const ReturnButton = defineAsyncComponent(() => import("../components/ReturnButton.vue"));
+
 
 const route = useRoute();
 const taskStore = useNotesStore();
@@ -95,17 +95,22 @@ onMounted(async () => {
   <div
     class="folder-tasks">
     <header class="page-header">
-      <ReturnButton />
+      <button class="back-arrow" @click="$router.push('/folders')" aria-label="Back to folders">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="20" height="20">
+          <path fill="currentColor" d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/>
+        </svg>
+      </button>
       <h1>{{ currentFolder?.name }}</h1>
-      <div class="add-task">
-        <input
-          v-model="newTask"
-          placeholder="New task"
-          @keyup.enter="addTask"
-        />
-        <button @click="addTask" class="btn-primary">Add Task</button>
-      </div>
     </header>
+
+    <div class="add-task">
+      <input
+        v-model="newTask"
+        placeholder="New task"
+        @keyup.enter="addTask"
+      />
+      <button @click="addTask" class="btn-primary">Add Task</button>
+    </div>
 
     <div class="tasks-container">
       <div class="tasks-list">
@@ -175,30 +180,46 @@ onMounted(async () => {
   padding: 0.5rem 1.5rem 0rem 1.5rem;
   max-width: 800px;
   margin: 0 auto;
-  min-height: 95vh;
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-position: right;
-  background-color: rgba(0, 0, 0, 0.01);
-  backdrop-filter: blur(5px);
+  min-height: 100vh;
+  background-color: #fce7f3;
 }
 .page-header {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid rgba(219, 39, 119, 0.1);
+  box-shadow: 0 2px 8px rgba(219, 39, 119, 0.08);
+}
+.back-arrow {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgb(219, 39, 119);
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+.back-arrow:hover {
+  background: rgba(219, 39, 119, 0.1);
+  transform: translateX(-2px);
 }
 .page-header h1 {
-  font-size: 2rem;
-  margin: 3rem 0rem 0rem 0rem;
-  background-color: rgb(255, 255, 255);
-  padding: 0.5rem;
-  border-radius: 6px;
+  margin: 0;
+  font-size: 1.5rem;
+  color: rgb(219, 39, 119);
 }
 .add-task {
   display: flex;
   gap: 0.75rem;
-  margin: 1rem 0;
+  margin: 0 0 1.5rem 0;
   width: 100%;
+  padding: 0 0.5rem;
 }
 .icon-btn {
   background: none;

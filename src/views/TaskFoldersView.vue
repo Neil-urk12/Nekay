@@ -213,6 +213,8 @@ h1 {
   padding: 1rem;
   max-width: 800px;
   margin: 0 auto;
+  background-color: #fce7f3;
+  min-height: 100vh;
 }
 .folder-name {
   color: #1a1c1e;

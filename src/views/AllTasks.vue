@@ -223,10 +223,11 @@ onMounted(() => {
 
 <style scoped>
 .tasks-container {
-  background: rgb(255, 255, 255);
+  background-color: #fce7f3;
   max-width: 800px;
   margin: 0 auto;
-  min-height: 95vh;
+  min-height: 100vh;
+  padding: 1rem;
 }
 .page-header {
   display: flex;
