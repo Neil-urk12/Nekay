@@ -82,7 +82,6 @@ onMounted(() => {
           <h2>All Tasks</h2>
           <p>View all your tasks</p>
         </div>
-        <span class="arrow">→</span>
       </div>
 
       <!-- User Created Folders -->
@@ -172,7 +171,6 @@ onMounted(() => {
             </button>
           </template>
         </div>
-        <span class="arrow">→</span>
       </div>
     </div>
     <div v-if="deleteConfirm" class="modal-overlay" @click="cancelDelete">
@@ -227,7 +225,7 @@ onMounted(() => {
 
 <style scoped>
 h1 {
-  color: white;
+  color: rgb(219, 39, 119);
 }
 .folders-view {
   padding: 1rem;
