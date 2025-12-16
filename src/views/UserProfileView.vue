@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '../supabase/supabase-config'
 import { useAuthStore } from '../stores/authStore'
+import SlideUpSheet from '../components/SlideUpSheet.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -226,89 +227,50 @@ const handleLogout = async () => {
     </div>
 
     <!-- Edit Name Sheet -->
-    <transition name="slide-up">
-      <div v-if="showEditName" class="sheet-overlay" @click.self="showEditName = false">
-        <div class="sheet-content">
-          <div class="sheet-header">
-            <h3>Edit Name</h3>
-            <button class="close-btn" @click="showEditName = false">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-          </div>
-          
-          <div class="sheet-body">
-            <div class="input-group">
-              <label>Full Name</label>
-              <input v-model="newName" type="text" placeholder="Enter your name" class="sheet-input" @keydown.enter="saveName" />
-            </div>
-
-            <button class="btn-save sheet-save-btn" @click="saveName" :disabled="loading">
-              {{ loading ? 'Saving...' : 'Save Changes' }}
-            </button>
-          </div>
-        </div>
+    <SlideUpSheet :show="showEditName" title="Edit Name" @close="showEditName = false">
+      <div class="input-group">
+        <label>Full Name</label>
+        <input v-model="newName" type="text" placeholder="Enter your name" class="sheet-input" @keydown.enter="saveName" />
       </div>
-    </transition>
+
+      <button class="btn-save sheet-save-btn" @click="saveName" :disabled="loading">
+        {{ loading ? 'Saving...' : 'Save Changes' }}
+      </button>
+    </SlideUpSheet>
 
     <!-- Edit Email Sheet -->
-    <transition name="slide-up">
-      <div v-if="showEditEmail" class="sheet-overlay" @click.self="showEditEmail = false">
-        <div class="sheet-content">
-          <div class="sheet-header">
-            <h3>Edit Email</h3>
-            <button class="close-btn" @click="showEditEmail = false">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-          </div>
-          
-          <div class="sheet-body">
-            <div class="input-group">
-              <label>Email Address</label>
-              <input v-model="newEmail" type="email" placeholder="Enter your email" class="sheet-input" @keydown.enter="saveEmail" />
-            </div>
-            
-            <p class="info-text">You will need to confirm the new email address.</p>
-
-            <button class="btn-save sheet-save-btn" @click="saveEmail" :disabled="loading">
-              {{ loading ? 'Saving...' : 'Update Email' }}
-            </button>
-          </div>
-        </div>
+    <SlideUpSheet :show="showEditEmail" title="Edit Email" @close="showEditEmail = false">
+      <div class="input-group">
+        <label>Email Address</label>
+        <input v-model="newEmail" type="email" placeholder="Enter your email" class="sheet-input" @keydown.enter="saveEmail" />
       </div>
-    </transition>
+      
+      <p class="info-text">You will need to confirm the new email address.</p>
+
+      <button class="btn-save sheet-save-btn" @click="saveEmail" :disabled="loading">
+        {{ loading ? 'Saving...' : 'Update Email' }}
+      </button>
+    </SlideUpSheet>
 
     <!-- Slide-up Change Password Sheet -->
-    <transition name="slide-up">
-      <div v-if="showChangePassword" class="sheet-overlay" @click.self="showChangePassword = false">
-        <div class="sheet-content">
-          <div class="sheet-header">
-            <h3>Change Password</h3>
-            <button class="close-btn" @click="showChangePassword = false">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-          </div>
-          
-          <div class="sheet-body">
-            <div class="input-group">
-              <label>New Password</label>
-              <input v-model="newPassword" type="password" placeholder="Min. 6 characters" class="sheet-input" />
-            </div>
-            
-            <div class="input-group">
-              <label>Confirm Password</label>
-              <input v-model="confirmPassword" type="password" placeholder="Re-enter password" class="sheet-input" />
-            </div>
-
-            <div v-if="passwordError" class="error-msg">{{ passwordError }}</div>
-            <div v-if="passwordSuccess" class="success-msg">{{ passwordSuccess }}</div>
-
-            <button class="btn-save sheet-save-btn" @click="savePassword" :disabled="loading">
-              {{ loading ? 'Saving...' : 'Update Password' }}
-            </button>
-          </div>
-        </div>
+    <SlideUpSheet :show="showChangePassword" title="Change Password" @close="showChangePassword = false">
+      <div class="input-group">
+        <label>New Password</label>
+        <input v-model="newPassword" type="password" placeholder="Min. 6 characters" class="sheet-input" />
       </div>
-    </transition>
+      
+      <div class="input-group">
+        <label>Confirm Password</label>
+        <input v-model="confirmPassword" type="password" placeholder="Re-enter password" class="sheet-input" />
+      </div>
+
+      <div v-if="passwordError" class="error-msg">{{ passwordError }}</div>
+      <div v-if="passwordSuccess" class="success-msg">{{ passwordSuccess }}</div>
+
+      <button class="btn-save sheet-save-btn" @click="savePassword" :disabled="loading">
+        {{ loading ? 'Saving...' : 'Update Password' }}
+      </button>
+    </SlideUpSheet>
 
     <!-- Logout confirmation modal -->
     <transition name="modal">
@@ -688,69 +650,7 @@ const handleLogout = async () => {
   transform: scale(0.95);
 }
 
-/* Slide-up Sheet Styles */
-.sheet-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  z-index: 200;
-  display: flex;
-  align-items: flex-end;
-}
-
-.sheet-content {
-  width: 100%;
-  background: white;
-  border-top-left-radius: 2rem;
-  border-top-right-radius: 2rem;
-  padding: 2rem;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.sheet-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.sheet-header h3 {
-  margin: 0;
-  font-size: 1.5rem;
-  color: #1f2937;
-  font-weight: 700;
-}
-
-.close-btn {
-  background: transparent;
-  border: none;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 50%;
-  display: flex;
-  transition: all 0.2s;
-}
-
-.close-btn:hover {
-  background: #f3f4f6;
-  color: #1f2937;
-}
-
-.close-btn svg {
-  width: 24px;
-  height: 24px;
-}
-
-.sheet-body {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
+/* Input and button styles for sheet content */
 .input-group {
   display: flex;
   flex-direction: column;
@@ -828,27 +728,6 @@ const handleLogout = async () => {
   padding: 0.5rem;
   background: #d1fae5;
   border-radius: 8px;
-}
-
-/* Slide-up Transition */
-.slide-up-enter-active,
-.slide-up-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.slide-up-enter-from,
-.slide-up-leave-to {
-  opacity: 0;
-}
-
-.slide-up-enter-active .sheet-content,
-.slide-up-leave-active .sheet-content {
-  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.slide-up-enter-from .sheet-content,
-.slide-up-leave-to .sheet-content {
-  transform: translateY(100%);
 }
 
 .btn-save, .btn-cancel {
