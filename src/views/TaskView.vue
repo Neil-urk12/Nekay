@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, defineAsyncComponent } from "vue";
 import { useRoute } from "vue-router";
 import { useNotesStore } from "../stores/notes";
 import { Task } from "../composables/interfaces";
 import { Pencil, Trash2 } from "lucide-vue-next";
+const SlideUpSheet = defineAsyncComponent(() => import("../components/SlideUpSheet.vue"));
+const FloatingActionButton = defineAsyncComponent(() => import("../components/FloatingActionButton.vue"));
 
 
 const route = useRoute();
@@ -12,6 +14,7 @@ const folders = computed(() => taskStore.getFolders);
 const tasks = computed(() => [...taskStore.getTasks]);
 const folderId = computed(() => route.params.id as string);
 const newTask = ref("");
+const showAddSheet = ref(false);
 const editingTask = ref<string | null>(null);
 const editedContent = ref("");
 
@@ -32,6 +35,7 @@ const addTask = async () => {
       numOfItems: ++currentFolder.value.numOfItems,
     });
     newTask.value = "";
+    showAddSheet.value = false;
   } catch (err) {
     console.error(err);
   }
@@ -103,15 +107,6 @@ onMounted(async () => {
       <h1>{{ currentFolder?.name }}</h1>
     </header>
 
-    <div class="add-task">
-      <input
-        v-model="newTask"
-        placeholder="New task"
-        @keyup.enter="addTask"
-      />
-      <button @click="addTask" class="btn-primary">Add Task</button>
-    </div>
-
     <div class="tasks-container">
       <div class="tasks-list">
         <div
@@ -172,12 +167,28 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <!-- FAB Button -->
+    <FloatingActionButton @click="showAddSheet = true" aria-label="Add new task" />
+
+    <!-- Slide Up Sheet for Adding Task -->
+    <SlideUpSheet :show="showAddSheet" title="New Task" @close="showAddSheet = false">
+      <div class="sheet-form">
+        <input
+          v-model="newTask"
+          placeholder="Task description"
+          @keyup.enter="addTask"
+          class="sheet-input"
+          autofocus
+        />
+        <button @click="addTask" class="btn-primary sheet-btn">Add Task</button>
+      </div>
+    </SlideUpSheet>
   </div>
 </template>
 
 <style scoped>
 .folder-tasks {
-  padding: 0.5rem 1.5rem 0rem 1.5rem;
   max-width: 800px;
   margin: 0 auto;
   min-height: 100vh;
@@ -214,13 +225,6 @@ onMounted(async () => {
   font-size: 1.5rem;
   color: rgb(219, 39, 119);
 }
-.add-task {
-  display: flex;
-  gap: 0.75rem;
-  margin: 0 0 1.5rem 0;
-  width: 100%;
-  padding: 0 0.5rem;
-}
 .icon-btn {
   background: none;
   padding: 0.25rem 0.5rem;
@@ -254,5 +258,50 @@ onMounted(async () => {
 .task-actions {
   display: flex;
   gap: 0.5rem;
+}
+
+/* Sheet Form Styles */
+.sheet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sheet-input {
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+  background: #f9fafb;
+}
+
+.sheet-input:focus {
+  outline: none;
+  border-color: #db2777;
+  background: white;
+}
+
+.sheet-btn {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #db2777, #ec4899);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sheet-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(219, 39, 119, 0.4);
+}
+
+.sheet-btn:active {
+  transform: translateY(0);
 }
 </style>
