@@ -130,7 +130,7 @@ a {
   background-position: center;
   background-repeat: no-repeat;
   padding: 0rem;
-  transition: background-image 1s ease-in-outi;
+  transition: background-image 1s ease-in-out;
   display: flex;
   flex-direction: column;
 }
