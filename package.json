@@ -8,7 +8,10 @@
     "dev": "vite",
     "preview": "vite preview",
     "test": "vitest",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "lint": "eslint . --ext .js,.ts,.vue && oxlint .",
+    "lint:fix": "eslint . --ext .js,.ts,.vue --fix && oxlint . --fix",
+    "check": "bun run build && bun lint"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.87.1",
