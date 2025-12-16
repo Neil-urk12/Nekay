@@ -220,8 +220,9 @@ h1 {
   color: #1a1c1e;
 }
 .folder-count {
-  color: #5c5e61;
-  font-weight: 300;
+  color: #64748b;
+  font-weight: 400;
+  font-size: 0.9rem;
 }
 .page-header {
   margin-bottom: 2rem;
@@ -261,7 +262,9 @@ h1 {
 }
 .folder-info p {
   margin: 0.25rem 0 0;
-  color: var(--text-secondary);
+  color: #64748b;
+  font-weight: 400;
+  font-size: 0.9rem;
 }
 .folder-actions {
   display: flex;
