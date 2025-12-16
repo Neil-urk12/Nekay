@@ -15,13 +15,18 @@ const router = useRouter();
   border: none;
   cursor: pointer;
   background: none;
-  font-size: 1rem;
-  position: absolute;
-  left: 0;
-  transition: color 0.2s ease;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: rgb(219, 39, 119);
+  padding: 0.5rem 0;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .back-btn:hover {
-  color: #63e6be;
+  color: #ec4899;
+  transform: translateX(-3px);
 }
 </style>
