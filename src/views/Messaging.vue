@@ -122,13 +122,28 @@ async function createConversation() {
   }
 
   try {
-    const { error } = await supabase.from('conversations').insert({
+    // 1. Check if user exists
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', newRecipientId.value.trim())
+      .single()
+
+    if (userError || !user) {
+      error.value = 'User not found. Please check the ID.'
+      return
+    }
+
+    // 2. Check if conversation already exists (optional but good)
+    // For now, allow DB to handle unique constraint or just insert
+
+    const { error: insertError } = await supabase.from('conversations').insert({
       user1_id: currentUserId.value,
-      user2_id: newRecipientId.value.trim(),
+      user2_id: user.id,
     }).select().single()
 
-    if (error)
-      throw error
+    if (insertError)
+      throw insertError
 
     showCreateModal.value = false
     newRecipientId.value = ''
@@ -138,7 +153,7 @@ async function createConversation() {
   }
   catch (err) {
     console.error('Error creating conversation', err)
-    error.value = 'Failed to create conversation. Check if User ID is correct.'
+    error.value = 'Failed to create conversation.'
   }
 }
 
