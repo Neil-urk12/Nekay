@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { supabase } from '../supabase/supabase-config'
 import { useAuthStore } from '../stores/authStore'
 import SlideUpSheet from '../components/SlideUpSheet.vue'
+import { Eye, EyeOff } from 'lucide-vue-next'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -26,6 +27,11 @@ const newPassword = ref('')
 const confirmPassword = ref('')
 const passwordError = ref('')
 const passwordSuccess = ref('')
+
+// Password visibility toggles
+const showCurrentPassword = ref(false)
+const showNewPassword = ref(false)
+const showConfirmPassword = ref(false)
 
 // Password strength validation
 const passwordStrength = computed(() => {
@@ -144,6 +150,9 @@ const openChangePassword = () => {
   confirmPassword.value = ''
   passwordError.value = ''
   passwordSuccess.value = ''
+  showCurrentPassword.value = false
+  showNewPassword.value = false
+  showConfirmPassword.value = false
   showChangePassword.value = true
 }
 
@@ -317,12 +326,44 @@ const handleLogout = async () => {
     <SlideUpSheet :show="showChangePassword" title="Change Password" @close="showChangePassword = false">
       <div class="input-group">
         <label>Current Password</label>
-        <input v-model="currentPassword" type="password" placeholder="Enter your current password" class="sheet-input" />
+        <div class="password-input-wrapper">
+          <input 
+            v-model="currentPassword" 
+            :type="showCurrentPassword ? 'text' : 'password'" 
+            placeholder="Enter your current password" 
+            class="sheet-input password-input" 
+          />
+          <button 
+            type="button"
+            class="eye-toggle-btn" 
+            @click="showCurrentPassword = !showCurrentPassword"
+            :aria-label="showCurrentPassword ? 'Hide password' : 'Show password'"
+          >
+            <EyeOff v-if="showCurrentPassword" :size="20" />
+            <Eye v-else :size="20" />
+          </button>
+        </div>
       </div>
       
       <div class="input-group">
         <label>New Password</label>
-        <input v-model="newPassword" type="password" placeholder="Min. 8 characters" class="sheet-input" />
+        <div class="password-input-wrapper">
+          <input 
+            v-model="newPassword" 
+            :type="showNewPassword ? 'text' : 'password'" 
+            placeholder="Min. 8 characters" 
+            class="sheet-input password-input" 
+          />
+          <button 
+            type="button"
+            class="eye-toggle-btn" 
+            @click="showNewPassword = !showNewPassword"
+            :aria-label="showNewPassword ? 'Hide password' : 'Show password'"
+          >
+            <EyeOff v-if="showNewPassword" :size="20" />
+            <Eye v-else :size="20" />
+          </button>
+        </div>
       </div>
 
       <!-- Password Strength Meter -->
@@ -361,7 +402,23 @@ const handleLogout = async () => {
       
       <div class="input-group">
         <label>Confirm Password</label>
-        <input v-model="confirmPassword" type="password" placeholder="Re-enter password" class="sheet-input" />
+        <div class="password-input-wrapper">
+          <input 
+            v-model="confirmPassword" 
+            :type="showConfirmPassword ? 'text' : 'password'" 
+            placeholder="Re-enter password" 
+            class="sheet-input password-input" 
+          />
+          <button 
+            type="button"
+            class="eye-toggle-btn" 
+            @click="showConfirmPassword = !showConfirmPassword"
+            :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
+          >
+            <EyeOff v-if="showConfirmPassword" :size="20" />
+            <Eye v-else :size="20" />
+          </button>
+        </div>
       </div>
 
       <div v-if="passwordError" class="error-msg">{{ passwordError }}</div>
@@ -900,6 +957,47 @@ const handleLogout = async () => {
 
 .strength-requirement span {
   line-height: 1.4;
+}
+
+/* Password Input with Eye Toggle */
+.password-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-input-wrapper .password-input {
+  padding-right: 3rem;
+}
+
+.eye-toggle-btn {
+  position: absolute;
+  right: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  border-radius: 6px;
+}
+
+.eye-toggle-btn:hover {
+  color: #db2777;
+  background: rgba(219, 39, 119, 0.08);
+}
+
+.eye-toggle-btn:focus {
+  outline: 2px solid #db2777;
+  outline-offset: 2px;
+}
+
+.eye-toggle-btn:active {
+  transform: translateY(-50%) scale(0.95);
 }
 
 </style>
