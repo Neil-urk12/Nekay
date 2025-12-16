@@ -4,6 +4,8 @@ import { useRoute } from "vue-router";
 import { useNotesStore } from "../stores/notes";
 import { Task } from "../composables/interfaces";
 import TaskItem from "../components/TaskItem.vue";
+import DeleteTaskModal from "../components/DeleteTaskModal.vue";
+
 const SlideUpSheet = defineAsyncComponent(() => import("../components/SlideUpSheet.vue"));
 const FloatingActionButton = defineAsyncComponent(() => import("../components/FloatingActionButton.vue"));
 
@@ -20,6 +22,11 @@ const showAddSheet = ref(false);
 const showEditSheet = ref(false);
 const editingTaskContent = ref("");
 const editingTaskId = ref<string | null>(null);
+
+// Delete State
+const showDeleteModal = ref(false);
+const deletingTaskId = ref<string | null>(null);
+const isDeleting = ref(false);
 
 const currentFolder = computed(() =>
   folders.value.find((f) => f.id === folderId.value)
@@ -75,15 +82,31 @@ const toggleTask = async (task: Task) => {
   task.completed = !task.completed;
 };
 
-const deleteTask = async (taskId: string) => {
+const promptDeleteTask = (taskId: string) => {
+  deletingTaskId.value = taskId;
+  showDeleteModal.value = true;
+};
+
+const confirmDeleteTask = async () => {
+  if (!deletingTaskId.value || !currentFolder.value) return;
+
+  isDeleting.value = true;
   try {
-    if (!taskId || !currentFolder.value) return;
-    await taskStore.deleteTask(taskId);
-    await taskStore.editFolder(currentFolder.value?.id, {
+    // Artificial delay to show loading state if desired, 
+    // or just let the async operation take its time.
+    // await new Promise(resolve => setTimeout(resolve, 500)); 
+    
+    await taskStore.deleteTask(deletingTaskId.value);
+    await taskStore.editFolder(currentFolder.value.id, {
       numOfItems: --currentFolder.value.numOfItems,
     });
+    
+    showDeleteModal.value = false;
+    deletingTaskId.value = null;
   } catch (err) {
-    console.error(err);
+    console.error("Error deleting task: ", err);
+  } finally {
+    isDeleting.value = false;
   }
 };
 
@@ -114,7 +137,7 @@ onMounted(async () => {
           :is-editing="false"
           @toggle="toggleTask"
           @edit="editTask"
-          @delete="deleteTask"
+          @delete="promptDeleteTask"
         />
       </div>
     </div>
@@ -149,6 +172,14 @@ onMounted(async () => {
         <button @click="saveEdit" class="btn-primary sheet-btn">Save Changes</button>
       </div>
     </SlideUpSheet>
+    
+    <!-- Delete Confirmation Modal -->
+    <DeleteTaskModal 
+      :show="showDeleteModal" 
+      :loading="isDeleting"
+      @close="showDeleteModal = false" 
+      @confirm="confirmDeleteTask" 
+    />
   </div>
 </template>
 
