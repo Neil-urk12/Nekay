@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, defineAsyncComponent } from "vue";
 import { useRouter } from "vue-router";
 import { useNotesStore } from "../stores/notes";
+
+const SlideUpSheet = defineAsyncComponent(() => import("../components/SlideUpSheet.vue"));
+const FloatingActionButton = defineAsyncComponent(() => import("../components/FloatingActionButton.vue"));
 
 const router = useRouter();
 const noteStore = useNotesStore();
 
 const newFolderName = ref("");
+const showAddSheet = ref(false);
 const editingFolder = ref<{ id: string; name: string } | null>(null);
 const deleteConfirm = ref<{ id: string; name: string } | null>(null);
 
@@ -19,6 +23,7 @@ const addFolder = async () => {
   try {
     await noteStore.addFolder(newFolderName.value, "task");
     newFolderName.value = "";
+    showAddSheet.value = false;
   } catch (error) {
     console.error("Failed to add folder:", error);
   }
@@ -61,14 +66,6 @@ onMounted(() => {
   <div class="folders-view">
     <header class="page-header">
       <h1>My Folders</h1>
-      <div class="add-folder">
-        <input
-          v-model="newFolderName"
-          placeholder="New folder name"
-          @keyup.enter="addFolder"
-        />
-        <button @click="addFolder" class="btn-primary">Add Folder</button>
-      </div>
     </header>
 
     <div class="folders-list">
@@ -188,6 +185,23 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- FAB Button -->
+    <FloatingActionButton @click="showAddSheet = true" aria-label="Add new folder" />
+
+    <!-- Slide Up Sheet for Adding Folder -->
+    <SlideUpSheet :show="showAddSheet" title="New Folder" @close="showAddSheet = false">
+      <div class="sheet-form">
+        <input
+          v-model="newFolderName"
+          placeholder="Folder name"
+          @keyup.enter="addFolder"
+          class="sheet-input"
+          autofocus
+        />
+        <button @click="addFolder" class="btn-primary sheet-btn">Create Folder</button>
+      </div>
+    </SlideUpSheet>
   </div>
 </template>
 
@@ -209,11 +223,6 @@ h1 {
 }
 .page-header {
   margin-bottom: 2rem;
-}
-.add-folder {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
 }
 .folders-list {
   display: grid;
@@ -377,5 +386,50 @@ h1 {
   padding: 0.25rem 0.5rem;
   border: none;
   border-radius: 0;
+}
+
+/* Sheet Form Styles */
+.sheet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sheet-input {
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+  background: #f9fafb;
+}
+
+.sheet-input:focus {
+  outline: none;
+  border-color: #db2777;
+  background: white;
+}
+
+.sheet-btn {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #db2777, #ec4899);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sheet-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(219, 39, 119, 0.4);
+}
+
+.sheet-btn:active {
+  transform: translateY(0);
 }
 </style>
