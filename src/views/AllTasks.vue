@@ -3,11 +3,14 @@ import { ref, computed, onMounted, defineAsyncComponent } from "vue";
 import { useNotesStore } from "../stores/notes";
 import { Task } from "../composables/interfaces";
 const ReturnButton = defineAsyncComponent(() => import("../components/ReturnButton.vue"));
+const SlideUpSheet = defineAsyncComponent(() => import("../components/SlideUpSheet.vue"));
+const FloatingActionButton = defineAsyncComponent(() => import("../components/FloatingActionButton.vue"));
 
 const taskStore = useNotesStore();
 const folders = computed(() => taskStore.getFolders);
 const tasks = computed(() => [...taskStore.getTasks]);
 const newTask = ref("");
+const showAddSheet = ref(false);
 const editingTask = ref<{ id: string; content: string } | null>(null);
 const deleteConfirm = ref<{ id: string; content: string } | null>(null);
 const isLoading = ref(false);
@@ -18,6 +21,7 @@ const addTask = async () => {
     isLoading.value = true;
     await taskStore.addTask(newTask.value, "alltasks");
     newTask.value = "";
+    showAddSheet.value = false;
   } catch (error) {
     console.error("Failed to add task:", error);
   } finally {
@@ -73,14 +77,6 @@ onMounted(() => {
     <header class="page-header">
       <ReturnButton />
       <h1>All Tasks</h1>
-      <div class="add-task">
-        <input
-          v-model="newTask"
-          placeholder="New task"
-          @keyup.enter="addTask"
-        />
-        <button @click="addTask" class="btn-primary" :disabled="isLoading">Add Task</button>
-      </div>
     </header>
 
     <div class="tasks-list">
@@ -202,6 +198,23 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- FAB Button -->
+    <FloatingActionButton @click="showAddSheet = true" aria-label="Add new task" />
+
+    <!-- Slide Up Sheet for Adding Task -->
+    <SlideUpSheet :show="showAddSheet" title="New Task" @close="showAddSheet = false">
+      <div class="sheet-form">
+        <input
+          v-model="newTask"
+          placeholder="Task description"
+          @keyup.enter="addTask"
+          class="sheet-input"
+          autofocus
+        />
+        <button @click="addTask" class="btn-primary sheet-btn" :disabled="isLoading">Add Task</button>
+      </div>
+    </SlideUpSheet>
   </div>
 </template>
 
@@ -212,6 +225,7 @@ onMounted(() => {
   padding: 0.5rem 1.5rem 0rem 1.5rem;
   max-width: 800px;
   margin: 0 auto;
+  min-height: 95vh;
 }
 .page-header {
   display: flex;
@@ -224,12 +238,6 @@ onMounted(() => {
   background-color: rgb(255, 255, 255);
   padding: 0.5rem;
   border-radius: 6px;
-}
-.add-task {
-  display: flex;
-  gap: 0.75rem;
-  margin: 1rem 0;
-  width: 100%;
 }
 .input-field {
   padding: 0.25rem 0.5rem;
@@ -398,5 +406,50 @@ onMounted(() => {
   border: none;
   cursor: pointer;
   font-size: 1.2rem;
+}
+
+/* Sheet Form Styles */
+.sheet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sheet-input {
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+  background: #f9fafb;
+}
+
+.sheet-input:focus {
+  outline: none;
+  border-color: #db2777;
+  background: white;
+}
+
+.sheet-btn {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #db2777, #ec4899);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sheet-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(219, 39, 119, 0.4);
+}
+
+.sheet-btn:active {
+  transform: translateY(0);
 }
 </style>
