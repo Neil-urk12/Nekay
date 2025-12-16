@@ -38,7 +38,19 @@ onMounted(async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (session?.user) {
       userEmail.value = session.user.email || ''
-      userName.value = session.user.user_metadata?.name || session.user.user_metadata?.full_name || ''
+      
+      // Fetch the user's name from the public.users table
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', session.user.id)
+        .single()
+      
+      if (error) {
+        console.error('Error fetching user data:', error)
+      } else {
+        userName.value = userData?.name || ''
+      }
     }
   } catch (error) {
     console.error('Error loading profile:', error)
@@ -58,9 +70,17 @@ const saveName = async () => {
   
   loading.value = true
   try {
-    const { error } = await supabase.auth.updateUser({
-      data: { name: newName.value.trim() }
-    })
+    // Get the current user's ID from auth session
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user?.id) {
+      throw new Error('User not authenticated')
+    }
+    
+    // Update the name in the public.users table
+    const { error } = await supabase
+      .from('users')
+      .update({ name: newName.value.trim() })
+      .eq('id', session.user.id)
     
     if (error) throw error
     
