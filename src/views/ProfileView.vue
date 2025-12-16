@@ -1,38 +1,38 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import type { RealtimeChannel } from '@supabase/supabase-js'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { supabase } from '../supabase/supabase-config'
-import type { RealtimeChannel } from '@supabase/supabase-js'
 
 const myNickname = 'bubu1112041823'
 const route = useRoute()
 const nicknameParam = route.params.nickname as string
 const currentUserId = ref<string | null>(null)
 
-interface Profile { avatar: string; username: string; bio: string; highlights: { image: string; label: string }[]; posts: string[] }
+interface Profile { avatar: string, username: string, bio: string, highlights: { image: string, label: string }[], posts: string[] }
 const profile = ref<Profile>({ avatar: '', username: '', bio: '', highlights: [], posts: [] })
 const activeTab = ref('posts')
 const newPostUrl = ref('')
 
-let postsChannel: RealtimeChannel | null = null;
+let postsChannel: RealtimeChannel | null = null
 
-const loadProfile = async () => {
+async function loadProfile() {
   // Get current user
-  const { data: { session } } = await supabase.auth.getSession();
-  currentUserId.value = session?.user?.id || null;
-  
+  const { data: { session } } = await supabase.auth.getSession()
+  currentUserId.value = session?.user?.id || null
+
   // Load profile
   const { data: profileData, error: profileError } = await supabase
     .from('profiles')
     .select('*')
     .eq('nickname', nicknameParam)
-    .single();
-  
+    .single()
+
   if (profileError) {
-    console.error('Error loading profile:', profileError);
-    return;
+    console.error('Error loading profile:', profileError)
+    return
   }
-  
+
   if (profileData) {
     profile.value = {
       avatar: profileData.avatar || '',
@@ -40,23 +40,23 @@ const loadProfile = async () => {
       bio: profileData.bio || '',
       highlights: profileData.highlights || [],
       posts: [],
-    };
+    }
   }
-  
+
   // Load posts
   const { data: postsData, error: postsError } = await supabase
     .from('profile_posts')
     .select('url, created_at')
     .eq('profile_nickname', nicknameParam)
-    .order('created_at', { ascending: false });
-  
+    .order('created_at', { ascending: false })
+
   if (postsError) {
-    console.error('Error loading posts:', postsError);
-    return;
+    console.error('Error loading posts:', postsError)
+    return
   }
-  
-  profile.value.posts = (postsData || []).map(p => p.url);
-  
+
+  profile.value.posts = (postsData || []).map(p => p.url)
+
   // Subscribe to real-time post updates
   postsChannel = supabase
     .channel('profile_posts_realtime')
@@ -69,31 +69,32 @@ const loadProfile = async () => {
         filter: `profile_nickname=eq.${nicknameParam}`,
       },
       (payload) => {
-        const newPost = payload.new as any;
-        profile.value.posts.unshift(newPost.url);
-      }
+        const newPost = payload.new as any
+        profile.value.posts.unshift(newPost.url)
+      },
     )
-    .subscribe();
+    .subscribe()
 }
 
-const addPost = async () => {
-  if (!newPostUrl.value.trim()) return
+async function addPost() {
+  if (!newPostUrl.value.trim())
+    return
   if (!currentUserId.value) {
-    console.error('Not authenticated');
-    return;
+    console.error('Not authenticated')
+    return
   }
-  
+
   const { error } = await supabase.from('profile_posts').insert({
     user_id: currentUserId.value,
     profile_nickname: nicknameParam,
     url: newPostUrl.value.trim(),
-  });
-  
+  })
+
   if (error) {
-    console.error('Error adding post:', error);
-    return;
+    console.error('Error adding post:', error)
+    return
   }
-  
+
   newPostUrl.value = ''
 }
 
@@ -101,9 +102,9 @@ onMounted(loadProfile)
 
 onUnmounted(() => {
   if (postsChannel) {
-    supabase.removeChannel(postsChannel);
+    supabase.removeChannel(postsChannel)
   }
-});
+})
 </script>
 
 <template>
@@ -111,18 +112,26 @@ onUnmounted(() => {
     <!-- Header: Avatar, Stats, Edit Button -->
     <header class="profile-header grid-cols">
       <div class="avatar-wrapper">
-        <img class="avatar" :src="profile.avatar" alt="User Avatar" />
+        <img class="avatar" :src="profile.avatar" alt="User Avatar">
       </div>
       <div class="profile-details">
         <div class="profile-actions">
-          <h1 class="username">{{ profile.username }}</h1>
-          <button class="edit-btn">Edit Profile</button>
+          <h1 class="username">
+            {{ profile.username }}
+          </h1>
+          <button class="edit-btn">
+            Edit Profile
+          </button>
           <!-- Add settings icon button maybe -->
         </div>
 
         <div class="profile-bio">
-          <h2 class="display-name">{{ profile.username }}</h2>
-          <p class="bio">{{ profile.bio }}</p>
+          <h2 class="display-name">
+            {{ profile.username }}
+          </h2>
+          <p class="bio">
+            {{ profile.bio }}
+          </p>
         </div>
       </div>
     </header>
@@ -130,15 +139,17 @@ onUnmounted(() => {
     <!-- Bio (for smaller screens) -->
     <div class="profile-bio-mobile">
       <!-- <h2 class="display-name">Display Name</h2> Optional -->
-      <p class="bio">{{ profile.bio }}</p>
+      <p class="bio">
+        {{ profile.bio }}
+      </p>
     </div>
 
     <!-- Highlights -->
-    <section class="highlights-section" v-if="profile.highlights.length > 0">
+    <section v-if="profile.highlights.length > 0" class="highlights-section">
       <div class="highlights-container">
         <div v-for="(h, idx) in profile.highlights" :key="idx" class="highlight">
           <div class="highlight-image-wrapper">
-            <img :src="h.image" :alt="`Highlight: ${h.label}`" />
+            <img :src="h.image" :alt="`Highlight: ${h.label}`">
           </div>
           <span class="highlight-label">{{ h.label }}</span>
         </div>
@@ -149,14 +160,16 @@ onUnmounted(() => {
     <main class="profile-content">
       <div v-if="activeTab === 'posts'">
         <!-- Post creation form (own profile only) -->
-        <div v-if="activeTab==='posts' && nicknameParam===myNickname" class="add-post">
-          <input v-model="newPostUrl" placeholder="Image URL" />
-          <button @click="addPost">Add Post</button>
+        <div v-if="activeTab === 'posts' && nicknameParam === myNickname" class="add-post">
+          <input v-model="newPostUrl" placeholder="Image URL">
+          <button @click="addPost">
+            Add Post
+          </button>
         </div>
         <!-- Posts Grid -->
         <div v-if="profile.posts.length > 0" class="posts-grid">
           <div v-for="(post, index) in profile.posts" :key="`post-${index}`" class="post-item">
-            <img :src="post" alt="User post" loading="lazy" />
+            <img :src="post" alt="User post" loading="lazy">
             <!-- Add overlay with likes/comments on hover if desired -->
           </div>
         </div>
@@ -453,7 +466,6 @@ onUnmounted(() => {
   font-size: 1.4rem;
 }
 
-
 /* --- Responsiveness --- */
 @media (max-width: 767px) {
   .profile-container {
@@ -563,5 +575,4 @@ onUnmounted(() => {
     gap: 2px; /* Even smaller gap on mobile */
   }
 }
-
 </style>

@@ -1,129 +1,138 @@
-import Dexie, { Table } from "dexie";
-import {
+import type { Table } from 'dexie'
+import type {
   BaseItem,
+  Folder,
   JournalEntry,
   Task,
-  Folder,
-} from "../composables/interfaces";
+} from '../composables/interfaces'
+import Dexie from 'dexie'
 
 export interface Note extends BaseItem {
-  content: string;
+  content: string
 }
 
 export interface PomodoroSession extends BaseItem {
-  startTime: number;
-  endTime: number;
-  duration: number;
-  type: "work" | "break";
-  completed: boolean;
+  startTime: number
+  endTime: number
+  duration: number
+  type: 'work' | 'break'
+  completed: boolean
 }
 
 export interface PomodoroStats extends BaseItem {
-  completedSessions: number;
-  totalFocusTime: number;
+  completedSessions: number
+  totalFocusTime: number
 }
 
 export interface WaterEntry extends BaseItem {
-  amount: number;
-  date: string;
+  amount: number
+  date: string
 }
 
 class NekayDatabase extends Dexie {
-  tasks!: Table<Task>;
-  journal!: Table<JournalEntry>;
-  folders!: Table<Folder>;
-  notes!: Table<Note>;
-  pomodoro!: Table<PomodoroSession>;
-  waterEntries!: Table<WaterEntry>;
+  tasks!: Table<Task>
+  journal!: Table<JournalEntry>
+  folders!: Table<Folder>
+  notes!: Table<Note>
+  pomodoro!: Table<PomodoroSession>
+  waterEntries!: Table<WaterEntry>
 
   constructor() {
-    super("NekayOfflineDB_v2");
+    super('NekayOfflineDB_v2')
 
     this.version(3).stores({
       tasks:
-        "id, taskContent, status, folderId, syncStatus, lastModified, timestamp, [syncStatus+lastModified]",
+        'id, taskContent, status, folderId, syncStatus, lastModified, timestamp, [syncStatus+lastModified]',
       journal:
-        "id, title, folderId, date, lastModified, [syncStatus+lastModified]",
+        'id, title, folderId, date, lastModified, [syncStatus+lastModified]',
       folders:
-        "id, name, type, syncStatus, numOfItems, lastModified, timestamp, [syncStatus+lastModified]",
+        'id, name, type, syncStatus, numOfItems, lastModified, timestamp, [syncStatus+lastModified]',
       notes:
-        "id, noteTitle, noteContent, syncStatus, timestamp, lastModified, [syncStatus+lastModified]",
+        'id, noteTitle, noteContent, syncStatus, timestamp, lastModified, [syncStatus+lastModified]',
       pomodoro:
-        "id, type, syncStatus, startTime, timestamp, lastModified, [syncStatus+lastModified]",
-      waterEntries: "id, amount, date, timestamp, syncStatus, lastModified, [syncStatus+lastModified]",
-    });
+        'id, type, syncStatus, startTime, timestamp, lastModified, [syncStatus+lastModified]',
+      waterEntries: 'id, amount, date, timestamp, syncStatus, lastModified, [syncStatus+lastModified]',
+    })
 
-    this.tasks = this.table("tasks");
-    this.journal = this.table("journal");
-    this.folders = this.table("folders");
-    this.notes = this.table("notes");
-    this.pomodoro = this.table("pomodoro");
+    this.tasks = this.table('tasks')
+    this.journal = this.table('journal')
+    this.folders = this.table('folders')
+    this.notes = this.table('notes')
+    this.pomodoro = this.table('pomodoro')
   }
 
   async createFolder(folderObj: Folder) {
-    if (!folderObj) throw new Error("Error creating folder!");
-    this.folders.add(folderObj);
+    if (!folderObj)
+      throw new Error('Error creating folder!')
+    this.folders.add(folderObj)
   }
 
   async getFolders() {
-    return this.folders.toArray();
+    return this.folders.toArray()
   }
 
   async deleteFolder(folderId: string) {
-    if (!folderId) throw new Error("Folder to delete doesn't exist");
+    if (!folderId)
+      throw new Error('Folder to delete doesn\'t exist')
 
-    await this.folders.delete(folderId);
+    await this.folders.delete(folderId)
   }
 
   async updateFolder(folderId: string, changes: Folder) {
     if (!changes && !folderId)
-      throw new Error("Folder to update doesn't exist");
+      throw new Error('Folder to update doesn\'t exist')
 
-    await this.folders.update(folderId, changes);
+    await this.folders.update(folderId, changes)
   }
 
   async createTask(task: Task) {
-    if (!task) throw new Error("Failed to create task");
+    if (!task)
+      throw new Error('Failed to create task')
 
-    await this.tasks.add(task);
+    await this.tasks.add(task)
   }
 
   async getTasks() {
-    return await this.tasks.toArray();
+    return await this.tasks.toArray()
   }
 
   async updateTask(taskId: string, changes: Task) {
-    if (!taskId && !changes) throw new Error("Failed to update task!");
+    if (!taskId && !changes)
+      throw new Error('Failed to update task!')
 
-    await this.tasks.update(taskId, changes);
+    await this.tasks.update(taskId, changes)
   }
 
   async deleteTask(taskId: string) {
-    if (!taskId) throw new Error("Failed to delete task!");
+    if (!taskId)
+      throw new Error('Failed to delete task!')
 
-    await this.tasks.delete(taskId);
+    await this.tasks.delete(taskId)
   }
 
   async createEntry(entry: JournalEntry) {
-    if (!entry) throw new Error("Failed to create journal entry!");
+    if (!entry)
+      throw new Error('Failed to create journal entry!')
 
-    await this.journal.add(entry);
+    await this.journal.add(entry)
   }
 
   async getEntries() {
-    return await this.journal.toArray();
+    return await this.journal.toArray()
   }
 
   async updateEntry(entryId: string, changes: JournalEntry) {
-    if (!entryId && !changes) throw new Error("Failed to update entry!");
+    if (!entryId && !changes)
+      throw new Error('Failed to update entry!')
 
-    await this.journal.update(entryId, changes);
+    await this.journal.update(entryId, changes)
   }
 
   async deleteEntry(entryId: string) {
-    if (!entryId) throw new Error("Failed to delete entry!");
+    if (!entryId)
+      throw new Error('Failed to delete entry!')
 
-    await this.journal.delete(entryId);
+    await this.journal.delete(entryId)
   }
 
   async getWaterEntries() {
@@ -131,35 +140,35 @@ class NekayDatabase extends Dexie {
   }
 
   async createWaterEntry(entry: WaterEntry) {
-    return await this.waterEntries.add(entry);
+    return await this.waterEntries.add(entry)
   }
 
   async deleteWaterEntry(id: string) {
-    return await this.waterEntries.delete(id);
+    return await this.waterEntries.delete(id)
   }
 
   async markForDeletion(collection: 'tasks' | 'folders' | 'journal', id: string) {
-    if (!id) throw new Error('Failed to mark for deletion');
+    if (!id)
+      throw new Error('Failed to mark for deletion')
 
     if (collection === 'tasks') {
       this.tasks.update(id, {
         syncStatus: 'deleted',
-        lastModified: Date.now()
-      });
-      return;
-    } else if (collection === 'folders') {
+        lastModified: Date.now(),
+      })
+    }
+    else if (collection === 'folders') {
       this.folders.update(id, {
         syncStatus: 'deleted',
-        lastModified: Date.now()
-      });
-      return;
-    } else if (collection === 'journal') {
+        lastModified: Date.now(),
+      })
+    }
+    else if (collection === 'journal') {
       this.journal.update(id, {
         syncStatus: 'deleted',
-        lastModified: Date.now()
-      });
-      return;
+        lastModified: Date.now(),
+      })
     }
   }
 }
-export const db = new NekayDatabase();
+export const db = new NekayDatabase()

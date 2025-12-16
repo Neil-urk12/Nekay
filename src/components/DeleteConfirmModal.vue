@@ -1,9 +1,9 @@
 <script setup lang="ts">
 const props = defineProps<{
-  folderName: string | undefined;
-}>();
+  folderName: string | undefined
+}>()
 
-const emit = defineEmits(["close", "confirm"]);
+const emit = defineEmits(['close', 'confirm'])
 </script>
 
 <template>
@@ -12,8 +12,12 @@ const emit = defineEmits(["close", "confirm"]);
       <h2>Delete Folder</h2>
       <p>Are you sure you want to delete "{{ props.folderName }}"?</p>
       <div class="button-group">
-        <button class="cancel-button" @click="$emit('close')">Cancel</button>
-        <button class="delete-button" @click="$emit('confirm')">Delete</button>
+        <button class="cancel-button" @click="$emit('close')">
+          Cancel
+        </button>
+        <button class="delete-button" @click="$emit('confirm')">
+          Delete
+        </button>
       </div>
     </div>
   </div>

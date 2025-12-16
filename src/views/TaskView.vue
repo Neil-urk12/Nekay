@@ -1,128 +1,137 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, defineAsyncComponent } from "vue";
-import { useRoute } from "vue-router";
-import { useNotesStore } from "../stores/notes";
-import { Task } from "../composables/interfaces";
-import TaskItem from "../components/TaskItem.vue";
-import DeleteTaskModal from "../components/DeleteTaskModal.vue";
+import type { Task } from '../composables/interfaces'
+import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import DeleteTaskModal from '../components/DeleteTaskModal.vue'
+import TaskItem from '../components/TaskItem.vue'
+import { useNotesStore } from '../stores/notes'
 
-const SlideUpSheet = defineAsyncComponent(() => import("../components/SlideUpSheet.vue"));
-const FloatingActionButton = defineAsyncComponent(() => import("../components/FloatingActionButton.vue"));
+const SlideUpSheet = defineAsyncComponent(() => import('../components/SlideUpSheet.vue'))
+const FloatingActionButton = defineAsyncComponent(() => import('../components/FloatingActionButton.vue'))
 
-
-const route = useRoute();
-const taskStore = useNotesStore();
-const folders = computed(() => taskStore.getFolders);
-const tasks = computed(() => [...taskStore.getTasks]);
-const folderId = computed(() => route.params.id as string);
-const newTask = ref("");
-const showAddSheet = ref(false);
+const route = useRoute()
+const taskStore = useNotesStore()
+const folders = computed(() => taskStore.getFolders)
+const tasks = computed(() => [...taskStore.getTasks])
+const folderId = computed(() => route.params.id as string)
+const newTask = ref('')
+const showAddSheet = ref(false)
 
 // Edit State
-const showEditSheet = ref(false);
-const editingTaskContent = ref("");
-const editingTaskId = ref<string | null>(null);
+const showEditSheet = ref(false)
+const editingTaskContent = ref('')
+const editingTaskId = ref<string | null>(null)
 
 // Delete State
-const showDeleteModal = ref(false);
-const deletingTaskId = ref<string | null>(null);
-const isDeleting = ref(false);
+const showDeleteModal = ref(false)
+const deletingTaskId = ref<string | null>(null)
+const isDeleting = ref(false)
 
 const currentFolder = computed(() =>
-  folders.value.find((f) => f.id === folderId.value)
-);
+  folders.value.find(f => f.id === folderId.value),
+)
 
 const folderTasks = computed(() =>
-  tasks.value.filter((task) => task.folderId === folderId.value)
-);
+  tasks.value.filter(task => task.folderId === folderId.value),
+)
 
-const addTask = async () => {
+async function addTask() {
   try {
-    if (!newTask.value.trim() || !currentFolder.value) return;
+    if (!newTask.value.trim() || !currentFolder.value)
+      return
 
-    await taskStore.addTask(newTask.value, currentFolder.value.id);
+    await taskStore.addTask(newTask.value, currentFolder.value.id)
     await taskStore.editFolder(currentFolder.value.id, {
       numOfItems: ++currentFolder.value.numOfItems,
-    });
-    newTask.value = "";
-    showAddSheet.value = false;
-  } catch (err) {
-    console.error(err);
+    })
+    newTask.value = ''
+    showAddSheet.value = false
   }
-};
+  catch (err) {
+    console.error(err)
+  }
+}
 
-const editTask = (task: Task) => {
-  editingTaskId.value = task.id;
-  editingTaskContent.value = task.taskContent;
-  showEditSheet.value = true;
-};
+function editTask(task: Task) {
+  editingTaskId.value = task.id
+  editingTaskContent.value = task.taskContent
+  showEditSheet.value = true
+}
 
-const saveEdit = async () => {
+async function saveEdit() {
   try {
     if (!editingTaskId.value || !editingTaskContent.value.trim()) {
-      showEditSheet.value = false;
-      return;
+      showEditSheet.value = false
+      return
     }
 
     await taskStore.editTask(editingTaskId.value, {
       taskContent: editingTaskContent.value.trim(),
-    });
+    })
 
-    showEditSheet.value = false;
-    editingTaskId.value = null;
-    editingTaskContent.value = "";
-  } catch (err) {
-    console.error("Error editing task: ", err);
+    showEditSheet.value = false
+    editingTaskId.value = null
+    editingTaskContent.value = ''
   }
-};
+  catch (err) {
+    console.error('Error editing task: ', err)
+  }
+}
 
-const toggleTask = async (task: Task) => {
-  if (!task) return;
+async function toggleTask(task: Task) {
+  if (!task)
+    return
 
-  task.completed = !task.completed;
-};
+  task.completed = !task.completed
+}
 
-const promptDeleteTask = (taskId: string) => {
-  deletingTaskId.value = taskId;
-  showDeleteModal.value = true;
-};
+function promptDeleteTask(taskId: string) {
+  deletingTaskId.value = taskId
+  showDeleteModal.value = true
+}
 
-const confirmDeleteTask = async () => {
-  if (!deletingTaskId.value || !currentFolder.value) return;
+async function confirmDeleteTask() {
+  if (!deletingTaskId.value || !currentFolder.value)
+    return
 
-  isDeleting.value = true;
+  isDeleting.value = true
   try {
-    // Artificial delay to show loading state if desired, 
+    // Artificial delay to show loading state if desired,
     // or just let the async operation take its time.
-    // await new Promise(resolve => setTimeout(resolve, 500)); 
-    
-    await taskStore.deleteTask(deletingTaskId.value);
+    // await new Promise(resolve => setTimeout(resolve, 500));
+
+    await taskStore.deleteTask(deletingTaskId.value)
     await taskStore.editFolder(currentFolder.value.id, {
       numOfItems: --currentFolder.value.numOfItems,
-    });
-    
-    showDeleteModal.value = false;
-    deletingTaskId.value = null;
-  } catch (err) {
-    console.error("Error deleting task: ", err);
-  } finally {
-    isDeleting.value = false;
+    })
+
+    showDeleteModal.value = false
+    deletingTaskId.value = null
   }
-};
+  catch (err) {
+    console.error('Error deleting task: ', err)
+  }
+  finally {
+    isDeleting.value = false
+  }
+}
 
 onMounted(async () => {
-  if (!currentFolder.value) return;
-  if (tasks.value.length === 0) taskStore.loadTasks();
-});
+  if (!currentFolder.value)
+    return
+  if (tasks.value.length === 0)
+    taskStore.loadTasks()
+})
 </script>
 
 <template>
   <div
-    class="folder-tasks">
+    class="folder-tasks"
+  >
     <header class="page-header">
-      <button class="back-arrow" @click="$router.push('/folders')" aria-label="Back to folders">
+      <button class="back-arrow" aria-label="Back to folders" @click="$router.push('/folders')">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="20" height="20">
-          <path fill="currentColor" d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/>
+          <path fill="currentColor" d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z" />
         </svg>
       </button>
       <h1>{{ currentFolder?.name }}</h1>
@@ -143,7 +152,7 @@ onMounted(async () => {
     </div>
 
     <!-- FAB Button -->
-    <FloatingActionButton @click="showAddSheet = true" aria-label="Add new task" />
+    <FloatingActionButton aria-label="Add new task" @click="showAddSheet = true" />
 
     <!-- Slide Up Sheet for Adding Task -->
     <SlideUpSheet :show="showAddSheet" title="New Task" @close="showAddSheet = false">
@@ -151,11 +160,13 @@ onMounted(async () => {
         <input
           v-model="newTask"
           placeholder="Task description"
-          @keyup.enter="addTask"
           class="sheet-input"
           autofocus
-        />
-        <button @click="addTask" class="btn-primary sheet-btn">Add Task</button>
+          @keyup.enter="addTask"
+        >
+        <button class="btn-primary sheet-btn" @click="addTask">
+          Add Task
+        </button>
       </div>
     </SlideUpSheet>
 
@@ -165,20 +176,22 @@ onMounted(async () => {
         <input
           v-model="editingTaskContent"
           placeholder="Edit task description"
-          @keyup.enter="saveEdit"
           class="sheet-input"
           autofocus
-        />
-        <button @click="saveEdit" class="btn-primary sheet-btn">Save Changes</button>
+          @keyup.enter="saveEdit"
+        >
+        <button class="btn-primary sheet-btn" @click="saveEdit">
+          Save Changes
+        </button>
       </div>
     </SlideUpSheet>
-    
+
     <!-- Delete Confirmation Modal -->
-    <DeleteTaskModal 
-      :show="showDeleteModal" 
+    <DeleteTaskModal
+      :show="showDeleteModal"
       :loading="isDeleting"
-      @close="showDeleteModal = false" 
-      @confirm="confirmDeleteTask" 
+      @close="showDeleteModal = false"
+      @confirm="confirmDeleteTask"
     />
   </div>
 </template>
@@ -225,7 +238,6 @@ onMounted(async () => {
   font-size: 1.5rem;
   color: rgb(219, 39, 119);
 }
-
 
 /* Sheet Form Styles */
 .sheet-form {

@@ -1,21 +1,22 @@
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, ref } from "vue";
-import { useBackgroundStore } from "./stores/backgroundStore";
-import { useNotesStore } from "./stores/notes";
-import { useAffirmationStore } from "./stores/affirmationStore";
-const BottomNav = defineAsyncComponent(
-  () => import("./components/BottomNav.vue")
-);
-import { syncService } from "./services/syncService";
-import { notificationService } from "./services/notificationService";
-const backgroundStore = useBackgroundStore();
-const notesStore = useNotesStore()
-const affirmationStore = useAffirmationStore();
-const isLoading = ref(true);
-const error = ref<Error | null>(null);
-import { useAuthStore } from "./stores/authStore";
+import { defineAsyncComponent, onMounted, ref } from 'vue'
+import { notificationService } from './services/notificationService'
+import { syncService } from './services/syncService'
+import { useAffirmationStore } from './stores/affirmationStore'
+import { useAuthStore } from './stores/authStore'
+import { useBackgroundStore } from './stores/backgroundStore'
+import { useNotesStore } from './stores/notes'
 
-const authStore = useAuthStore();
+const BottomNav = defineAsyncComponent(
+  () => import('./components/BottomNav.vue'),
+)
+const backgroundStore = useBackgroundStore()
+const notesStore = useNotesStore()
+const affirmationStore = useAffirmationStore()
+const isLoading = ref(true)
+const error = ref<Error | null>(null)
+
+const authStore = useAuthStore()
 
 async function initializeApp() {
   try {
@@ -25,32 +26,35 @@ async function initializeApp() {
     ])
     if (navigator.onLine) {
       await syncService.syncAll().catch((err) => {
-        console.error("Background sync failed:", err);
-      });
+        console.error('Background sync failed:', err)
+      })
     }
-    notificationService.scheduleReminders();
-  } catch (err) {
-    console.error("Failed to initialize app:", err);
-    error.value = err as Error;
+    notificationService.scheduleReminders()
+  }
+  catch (err) {
+    console.error('Failed to initialize app:', err)
+    error.value = err as Error
   }
 };
 
 onMounted(async () => {
   try {
-    await initializeApp();
-    backgroundStore.determineTimeOfDay();
-    setInterval(() => backgroundStore.determineTimeOfDay(), 60000);
+    await initializeApp()
+    backgroundStore.determineTimeOfDay()
+    setInterval(() => backgroundStore.determineTimeOfDay(), 60000)
     await Promise.allSettled([
       notesStore.initializeStore(),
       authStore.setUser(),
     ])
-  } catch (err) {
-    console.error("Failed to initialize app:", err);
-    error.value = err as Error;
-  } finally {
-    isLoading.value = false;
   }
-});
+  catch (err) {
+    console.error('Failed to initialize app:', err)
+    error.value = err as Error
+  }
+  finally {
+    isLoading.value = false
+  }
+})
 </script>
 
 <template>
@@ -65,11 +69,11 @@ onMounted(async () => {
       v-if="isLoading"
       class="loading-overlay"
     >
-      <div class="spinner"></div>
+      <div class="spinner" />
       Please wait...
     </div>
     <div v-else class="app-content">
-      <router-view :dailyAffirmation="affirmationStore.dailyAffirmation"></router-view>
+      <router-view :daily-affirmation="affirmationStore.dailyAffirmation" />
       <BottomNav v-if="$route.path !== '/' && $route.path !== '/login' && $route.path !== '/messaging'" />
     </div>
   </div>

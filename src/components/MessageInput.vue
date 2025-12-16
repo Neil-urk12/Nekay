@@ -1,37 +1,37 @@
+<script setup lang="ts">
+defineProps<{
+  modelValue: string
+  isLoading: boolean
+}>()
+
+defineEmits<{
+  'update:modelValue': [value: string]
+  'send': []
+}>()
+</script>
+
 <template>
   <div class="message-input">
     <input
       ref="inputRef"
       type="text"
       :value="modelValue"
-      @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
-      @keydown.enter="$emit('send')"
       placeholder="Type a message..."
       :disabled="isLoading"
-    />
-    <button 
-      class="send-btn" 
-      @click="$emit('send')"
+      @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+      @keydown.enter="$emit('send')"
+    >
+    <button
+      class="send-btn"
       :disabled="isLoading"
+      @click="$emit('send')"
     >
       <svg class="send-icon" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
       </svg>
     </button>
   </div>
 </template>
-
-<script setup lang="ts">
-defineProps<{
-  modelValue: string;
-  isLoading: boolean;
-}>();
-
-defineEmits<{
-  'update:modelValue': [value: string];
-  'send': [];
-}>();
-</script>
 
 <style scoped>
 .message-input {

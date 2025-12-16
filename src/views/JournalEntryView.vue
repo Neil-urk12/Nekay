@@ -1,151 +1,161 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, defineAsyncComponent, nextTick } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import { useNotesStore } from "../stores/notes";
+import type { JournalEntry } from '../composables/interfaces'
+import { computed, defineAsyncComponent, nextTick, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useNotesStore } from '../stores/notes'
+
 const AddJournalEntryModal = defineAsyncComponent(
-  () => import("../components/AddModal.vue")
-);
+  () => import('../components/AddModal.vue'),
+)
 const DeleteEntryModal = defineAsyncComponent(
-  () => import("../components/DeleteEntryModal.vue")
-);
-import { JournalEntry } from "../composables/interfaces";
+  () => import('../components/DeleteEntryModal.vue'),
+)
 const EditEntryModal = defineAsyncComponent(
-  () => import("../components/EditEntryModal.vue")
-);
+  () => import('../components/EditEntryModal.vue'),
+)
 const TrashIconSvg = defineAsyncComponent(
-  () => import("../components/TrashIconSvg.vue")
-);
+  () => import('../components/TrashIconSvg.vue'),
+)
 
-const entryStore = useNotesStore();
-const router = useRouter();
-const route = useRoute();
+const entryStore = useNotesStore()
+const router = useRouter()
+const route = useRoute()
 
-const showEditModal = ref(false);
-const newEntry = ref({ title: "", content: "" });
+const showEditModal = ref(false)
+const newEntry = ref({ title: '', content: '' })
 const selectedEntry = ref<{
-  id: string;
-  title: string;
-  content: string;
-} | null>(null);
-const editingEntry = ref<{ id: string; title: string } | null>(null);
-const showDeleteModal = ref<{ id: string; title: string } | null>(null);
-const entries = computed(() => entryStore.getEntries);
-const folders = computed(() => entryStore.getJournalFolders);
-const currentFolderId = computed(() => route.params.id as string);
+  id: string
+  title: string
+  content: string
+} | null>(null)
+const editingEntry = ref<{ id: string, title: string } | null>(null)
+const showDeleteModal = ref<{ id: string, title: string } | null>(null)
+const entries = computed(() => entryStore.getEntries)
+const folders = computed(() => entryStore.getJournalFolders)
+const currentFolderId = computed(() => route.params.id as string)
 const currentFolder = computed(() =>
-  folders.value.find((f) => f.id === currentFolderId.value)
-);
+  folders.value.find(f => f.id === currentFolderId.value),
+)
 const currentFolderEntries = computed(() =>
-  entries.value.filter((task) => task.folderId === currentFolderId.value)
-);
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
+  entries.value.filter(task => task.folderId === currentFolderId.value),
+)
+function formatDate(dateString: string) {
+  const date = new Date(dateString)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 const formattedEntries = computed(() =>
-  currentFolderEntries.value.map((entry) => ({
+  currentFolderEntries.value.map(entry => ({
     ...entry,
     formattedDate: formatDate(entry.date),
-  }))
-);
-const showModal = ref(false);
-const openModal = () => {
-  showModal.value = true;
-};
-const closeModal = () => {
-  showModal.value = false;
-};
+  })),
+)
+const showModal = ref(false)
+function openModal() {
+  showModal.value = true
+}
+function closeModal() {
+  showModal.value = false
+}
 
-const handleAddEntry = () => {
+function handleAddEntry() {
   if (newEntry.value.title.trim() && newEntry.value.content.trim()) {
-    addEntry(newEntry.value);
-    newEntry.value = { title: "", content: "" };
-    closeModal();
+    addEntry(newEntry.value)
+    newEntry.value = { title: '', content: '' }
+    closeModal()
   }
-};
+}
 
-const addEntry = async (entry: { title: string; content: string }) => {
+async function addEntry(entry: { title: string, content: string }) {
   try {
-    if (!entry) return;
+    if (!entry)
+      return
 
     await entryStore.addEntry(
       entry.title.trim(),
       entry.content.trim(),
-      currentFolderId.value
-    );
-    closeModal();
-  } catch (err) {
-    console.error(err);
+      currentFolderId.value,
+    )
+    closeModal()
   }
-};
+  catch (err) {
+    console.error(err)
+  }
+}
 
-const editEntry = async (updatedEntry: {
-  id: string;
-  title: string;
-  content: string;
-}) => {
+async function editEntry(updatedEntry: {
+  id: string
+  title: string
+  content: string
+}) {
   try {
     await entryStore.editJournalEntry(updatedEntry.id, {
       title: updatedEntry.title,
       content: updatedEntry.content,
-    });
-  } catch (err) {
-    console.error("Failed to edit entry: ", err);
+    })
   }
-};
+  catch (err) {
+    console.error('Failed to edit entry: ', err)
+  }
+}
 
-const openEditModal = (entry: JournalEntry) => {
-  selectedEntry.value = entry;
-  showEditModal.value = true;
-};
+function openEditModal(entry: JournalEntry) {
+  selectedEntry.value = entry
+  showEditModal.value = true
+}
 
-const saveEdit = async () => {
-  if (!editingEntry.value) return;
+async function saveEdit() {
+  if (!editingEntry.value)
+    return
   try {
     await entryStore.editJournalEntry(editingEntry.value.id, {
       title: editingEntry.value.title,
-    });
-    editingEntry.value = null;
-  } catch (err) {
-    console.error("Failed to edit entry : ", err);
+    })
+    editingEntry.value = null
   }
-};
+  catch (err) {
+    console.error('Failed to edit entry : ', err)
+  }
+}
 
-const confirmDelete = async (id: string) => {
+async function confirmDelete(id: string) {
   try {
-    await entryStore.deleteJournalEntry(id);
-    showDeleteModal.value = null;
-  } catch (err) {
-    console.error("Failed to delete entry : ", err);
+    await entryStore.deleteJournalEntry(id)
+    showDeleteModal.value = null
   }
-};
+  catch (err) {
+    console.error('Failed to delete entry : ', err)
+  }
+}
 
-const expandedEntries = ref<Set<string>>(new Set());
-const contentHeights = ref<Map<string, number>>(new Map());
+const expandedEntries = ref<Set<string>>(new Set())
+const contentHeights = ref<Map<string, number>>(new Map())
 
-const toggleEntry = (entryId: string) => {
+function toggleEntry(entryId: string) {
   if (expandedEntries.value.has(entryId)) {
-    expandedEntries.value.delete(entryId);
-  } else {
-    expandedEntries.value.add(entryId);
+    expandedEntries.value.delete(entryId)
+  }
+  else {
+    expandedEntries.value.add(entryId)
     // Get and store content height when expanding
     nextTick(() => {
-      const contentEl = document.querySelector(`[data-content="${entryId}"]`);
+      const contentEl = document.querySelector(`[data-content="${entryId}"]`)
       if (contentEl) {
-        contentHeights.value.set(entryId, contentEl.scrollHeight);
+        contentHeights.value.set(entryId, contentEl.scrollHeight)
       }
-    });
+    })
   }
-};
+}
 
 onMounted(async () => {
-  if (!currentFolder.value || !currentFolderId.value) router.push("/journal");
-  if (folders.value.length === 0) await entryStore.loadFolders();
-  await entryStore.loadEntries();
-});
+  if (!currentFolder.value || !currentFolderId.value)
+    router.push('/journal')
+  if (folders.value.length === 0)
+    await entryStore.loadFolders()
+  await entryStore.loadEntries()
+})
 </script>
 
 <template>
@@ -164,36 +174,38 @@ onMounted(async () => {
         </svg>
       </button>
       <h1>{{ currentFolder?.name }}</h1>
-      <button class="add-entry-button" @click="openModal">Add Entry</button>
+      <button class="add-entry-button" @click="openModal">
+        Add Entry
+      </button>
     </div>
     <AddJournalEntryModal
       v-if="showModal"
       title="Add New Entry"
-      :showModal="showModal"
+      :show-modal="showModal"
       @close="closeModal"
       @submit="handleAddEntry"
     >
       <input
-        type="text"
         v-model="newEntry.title"
+        type="text"
         placeholder="Enter title"
         required
-      />
+      >
       <textarea
         v-model="newEntry.content"
         placeholder="Enter content"
         required
-      ></textarea>
+      />
     </AddJournalEntryModal>
 
-    <div class="entries-list" v-if="currentFolderEntries.length">
+    <div v-if="currentFolderEntries.length" class="entries-list">
       <div v-for="entry in formattedEntries" :key="entry.id" class="entry-item">
         <div class="entry-header">
           <div class="entry-header-left">
             <button
               class="collapse-btn"
-              @click="toggleEntry(entry.id)"
               :class="{ expanded: expandedEntries.has(entry.id) }"
+              @click="toggleEntry(entry.id)"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -209,14 +221,16 @@ onMounted(async () => {
             <template v-if="editingEntry?.id === entry.id">
               <input
                 v-model="editingEntry.title"
+                class="edit-input"
                 @keyup.enter="saveEdit"
                 @keyup.esc="editingEntry = null"
-                class="edit-input"
                 @click.stop
-              />
+              >
             </template>
             <template v-else>
-              <h2 class="entry-title">{{ entry.title }}</h2>
+              <h2 class="entry-title">
+                {{ entry.title }}
+              </h2>
             </template>
           </div>
 
@@ -245,17 +259,21 @@ onMounted(async () => {
         </div>
 
         <div class="entry-content">
-          <p class="entry-date">{{ entry.formattedDate }}</p>
+          <p class="entry-date">
+            {{ entry.formattedDate }}
+          </p>
           <div class="content-wrapper">
             <div
               class="collapsible-content"
               :style="{
-                '--content-height': contentHeights.get(entry.id) + 'px',
+                '--content-height': `${contentHeights.get(entry.id)}px`,
               }"
               :class="{ expanded: expandedEntries.has(entry.id) }"
             >
               <div :data-content="entry.id">
-                <p class="entry-text">{{ entry.content }}</p>
+                <p class="entry-text">
+                  {{ entry.content }}
+                </p>
               </div>
             </div>
           </div>
@@ -268,9 +286,9 @@ onMounted(async () => {
     </div>
     <DeleteEntryModal
       v-if="showDeleteModal"
+      :id="showDeleteModal?.id"
       :show="!!showDeleteModal"
       :title="showDeleteModal?.title"
-      :id="showDeleteModal?.id"
       @close="showDeleteModal = null"
       @delete="confirmDelete"
     />
@@ -279,7 +297,7 @@ onMounted(async () => {
     v-if="showEditModal"
     :entry="selectedEntry"
     @close="showEditModal = false"
-    @editEntry="editEntry"
+    @edit-entry="editEntry"
   />
 </template>
 

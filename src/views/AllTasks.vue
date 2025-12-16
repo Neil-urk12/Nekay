@@ -1,82 +1,95 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, defineAsyncComponent } from "vue";
-import { useNotesStore } from "../stores/notes";
-import { Task } from "../composables/interfaces";
-const SlideUpSheet = defineAsyncComponent(() => import("../components/SlideUpSheet.vue"));
-const FloatingActionButton = defineAsyncComponent(() => import("../components/FloatingActionButton.vue"));
+import type { Task } from '../composables/interfaces'
+import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
+import { useNotesStore } from '../stores/notes'
 
-const taskStore = useNotesStore();
-const folders = computed(() => taskStore.getFolders);
-const tasks = computed(() => [...taskStore.getTasks]);
-const newTask = ref("");
-const showAddSheet = ref(false);
-const editingTask = ref<{ id: string; content: string } | null>(null);
-const deleteConfirm = ref<{ id: string; content: string } | null>(null);
-const isLoading = ref(false);
+const SlideUpSheet = defineAsyncComponent(() => import('../components/SlideUpSheet.vue'))
+const FloatingActionButton = defineAsyncComponent(() => import('../components/FloatingActionButton.vue'))
 
-const addTask = async () => {
-  if (!newTask.value.trim()) return;
+const taskStore = useNotesStore()
+const folders = computed(() => taskStore.getFolders)
+const tasks = computed(() => [...taskStore.getTasks])
+const newTask = ref('')
+const showAddSheet = ref(false)
+const editingTask = ref<{ id: string, content: string } | null>(null)
+const deleteConfirm = ref<{ id: string, content: string } | null>(null)
+const isLoading = ref(false)
+
+async function addTask() {
+  if (!newTask.value.trim())
+    return
   try {
-    isLoading.value = true;
-    await taskStore.addTask(newTask.value, "alltasks");
-    newTask.value = "";
-    showAddSheet.value = false;
-  } catch (error) {
-    console.error("Failed to add task:", error);
-  } finally {
-    isLoading.value = false;
+    isLoading.value = true
+    await taskStore.addTask(newTask.value, 'alltasks')
+    newTask.value = ''
+    showAddSheet.value = false
   }
-};
+  catch (error) {
+    console.error('Failed to add task:', error)
+  }
+  finally {
+    isLoading.value = false
+  }
+}
 
-const toggleTask = async (task: Task) => {
+async function toggleTask(task: Task) {
   try {
-    await taskStore.editTask(task.id, { completed: !task.completed });
-  } catch (error) {
-    console.error("Failed to toggle task:", error);
+    await taskStore.editTask(task.id, { completed: !task.completed })
   }
-};
+  catch (error) {
+    console.error('Failed to toggle task:', error)
+  }
+}
 
-const saveEdit = async () => {
-  if (!editingTask.value) return;
+async function saveEdit() {
+  if (!editingTask.value)
+    return
   try {
     await taskStore.editTask(editingTask.value.id, {
       taskContent: editingTask.value.content,
-    });
-    editingTask.value = null;
-  } catch (error) {
-    console.error("Failed to edit task:", error);
+    })
+    editingTask.value = null
   }
-};
+  catch (error) {
+    console.error('Failed to edit task:', error)
+  }
+}
 
-const confirmDelete = async () => {
-  if (!deleteConfirm.value) return;
+async function confirmDelete() {
+  if (!deleteConfirm.value)
+    return
   try {
-    await taskStore.deleteTask(deleteConfirm.value.id);
-    deleteConfirm.value = null;
-  } catch (error) {
-    console.error("Failed to delete task:", error);
+    await taskStore.deleteTask(deleteConfirm.value.id)
+    deleteConfirm.value = null
   }
-};
+  catch (error) {
+    console.error('Failed to delete task:', error)
+  }
+}
 
 onMounted(() => {
   try {
-    isLoading.value = true;
-    if (folders.value.length === 0) taskStore.loadFolders();
-    if (tasks.value.length === 0) taskStore.loadTasks();
-  } catch (error) {
-    console.error("Failed to load tasks:", error);
-  } finally {
-    isLoading.value = false;
+    isLoading.value = true
+    if (folders.value.length === 0)
+      taskStore.loadFolders()
+    if (tasks.value.length === 0)
+      taskStore.loadTasks()
   }
-});
+  catch (error) {
+    console.error('Failed to load tasks:', error)
+  }
+  finally {
+    isLoading.value = false
+  }
+})
 </script>
 
 <template>
   <div class="tasks-container">
     <header class="page-header">
-      <button class="back-arrow" @click="$router.push('/folders')" aria-label="Back to folders">
+      <button class="back-arrow" aria-label="Back to folders" @click="$router.push('/folders')">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="20" height="20">
-          <path fill="currentColor" d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/>
+          <path fill="currentColor" d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z" />
         </svg>
       </button>
       <h1>All Tasks</h1>
@@ -95,16 +108,16 @@ onMounted(() => {
               type="checkbox"
               :checked="task.completed"
               @change="toggleTask(task)"
-            />
+            >
           </div>
           <template v-if="editingTask?.id === task.id">
             <input
               v-model="editingTask.content"
+              class="edit-input"
               @keyup.enter="saveEdit"
               @keyup.esc="editingTask = null"
-              class="edit-input"
               @click.stop
-            />
+            >
           </template>
           <template v-else>
             <span :class="{ 'completed-text': task.completed }">{{
@@ -183,27 +196,29 @@ onMounted(() => {
     <!-- Delete Confirmation Modal -->
     <div
       v-if="deleteConfirm"
-      @click="deleteConfirm = null"
       class="modal-overlay"
+      @click="deleteConfirm = null"
     >
       <div class="modal-content" @click.stop>
         <h3 class="modal-title">
-          <i class="fas fa-exclamation-triangle"></i> Delete Task
+          <i class="fas fa-exclamation-triangle" /> Delete Task
         </h3>
         <p class="modal-text">
           Are you sure you want to delete "{{ deleteConfirm.content }}"?
         </p>
         <div class="modal-actions">
-          <button @click="deleteConfirm = null" class="btn-secondary">
+          <button class="btn-secondary" @click="deleteConfirm = null">
             Cancel
           </button>
-          <button @click="confirmDelete" class="btn-danger">Delete</button>
+          <button class="btn-danger" @click="confirmDelete">
+            Delete
+          </button>
         </div>
       </div>
     </div>
 
     <!-- FAB Button -->
-    <FloatingActionButton @click="showAddSheet = true" aria-label="Add new task" />
+    <FloatingActionButton aria-label="Add new task" @click="showAddSheet = true" />
 
     <!-- Slide Up Sheet for Adding Task -->
     <SlideUpSheet :show="showAddSheet" title="New Task" @close="showAddSheet = false">
@@ -211,11 +226,13 @@ onMounted(() => {
         <input
           v-model="newTask"
           placeholder="Task description"
-          @keyup.enter="addTask"
           class="sheet-input"
           autofocus
-        />
-        <button @click="addTask" class="btn-primary sheet-btn" :disabled="isLoading">Add Task</button>
+          @keyup.enter="addTask"
+        >
+        <button class="btn-primary sheet-btn" :disabled="isLoading" @click="addTask">
+          Add Task
+        </button>
       </div>
     </SlideUpSheet>
   </div>

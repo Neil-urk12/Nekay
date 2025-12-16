@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { Sun, Moon } from "lucide-vue-next";
+import { Moon, Sun } from 'lucide-vue-next'
 
 defineProps<{
-  isDarkMode: boolean;
-}>();
+  isDarkMode: boolean
+}>()
 
 defineEmits<{
-  (e: 'toggle'): void;
-}>();
+  (e: 'toggle'): void
+}>()
 </script>
 
 <template>
   <button
     class="dark-mode-toggle"
-    @click="$emit('toggle')"
     :aria-label="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'"
+    @click="$emit('toggle')"
   >
     <span class="button-icon" aria-hidden="true">
       <Sun v-if="isDarkMode" :size="20" />

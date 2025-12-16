@@ -1,10 +1,10 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables');
+  throw new Error('Missing Supabase environment variables')
 }
 
 // Using untyped client for simplicity - tables are validated at runtime
@@ -14,22 +14,22 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
-});
+})
 
 // Auth state listener helper
-export const onAuthStateChange = (callback: (session: any) => void) => {
+export function onAuthStateChange(callback: (session: any) => void) {
   return supabase.auth.onAuthStateChange((_event, session) => {
-    callback(session);
-  });
-};
+    callback(session)
+  })
+}
 
 // Network status helpers
 window.addEventListener('online', () => {
-  console.log('App is online');
-});
+  console.log('App is online')
+})
 
 window.addEventListener('offline', () => {
-  console.log('App is offline');
-});
+  console.log('App is offline')
+})
 
-export default supabase;
+export default supabase

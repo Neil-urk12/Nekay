@@ -1,32 +1,36 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { Folder } from "../composables/interfaces";
+import type { Folder } from '../composables/interfaces'
+import { computed, ref } from 'vue'
 
 const props = defineProps<{
-  folder: Folder | null;
-}>();
+  folder: Folder | null
+}>()
 
-const emit = defineEmits(["close", "editFolder"]);
-const folderName = ref(props.folder?.name ?? '');
-const initialName = ref(props.folder?.name ?? '');
+const emit = defineEmits(['close', 'editFolder'])
+const folderName = ref(props.folder?.name ?? '')
+const initialName = ref(props.folder?.name ?? '')
 const sameName = computed(() => {
-  return folderName.value === initialName.value;
-});
+  return folderName.value === initialName.value
+})
 
-const handleSubmit = () => {
+function handleSubmit() {
   try {
-    if (!folderName.value.trim()) return;
+    if (!folderName.value.trim())
+      return
 
-    if (sameName.value) return;
+    if (sameName.value)
+      return
 
     if (props.folder) {
-      emit("editFolder", { id: props.folder.id, name: folderName.value });
-      emit("close");
+      emit('editFolder', { id: props.folder.id, name: folderName.value })
+      emit('close')
     }
-  } catch (err) {
-    console.error(err);
   }
-};</script>
+  catch (err) {
+    console.error(err)
+  }
+}
+</script>
 
 <template>
   <div class="modal-overlay">
@@ -48,11 +52,11 @@ const handleSubmit = () => {
 
       <form @submit.prevent="handleSubmit">
         <input
-          type="text"
           v-model="folderName"
+          type="text"
           placeholder="Enter folder name"
           required
-        />
+        >
 
         <div class="button-group">
           <button type="button" class="cancel-button" @click="$emit('close')">

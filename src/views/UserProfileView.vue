@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { supabase } from '../supabase/supabase-config'
-import { useAuthStore } from '../stores/authStore'
-import SlideUpSheet from '../components/SlideUpSheet.vue'
 import { Eye, EyeOff } from 'lucide-vue-next'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import SlideUpSheet from '../components/SlideUpSheet.vue'
+import { useAuthStore } from '../stores/authStore'
+import { supabase } from '../supabase/supabase-config'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -39,16 +39,17 @@ const passwordStrength = computed(() => {
   return {
     hasLowercase: /[a-z]/.test(password),
     hasUppercase: /[A-Z]/.test(password),
-    hasDigit: /[0-9]/.test(password),
-    hasSymbol: /[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\\/;'`~]/.test(password),
-    minLength: password.length >= 8
+    hasDigit: /\d/.test(password),
+    hasSymbol: /[!@#$%^&*(),.?":{}|<>_\-+=[\]\\/;'`~]/.test(password),
+    minLength: password.length >= 8,
   }
 })
 
-
 const userInitial = computed(() => {
-  if (userName.value) return userName.value.charAt(0).toUpperCase()
-  if (userEmail.value) return userEmail.value.charAt(0).toUpperCase()
+  if (userName.value)
+    return userName.value.charAt(0).toUpperCase()
+  if (userEmail.value)
+    return userEmail.value.charAt(0).toUpperCase()
   return '?'
 })
 
@@ -58,36 +59,40 @@ onMounted(async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (session?.user) {
       userEmail.value = session.user.email || ''
-      
+
       // Fetch the user's name from the public.users table
       const { data: userData, error } = await supabase
         .from('users')
         .select('name')
         .eq('id', session.user.id)
         .single()
-      
+
       if (error) {
         console.error('Error fetching user data:', error)
-      } else {
+      }
+      else {
         userName.value = userData?.name || ''
       }
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Error loading profile:', error)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 })
 
 // Name Logic
-const startEditName = () => {
+function startEditName() {
   newName.value = userName.value
   showEditName.value = true
 }
 
-const saveName = async () => {
-  if (!newName.value.trim()) return
-  
+async function saveName() {
+  if (!newName.value.trim())
+    return
+
   loading.value = true
   try {
     // Get the current user's ID from auth session
@@ -95,31 +100,34 @@ const saveName = async () => {
     if (!session?.user?.id) {
       throw new Error('User not authenticated')
     }
-    
+
     // Update the name in the public.users table
     const { error } = await supabase
       .from('users')
       .update({ name: newName.value.trim() })
       .eq('id', session.user.id)
-    
-    if (error) throw error
-    
+
+    if (error)
+      throw error
+
     userName.value = newName.value.trim()
     showEditName.value = false
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Error updating name:', error)
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
 
 // Email Logic
-const startEditEmail = () => {
+function startEditEmail() {
   newEmail.value = userEmail.value
   showEditEmail.value = true
 }
 
-const saveEmail = async () => {
+async function saveEmail() {
   if (!newEmail.value.trim() || newEmail.value === userEmail.value) {
     showEditEmail.value = false
     return
@@ -128,23 +136,26 @@ const saveEmail = async () => {
   loading.value = true
   try {
     const { error } = await supabase.auth.updateUser({
-      email: newEmail.value.trim()
+      email: newEmail.value.trim(),
     })
 
-    if (error) throw error
+    if (error)
+      throw error
 
     alert('A confirmation email has been sent to your new address. Please check your inbox to complete the update.')
     showEditEmail.value = false
-  } catch (error: any) {
+  }
+  catch (error: any) {
     console.error('Error updating email:', error)
     alert(error.message || 'Failed to update email')
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
 
 // Password Logic
-const openChangePassword = () => {
+function openChangePassword() {
   currentPassword.value = ''
   newPassword.value = ''
   confirmPassword.value = ''
@@ -156,7 +167,7 @@ const openChangePassword = () => {
   showChangePassword.value = true
 }
 
-const savePassword = async () => {
+async function savePassword() {
   passwordError.value = ''
   passwordSuccess.value = ''
 
@@ -188,7 +199,7 @@ const savePassword = async () => {
     // First, reauthenticate with current password
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: userEmail.value,
-      password: currentPassword.value
+      password: currentPassword.value,
     })
 
     if (signInError) {
@@ -199,31 +210,36 @@ const savePassword = async () => {
 
     // Now update the password
     const { error } = await supabase.auth.updateUser({
-      password: newPassword.value
+      password: newPassword.value,
     })
 
-    if (error) throw error
+    if (error)
+      throw error
 
     passwordSuccess.value = 'Password updated successfully'
     setTimeout(() => {
       showChangePassword.value = false
     }, 1500)
-  } catch (error: any) {
+  }
+  catch (error: any) {
     console.error('Error updating password:', error)
     passwordError.value = error.message || 'Failed to update password'
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
 
-const handleLogout = async () => {
+async function handleLogout() {
   loading.value = true
   try {
     await authStore.handleLogout()
     router.push('/login')
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Error logging out:', error)
-  } finally {
+  }
+  finally {
     loading.value = false
     showLogoutConfirm.value = false
   }
@@ -233,13 +249,13 @@ const handleLogout = async () => {
 <template>
   <div class="profile-page">
     <div class="background-shapes">
-      <div class="shape shape-1"></div>
-      <div class="shape shape-2"></div>
+      <div class="shape shape-1" />
+      <div class="shape shape-2" />
     </div>
 
     <!-- Loading state -->
     <div v-if="loading" class="loading-container">
-      <div class="loading-spinner"></div>
+      <div class="loading-spinner" />
     </div>
 
     <!-- Profile Card -->
@@ -254,41 +270,45 @@ const handleLogout = async () => {
             <div class="avatar">
               {{ userInitial }}
             </div>
-            <div class="avatar-glow"></div>
+            <div class="avatar-glow" />
           </div>
-          
+
           <div class="user-info">
             <!-- Name Section -->
             <div class="name-display">
-              <h2 class="user-name">{{ userName || 'Set your name' }}</h2>
-              <button class="edit-btn" @click="startEditName" title="Edit Name">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+              <h2 class="user-name">
+                {{ userName || 'Set your name' }}
+              </h2>
+              <button class="edit-btn" title="Edit Name" @click="startEditName">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
               </button>
             </div>
-            
+
             <!-- Email Section -->
             <div class="email-display">
-              <p class="user-email">{{ userEmail }}</p>
-              <button class="edit-btn" @click="startEditEmail" title="Edit Email">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+              <p class="user-email">
+                {{ userEmail }}
+              </p>
+              <button class="edit-btn" title="Edit Email" @click="startEditEmail">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
               </button>
             </div>
           </div>
         </div>
 
-        <div class="divider"></div>
+        <div class="divider" />
 
         <div class="actions-section">
           <button class="action-btn change-password-btn" @click="openChangePassword">
             <span class="icon-wrapper">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-lock"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-lock"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
             </span>
             <span>Change Password</span>
           </button>
 
           <button class="action-btn logout-btn" @click="showLogoutConfirm = true">
             <span class="icon-wrapper">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-log-out"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-log-out"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
             </span>
             <span>Log Out</span>
           </button>
@@ -300,10 +320,10 @@ const handleLogout = async () => {
     <SlideUpSheet :show="showEditName" title="Edit Name" @close="showEditName = false">
       <div class="input-group">
         <label>Full Name</label>
-        <input v-model="newName" type="text" placeholder="Enter your name" class="sheet-input" @keydown.enter="saveName" />
+        <input v-model="newName" type="text" placeholder="Enter your name" class="sheet-input" @keydown.enter="saveName">
       </div>
 
-      <button class="btn-save sheet-save-btn" @click="saveName" :disabled="loading">
+      <button class="btn-save sheet-save-btn" :disabled="loading" @click="saveName">
         {{ loading ? 'Saving...' : 'Save Changes' }}
       </button>
     </SlideUpSheet>
@@ -312,12 +332,14 @@ const handleLogout = async () => {
     <SlideUpSheet :show="showEditEmail" title="Edit Email" @close="showEditEmail = false">
       <div class="input-group">
         <label>Email Address</label>
-        <input v-model="newEmail" type="email" placeholder="Enter your email" class="sheet-input" @keydown.enter="saveEmail" />
+        <input v-model="newEmail" type="email" placeholder="Enter your email" class="sheet-input" @keydown.enter="saveEmail">
       </div>
-      
-      <p class="info-text">You will need to confirm the new email address.</p>
 
-      <button class="btn-save sheet-save-btn" @click="saveEmail" :disabled="loading">
+      <p class="info-text">
+        You will need to confirm the new email address.
+      </p>
+
+      <button class="btn-save sheet-save-btn" :disabled="loading" @click="saveEmail">
         {{ loading ? 'Saving...' : 'Update Email' }}
       </button>
     </SlideUpSheet>
@@ -327,38 +349,38 @@ const handleLogout = async () => {
       <div class="input-group">
         <label>Current Password</label>
         <div class="password-input-wrapper">
-          <input 
-            v-model="currentPassword" 
-            :type="showCurrentPassword ? 'text' : 'password'" 
-            placeholder="Enter your current password" 
-            class="sheet-input password-input" 
-          />
-          <button 
+          <input
+            v-model="currentPassword"
+            :type="showCurrentPassword ? 'text' : 'password'"
+            placeholder="Enter your current password"
+            class="sheet-input password-input"
+          >
+          <button
             type="button"
-            class="eye-toggle-btn" 
-            @click="showCurrentPassword = !showCurrentPassword"
+            class="eye-toggle-btn"
             :aria-label="showCurrentPassword ? 'Hide password' : 'Show password'"
+            @click="showCurrentPassword = !showCurrentPassword"
           >
             <EyeOff v-if="showCurrentPassword" :size="20" />
             <Eye v-else :size="20" />
           </button>
         </div>
       </div>
-      
+
       <div class="input-group">
         <label>New Password</label>
         <div class="password-input-wrapper">
-          <input 
-            v-model="newPassword" 
-            :type="showNewPassword ? 'text' : 'password'" 
-            placeholder="Min. 8 characters" 
-            class="sheet-input password-input" 
-          />
-          <button 
+          <input
+            v-model="newPassword"
+            :type="showNewPassword ? 'text' : 'password'"
+            placeholder="Min. 8 characters"
+            class="sheet-input password-input"
+          >
+          <button
             type="button"
-            class="eye-toggle-btn" 
-            @click="showNewPassword = !showNewPassword"
+            class="eye-toggle-btn"
             :aria-label="showNewPassword ? 'Hide password' : 'Show password'"
+            @click="showNewPassword = !showNewPassword"
           >
             <EyeOff v-if="showNewPassword" :size="20" />
             <Eye v-else :size="20" />
@@ -368,52 +390,52 @@ const handleLogout = async () => {
 
       <!-- Password Strength Meter -->
       <div v-if="newPassword" class="password-strength-meter">
-        <div class="strength-requirement" :class="{ 'met': passwordStrength.minLength }">
+        <div class="strength-requirement" :class="{ met: passwordStrength.minLength }">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="check-icon">
-            <polyline points="20 6 9 17 4 12"></polyline>
+            <polyline points="20 6 9 17 4 12" />
           </svg>
           <span>At least 8 characters</span>
         </div>
-        <div class="strength-requirement" :class="{ 'met': passwordStrength.hasLowercase }">
+        <div class="strength-requirement" :class="{ met: passwordStrength.hasLowercase }">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="check-icon">
-            <polyline points="20 6 9 17 4 12"></polyline>
+            <polyline points="20 6 9 17 4 12" />
           </svg>
           <span>One lowercase letter</span>
         </div>
-        <div class="strength-requirement" :class="{ 'met': passwordStrength.hasUppercase }">
+        <div class="strength-requirement" :class="{ met: passwordStrength.hasUppercase }">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="check-icon">
-            <polyline points="20 6 9 17 4 12"></polyline>
+            <polyline points="20 6 9 17 4 12" />
           </svg>
           <span>One uppercase letter</span>
         </div>
-        <div class="strength-requirement" :class="{ 'met': passwordStrength.hasDigit }">
+        <div class="strength-requirement" :class="{ met: passwordStrength.hasDigit }">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="check-icon">
-            <polyline points="20 6 9 17 4 12"></polyline>
+            <polyline points="20 6 9 17 4 12" />
           </svg>
           <span>One digit (0-9)</span>
         </div>
-        <div class="strength-requirement" :class="{ 'met': passwordStrength.hasSymbol }">
+        <div class="strength-requirement" :class="{ met: passwordStrength.hasSymbol }">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="check-icon">
-            <polyline points="20 6 9 17 4 12"></polyline>
+            <polyline points="20 6 9 17 4 12" />
           </svg>
           <span>One symbol (!@#$%^&*...)</span>
         </div>
       </div>
-      
+
       <div class="input-group">
         <label>Confirm Password</label>
         <div class="password-input-wrapper">
-          <input 
-            v-model="confirmPassword" 
-            :type="showConfirmPassword ? 'text' : 'password'" 
-            placeholder="Re-enter password" 
-            class="sheet-input password-input" 
-          />
-          <button 
+          <input
+            v-model="confirmPassword"
+            :type="showConfirmPassword ? 'text' : 'password'"
+            placeholder="Re-enter password"
+            class="sheet-input password-input"
+          >
+          <button
             type="button"
-            class="eye-toggle-btn" 
-            @click="showConfirmPassword = !showConfirmPassword"
+            class="eye-toggle-btn"
             :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
+            @click="showConfirmPassword = !showConfirmPassword"
           >
             <EyeOff v-if="showConfirmPassword" :size="20" />
             <Eye v-else :size="20" />
@@ -421,10 +443,14 @@ const handleLogout = async () => {
         </div>
       </div>
 
-      <div v-if="passwordError" class="error-msg">{{ passwordError }}</div>
-      <div v-if="passwordSuccess" class="success-msg">{{ passwordSuccess }}</div>
+      <div v-if="passwordError" class="error-msg">
+        {{ passwordError }}
+      </div>
+      <div v-if="passwordSuccess" class="success-msg">
+        {{ passwordSuccess }}
+      </div>
 
-      <button class="btn-save sheet-save-btn" @click="savePassword" :disabled="loading">
+      <button class="btn-save sheet-save-btn" :disabled="loading" @click="savePassword">
         {{ loading ? 'Saving...' : 'Update Password' }}
       </button>
     </SlideUpSheet>
@@ -435,14 +461,18 @@ const handleLogout = async () => {
         <div class="modal-content">
           <div class="modal-header">
             <div class="warning-icon">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
             </div>
             <h3>Log Out?</h3>
           </div>
           <p>Are you sure you want to log out of your account?</p>
           <div class="modal-actions">
-            <button class="btn-cancel" @click="showLogoutConfirm = false">Cancel</button>
-            <button class="btn-danger" @click="handleLogout">Log Out</button>
+            <button class="btn-cancel" @click="showLogoutConfirm = false">
+              Cancel
+            </button>
+            <button class="btn-danger" @click="handleLogout">
+              Log Out
+            </button>
           </div>
         </div>
       </div>
@@ -531,7 +561,7 @@ const handleLogout = async () => {
   border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: 2rem;
   padding: 2.5rem 2rem;
-  box-shadow: 
+  box-shadow:
     0 20px 40px -10px rgba(219, 39, 119, 0.15),
     0 0 0 1px rgba(255, 255, 255, 0.5) inset;
   display: flex;
@@ -999,5 +1029,4 @@ const handleLogout = async () => {
 .eye-toggle-btn:active {
   transform: translateY(-50%) scale(0.95);
 }
-
 </style>

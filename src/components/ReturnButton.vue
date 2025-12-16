@@ -1,14 +1,14 @@
+<script setup lang="ts">
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+</script>
+
 <template>
   <button class="back-btn" @click="router.push('/folders')">
     ← Back to Folders
   </button>
 </template>
-
-<script setup lang="ts">
-import { useRouter } from "vue-router";
-
-const router = useRouter();
-</script>
 
 <style scoped>
 .back-btn {

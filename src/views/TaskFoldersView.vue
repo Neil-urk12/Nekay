@@ -1,65 +1,72 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, defineAsyncComponent } from "vue";
-import { useRouter } from "vue-router";
-import { useNotesStore } from "../stores/notes";
+import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useNotesStore } from '../stores/notes'
 
-const SlideUpSheet = defineAsyncComponent(() => import("../components/SlideUpSheet.vue"));
-const FloatingActionButton = defineAsyncComponent(() => import("../components/FloatingActionButton.vue"));
+const SlideUpSheet = defineAsyncComponent(() => import('../components/SlideUpSheet.vue'))
+const FloatingActionButton = defineAsyncComponent(() => import('../components/FloatingActionButton.vue'))
 
-const router = useRouter();
-const noteStore = useNotesStore();
+const router = useRouter()
+const noteStore = useNotesStore()
 
-const newFolderName = ref("");
-const showAddSheet = ref(false);
-const editingFolder = ref<{ id: string; name: string } | null>(null);
-const deleteConfirm = ref<{ id: string; name: string } | null>(null);
+const newFolderName = ref('')
+const showAddSheet = ref(false)
+const editingFolder = ref<{ id: string, name: string } | null>(null)
+const deleteConfirm = ref<{ id: string, name: string } | null>(null)
 
 const folders = computed(() => noteStore.getTaskFolders)
 
-const navigateToFolder = (folderId: string) => router.push(`/folders/${folderId}`);
+const navigateToFolder = (folderId: string) => router.push(`/folders/${folderId}`)
 
-const addFolder = async () => {
-  if (!newFolderName.value.trim()) return;
+async function addFolder() {
+  if (!newFolderName.value.trim())
+    return
   try {
-    await noteStore.addFolder(newFolderName.value, "task");
-    newFolderName.value = "";
-    showAddSheet.value = false;
-  } catch (error) {
-    console.error("Failed to add folder:", error);
+    await noteStore.addFolder(newFolderName.value, 'task')
+    newFolderName.value = ''
+    showAddSheet.value = false
   }
-};
+  catch (error) {
+    console.error('Failed to add folder:', error)
+  }
+}
 
-const saveEdit = async () => {
-  if (!editingFolder.value) return;
+async function saveEdit() {
+  if (!editingFolder.value)
+    return
 
   try {
     await noteStore.editFolder(editingFolder.value.id, {
       name: editingFolder.value.name,
-    });
-    editingFolder.value = null;
-  } catch (err) {
-    console.error("Failed to edit folder: ", err);
+    })
+    editingFolder.value = null
   }
-};
+  catch (err) {
+    console.error('Failed to edit folder: ', err)
+  }
+}
 
-const cancelEdit = () => editingFolder.value = null;
+const cancelEdit = () => editingFolder.value = null
 
-const confirmDelete = async () => {
-  if (!deleteConfirm.value) return;
+async function confirmDelete() {
+  if (!deleteConfirm.value)
+    return
 
   try {
-    await noteStore.deleteFolder(deleteConfirm.value.id);
-    deleteConfirm.value = null;
-  } catch (err) {
-    console.error("Failed to delete folder: ", err);
+    await noteStore.deleteFolder(deleteConfirm.value.id)
+    deleteConfirm.value = null
   }
-};
+  catch (err) {
+    console.error('Failed to delete folder: ', err)
+  }
+}
 
-const cancelDelete = () => deleteConfirm.value = null;
+const cancelDelete = () => deleteConfirm.value = null
 
 onMounted(() => {
-  if (folders.value.length === 0) noteStore.loadFolders();
-});
+  if (folders.value.length === 0)
+    noteStore.loadFolders()
+})
 </script>
 
 <template>
@@ -89,15 +96,19 @@ onMounted(() => {
           <template v-if="editingFolder?.id === folder.id">
             <input
               v-model="editingFolder.name"
+              class="edit-input"
               @keyup.enter="saveEdit"
               @keyup.esc="cancelEdit"
               @click.stop
-              class="edit-input"
-            />
+            >
           </template>
           <template v-else>
-            <h2 class="folder-name">{{ folder.name }}</h2>
-            <p class="folder-count">{{ folder.numOfItems || 0 }} tasks</p>
+            <h2 class="folder-name">
+              {{ folder.name }}
+            </h2>
+            <p class="folder-count">
+              {{ folder.numOfItems || 0 }} tasks
+            </p>
           </template>
         </div>
 
@@ -164,30 +175,37 @@ onMounted(() => {
         <span class="arrow">→</span>
       </div>
     </div>
-    <div v-if="deleteConfirm" @click="cancelDelete" class="modal-overlay">
+    <div v-if="deleteConfirm" class="modal-overlay" @click="cancelDelete">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3>Delete Folder</h3>
-          <button class="close-btn" @click="cancelDelete">×</button>
+          <button class="close-btn" @click="cancelDelete">
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <p>
             Are you sure you want to delete "<span class="folder-highlight">{{
               deleteConfirm.name
-            }}</span
-            >"?
+            }}</span>"?
           </p>
-          <p class="warning-text">This action cannot be undone.</p>
+          <p class="warning-text">
+            This action cannot be undone.
+          </p>
         </div>
         <div class="modal-actions">
-          <button @click="cancelDelete" class="btn-secondary">Cancel</button>
-          <button class="btn-danger" @click="confirmDelete">Delete</button>
+          <button class="btn-secondary" @click="cancelDelete">
+            Cancel
+          </button>
+          <button class="btn-danger" @click="confirmDelete">
+            Delete
+          </button>
         </div>
       </div>
     </div>
 
     <!-- FAB Button -->
-    <FloatingActionButton @click="showAddSheet = true" aria-label="Add new folder" />
+    <FloatingActionButton aria-label="Add new folder" @click="showAddSheet = true" />
 
     <!-- Slide Up Sheet for Adding Folder -->
     <SlideUpSheet :show="showAddSheet" title="New Folder" @close="showAddSheet = false">
@@ -195,11 +213,13 @@ onMounted(() => {
         <input
           v-model="newFolderName"
           placeholder="Folder name"
-          @keyup.enter="addFolder"
           class="sheet-input"
           autofocus
-        />
-        <button @click="addFolder" class="btn-primary sheet-btn">Create Folder</button>
+          @keyup.enter="addFolder"
+        >
+        <button class="btn-primary sheet-btn" @click="addFolder">
+          Create Folder
+        </button>
       </div>
     </SlideUpSheet>
   </div>

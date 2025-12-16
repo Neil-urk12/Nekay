@@ -1,11 +1,11 @@
 <script setup lang="ts">
-const emit = defineEmits(["close", "confirm"]);
 defineProps({
   entryTitle: {
     type: String,
     required: true,
   },
-});
+})
+const emit = defineEmits(['close', 'confirm'])
 </script>
 
 <template>
@@ -26,7 +26,9 @@ defineProps({
       <h2>Delete Entry</h2>
       <p>Are you sure you want to delete "{{ entryTitle }}"?</p>
       <div class="button-group">
-        <button class="cancel-button" @click="$emit('close')">Cancel</button>
+        <button class="cancel-button" @click="$emit('close')">
+          Cancel
+        </button>
         <button class="confirm-button" @click="$emit('confirm')">
           Delete
         </button>

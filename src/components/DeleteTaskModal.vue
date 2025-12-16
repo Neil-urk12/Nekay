@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { defineProps, defineEmits } from "vue";
+import { defineEmits, defineProps } from 'vue'
 
 defineProps<{
-  show: boolean;
-  loading: boolean;
-}>();
+  show: boolean
+  loading: boolean
+}>()
 
 defineEmits<{
-  (e: "close"): void;
-  (e: "confirm"): void;
-}>();
+  (e: 'close'): void
+  (e: 'confirm'): void
+}>()
 </script>
 
 <template>
@@ -18,22 +18,22 @@ defineEmits<{
       <div class="modal-content">
         <h2>Delete Task</h2>
         <p>Are you sure you want to delete this task? This action cannot be undone.</p>
-        
+
         <div class="actions">
-          <button 
-            class="btn-cancel" 
-            @click="$emit('close')"
+          <button
+            class="btn-cancel"
             :disabled="loading"
+            @click="$emit('close')"
           >
             Cancel
           </button>
-          
-          <button 
-            class="btn-delete" 
-            @click="$emit('confirm')"
+
+          <button
+            class="btn-delete"
             :disabled="loading"
+            @click="$emit('confirm')"
           >
-            <span v-if="loading" class="spinner"></span>
+            <span v-if="loading" class="spinner" />
             <span v-else>Delete</span>
           </button>
         </div>

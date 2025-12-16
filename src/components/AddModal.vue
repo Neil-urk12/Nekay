@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, defineEmits } from "vue";
+import { defineEmits, defineProps } from 'vue'
 
 const props = defineProps({
   title: {
@@ -12,16 +12,16 @@ const props = defineProps({
   },
   submitButtonText: {
     type: String,
-    default: "Add",
+    default: 'Add',
   },
-});
+})
 
-const emit = defineEmits(["close", "submit"]);
+const emit = defineEmits(['close', 'submit'])
 
-const handleSubmit = (event: Event) => {
-  event.preventDefault();
-  emit("submit");
-};
+function handleSubmit(event: Event) {
+  event.preventDefault()
+  emit('submit')
+}
 </script>
 
 <template>
@@ -43,7 +43,7 @@ const handleSubmit = (event: Event) => {
       <h2>{{ props.title }}</h2>
 
       <form @submit="handleSubmit">
-        <slot></slot>
+        <slot />
 
         <div class="button-group">
           <button type="button" class="cancel-button" @click="$emit('close')">

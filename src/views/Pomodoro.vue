@@ -1,55 +1,59 @@
 <script setup lang="ts">
+import { ArrowLeftRight, Pause, Play, RotateCcw, Target, Timer } from 'lucide-vue-next'
 import {
   computed,
   defineAsyncComponent,
   onMounted,
   onUnmounted,
   ref,
-} from "vue";
-import { useTimerStore } from "../stores/timerStore";
-import { Target, Play, Pause, RotateCcw, ArrowLeftRight, Timer } from "lucide-vue-next";
+} from 'vue'
+import { useTimerStore } from '../stores/timerStore'
+
 const DarkModeToggle = defineAsyncComponent(
-  () => import("../components/DarkModeToggle.vue")
-);
+  () => import('../components/DarkModeToggle.vue'),
+)
 
-const store = useTimerStore();
+const store = useTimerStore()
 
-const startTimer = () => store.startTimer();
-const pauseTimer = () => store.pauseTimer();
-const resetTimer = () => store.resetTimer();
-const toggleMode = () => store.toggleMode();
-const error = ref<string | null>(null);
-const isLoading = ref(true);
-const isDarkMode = ref(false);
-const isRunning = computed(() => store.isRunning);
+const startTimer = () => store.startTimer()
+const pauseTimer = () => store.pauseTimer()
+const resetTimer = () => store.resetTimer()
+const toggleMode = () => store.toggleMode()
+const error = ref<string | null>(null)
+const isLoading = ref(true)
+const isDarkMode = ref(false)
+const isRunning = computed(() => store.isRunning)
 
-const toggleDarkMode = () => {
-  isDarkMode.value = !isDarkMode.value;
-  localStorage.setItem("nekayDarkMode", isDarkMode.value.toString());
-};
+function toggleDarkMode() {
+  isDarkMode.value = !isDarkMode.value
+  localStorage.setItem('nekayDarkMode', isDarkMode.value.toString())
+}
 
 onMounted(async () => {
   try {
-    const savedDarkMode = localStorage.getItem("nekayDarkMode");
-    if (savedDarkMode) isDarkMode.value = savedDarkMode === "true";
-    store.loadStats();
-  } catch (error) {
-    console.error(error);
-  } finally {
-    isLoading.value = false;
+    const savedDarkMode = localStorage.getItem('nekayDarkMode')
+    if (savedDarkMode)
+      isDarkMode.value = savedDarkMode === 'true'
+    store.loadStats()
   }
-});
+  catch (error) {
+    console.error(error)
+  }
+  finally {
+    isLoading.value = false
+  }
+})
 
 onUnmounted(() => {
   if (store.intervalId !== null) {
-    clearInterval(store.intervalId);
+    clearInterval(store.intervalId)
   }
-});
+})
 </script>
 
 <template>
   <div class="pomodoro-container" :class="{ dark: isDarkMode }">
-    <DarkModeToggle :isDarkMode="isDarkMode" @toggle="toggleDarkMode" />
+    <DarkModeToggle :is-dark-mode="isDarkMode" @toggle="toggleDarkMode" />
     <img class="peekingMelody" src="/assets/peekingmelody.webp" alt="YDIqCq.png" border="0" loading="lazy">
     <div v-if="error" class="error-message" role="alert">
       {{ error }}
@@ -61,15 +65,14 @@ onUnmounted(() => {
     </div>
 
     <div v-else class="timer-card" :class="{ dark: isDarkMode }">
-
       <div class="mode-indicator-wrapper">
         <div class="mode-indicator" :class="store.mode">
           {{
             store.mode === "work"
               ? "Work Time"
               : store.mode === "shortBreak"
-              ? "Short Break Time"
-              : "Long Break Time"
+                ? "Short Break Time"
+                : "Long Break Time"
           }}
         </div>
       </div>
@@ -86,55 +89,55 @@ onUnmounted(() => {
           class="progress-bar"
           :style="{ width: `${store.progress}%` }"
           :class="store.mode"
-        ></div>
+        />
       </div>
 
       <div class="timer-controls" role="group" aria-label="Timer controls">
         <div class="primary-controls">
-           <button
+          <button
             v-if="!isRunning"
             class="control-button primary icon-only-large"
-            @click="startTimer"
             aria-label="Start timer"
+            @click="startTimer"
           >
             <span class="button-icon" aria-hidden="true"><Play :size="32" /></span>
           </button>
           <button
             v-else
             class="control-button secondary icon-only-large"
-            @click="pauseTimer"
             aria-label="Pause timer"
+            @click="pauseTimer"
           >
             <span class="button-icon" aria-hidden="true"><Pause :size="32" /></span>
           </button>
         </div>
 
         <div class="secondary-controls">
-           <button
+          <button
             class="control-button secondary icon-only"
-            @click="resetTimer"
             aria-label="Reset timer"
             title="Reset"
+            @click="resetTimer"
           >
             <span class="button-icon" aria-hidden="true"><RotateCcw :size="20" /></span>
           </button>
           <button
             class="control-button secondary icon-only"
-            @click="toggleMode"
             :aria-label="
               store.mode === 'work'
                 ? 'Switch to short break timer'
                 : store.mode === 'shortBreak'
-                ? 'Return to work timer'
-                : 'Return to work timer'
+                  ? 'Return to work timer'
+                  : 'Return to work timer'
             "
-             :title="
+            :title="
               store.mode === 'work'
                 ? 'Take Short Break'
                 : 'Return to Work'
             "
+            @click="toggleMode"
           >
-             <span class="button-icon" aria-hidden="true"><ArrowLeftRight :size="20" /></span>
+            <span class="button-icon" aria-hidden="true"><ArrowLeftRight :size="20" /></span>
           </button>
         </div>
       </div>
@@ -145,15 +148,17 @@ onUnmounted(() => {
         role="region"
         aria-label="Progress statistics"
       >
-         <div class="stats-item">
-            <span class="stats-icon" aria-hidden="true"><Target :size="18" /></span>
-            <span>{{ store.stats.completedSessions }}</span>
-         </div>
-          <div class="stats-divider">|</div>
-         <div class="stats-item">
-            <span class="stats-icon" aria-hidden="true"><Timer :size="18" /></span>
-            <span>{{ store.formattedTotalTime }}</span>
-         </div>
+        <div class="stats-item">
+          <span class="stats-icon" aria-hidden="true"><Target :size="18" /></span>
+          <span>{{ store.stats.completedSessions }}</span>
+        </div>
+        <div class="stats-divider">
+          |
+        </div>
+        <div class="stats-item">
+          <span class="stats-icon" aria-hidden="true"><Timer :size="18" /></span>
+          <span>{{ store.formattedTotalTime }}</span>
+        </div>
       </div>
 
       <div

@@ -1,7 +1,13 @@
+<script>
+export default {
+  name: 'HelloKittyCafeText',
+}
+</script>
+
 <template>
   <div class="text-container">
     <div>
-      <span class="hello">Kane's Space<div class="bow"></div></span>
+      <span class="hello">Kane's Space<div class="bow" /></span>
     </div>
   </div>
 </template>
@@ -63,9 +69,3 @@
     right: -4px;
   }
 </style>
-
-<script>
-export default {
-  name: 'HelloKittyCafeText'
-}
-</script>

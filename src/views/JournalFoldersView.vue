@@ -1,89 +1,98 @@
 <script setup lang="ts">
-import { ref, defineAsyncComponent, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
-import { Folder } from "../composables/interfaces";
-import { useNotesStore } from "../stores/notes";
+import type { Folder } from '../composables/interfaces'
+import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useNotesStore } from '../stores/notes'
+
 const AddFolderModal = defineAsyncComponent(
-  () => import("../components/AddModal.vue")
-);
+  () => import('../components/AddModal.vue'),
+)
 const EditFolderModal = defineAsyncComponent(
-  () => import("../components/EditFolderModal.vue")
-);
+  () => import('../components/EditFolderModal.vue'),
+)
 const DeleteConfirmModal = defineAsyncComponent(
-  () => import("../components/DeleteConfirmModal.vue")
-);
+  () => import('../components/DeleteConfirmModal.vue'),
+)
 
-const router = useRouter();
-const journalStore = useNotesStore();
+const router = useRouter()
+const journalStore = useNotesStore()
 
-const showAddFolderModal = ref(false);
-const showEditFolderModal = ref(false);
-const showDeleteModal = ref(false);
-const selectedFolder = ref<Folder | null>(null);
-const folderToDelete = ref<Folder | null>(null);
-const newFolderName = ref("");
+const showAddFolderModal = ref(false)
+const showEditFolderModal = ref(false)
+const showDeleteModal = ref(false)
+const selectedFolder = ref<Folder | null>(null)
+const folderToDelete = ref<Folder | null>(null)
+const newFolderName = ref('')
 
-const folders = computed(() => journalStore.getJournalFolders);
+const folders = computed(() => journalStore.getJournalFolders)
 
-const addFolder = async (folderName: string) => {
+async function addFolder(folderName: string) {
   try {
-    if (!folderName.trim()) return;
+    if (!folderName.trim())
+      return
 
-    await journalStore.addFolder(folderName, "journal");
-  } catch (err) {
-    console.error(err);
+    await journalStore.addFolder(folderName, 'journal')
   }
-};
+  catch (err) {
+    console.error(err)
+  }
+}
 
-const handleAddFolder = () => {
+function handleAddFolder() {
   if (newFolderName.value.trim()) {
-    addFolder(newFolderName.value);
-    newFolderName.value = "";
-    showAddFolderModal.value = false;
+    addFolder(newFolderName.value)
+    newFolderName.value = ''
+    showAddFolderModal.value = false
   }
-};
+}
 
-const editFolder = async (updatedFolder: Partial<Folder>) => {
+async function editFolder(updatedFolder: Partial<Folder>) {
   try {
-    if (!updatedFolder || !updatedFolder.id) return;
+    if (!updatedFolder || !updatedFolder.id)
+      return
 
     await journalStore.editFolder(updatedFolder.id, {
       name: updatedFolder.name,
-    });
-  } catch (err) {
-    console.error("Error editing folder", err);
+    })
   }
-};
+  catch (err) {
+    console.error('Error editing folder', err)
+  }
+}
 
-const openDeleteModal = (folder: Folder) => {
-  folderToDelete.value = folder;
-  showDeleteModal.value = true;
-};
+function openDeleteModal(folder: Folder) {
+  folderToDelete.value = folder
+  showDeleteModal.value = true
+}
 
-const deleteFolder = async () => {
+async function deleteFolder() {
   try {
-    if (!folderToDelete.value || !folderToDelete.value.id) return;
+    if (!folderToDelete.value || !folderToDelete.value.id)
+      return
 
-    await journalStore.deleteFolder(folderToDelete.value.id);
+    await journalStore.deleteFolder(folderToDelete.value.id)
 
-    showDeleteModal.value = false;
-    folderToDelete.value = null;
-  } catch (err) {
-    console.error("Error deleting folder:", err);
+    showDeleteModal.value = false
+    folderToDelete.value = null
   }
-};
+  catch (err) {
+    console.error('Error deleting folder:', err)
+  }
+}
 
-const openEditModal = (folder: Folder) => {
-  selectedFolder.value = folder;
-  showEditFolderModal.value = true;
-};
+function openEditModal(folder: Folder) {
+  selectedFolder.value = folder
+  showEditFolderModal.value = true
+}
 
-const navigateToFolder = (folderId: string) =>
-  router.push(`/journal/${folderId}`);
+function navigateToFolder(folderId: string) {
+  return router.push(`/journal/${folderId}`)
+}
 
 onMounted(() => {
-  if (folders.value.length === 0) journalStore.loadFolders();
-});
+  if (folders.value.length === 0)
+    journalStore.loadFolders()
+})
 </script>
 
 <template>
@@ -101,10 +110,10 @@ onMounted(() => {
       </div>
 
       <div
-        v-else
-        class="journal-folder"
         v-for="folder in folders"
+        v-else
         :key="folder.id"
+        class="journal-folder"
         @click="navigateToFolder(folder.id)"
       >
         <div class="folderInfo">
@@ -151,22 +160,22 @@ onMounted(() => {
     <AddFolderModal
       v-if="showAddFolderModal"
       title="Add New Folder"
-      :showModal="showAddFolderModal"
+      :show-modal="showAddFolderModal"
       @close="showAddFolderModal = false"
       @submit="handleAddFolder"
     >
       <input
-        type="text"
         v-model="newFolderName"
+        type="text"
         placeholder="Enter folder name"
         required
-      />
+      >
     </AddFolderModal>
     <EditFolderModal
       v-if="showEditFolderModal"
       :folder="selectedFolder"
       @close="showEditFolderModal = false"
-      @editFolder="editFolder"
+      @edit-folder="editFolder"
     />
     <DeleteConfirmModal
       v-if="showDeleteModal"

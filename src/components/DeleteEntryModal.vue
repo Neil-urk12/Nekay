@@ -1,31 +1,39 @@
 <script setup lang="ts">
-import { defineProps, defineEmits } from "vue";
+import { defineEmits, defineProps } from 'vue'
 
 const props = defineProps<{
-  show: boolean;
-  title: string;
-  id: string;
-}>();
+  show: boolean
+  title: string
+  id: string
+}>()
 
-const emit = defineEmits(["close", "delete"]);
+const emit = defineEmits(['close', 'delete'])
 
-const closeModal = () => {
-  emit("close");
-};
+function closeModal() {
+  emit('close')
+}
 
-const confirmDelete = () => {
-  emit("delete", props.id);
-};
+function confirmDelete() {
+  emit('delete', props.id)
+}
 </script>
 
 <template>
-  <div v-if="show" @click="closeModal" class="modal-overlay">
+  <div v-if="show" class="modal-overlay" @click="closeModal">
     <div class="modal-content" @click.stop>
-      <h3 class="modal-title">Delete Entry</h3>
-      <p class="modal-text">Are you sure you want to delete "{{ title }}"?</p>
+      <h3 class="modal-title">
+        Delete Entry
+      </h3>
+      <p class="modal-text">
+        Are you sure you want to delete "{{ title }}"?
+      </p>
       <div class="modal-actions">
-        <button @click="closeModal" class="btn-secondary">Cancel</button>
-        <button @click="confirmDelete" class="btn-danger">Delete</button>
+        <button class="btn-secondary" @click="closeModal">
+          Cancel
+        </button>
+        <button class="btn-danger" @click="confirmDelete">
+          Delete
+        </button>
       </div>
     </div>
   </div>

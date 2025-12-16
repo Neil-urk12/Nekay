@@ -1,103 +1,105 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
-import { 
-  SquarePen, 
-  CircleX, 
-  Check, 
-  MoreVertical, 
-} from "lucide-vue-next";
-import { Task } from "../composables/interfaces";
+import type { Task } from '../composables/interfaces'
+import {
+  Check,
+  CircleX,
+  MoreVertical,
+  SquarePen,
+} from 'lucide-vue-next'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 const props = defineProps<{
-  task: Task;
-}>();
+  task: Task
+}>()
 
 const emit = defineEmits<{
-  (e: "toggle", task: Task): void;
-  (e: "edit", task: Task): void;
-  (e: "delete", taskId: string): void;
-}>();
+  (e: 'toggle', task: Task): void
+  (e: 'edit', task: Task): void
+  (e: 'delete', taskId: string): void
+}>()
 
 // -- Swipe Logic --
-const swipeOffset = ref(0);
-const startX = ref(0);
-const SWIPE_THRESHOLD = -80; // Distance to snap open
-const MAX_SWIPE = -120; // Max drag distance
+const swipeOffset = ref(0)
+const startX = ref(0)
+const SWIPE_THRESHOLD = -80 // Distance to snap open
+const MAX_SWIPE = -120 // Max drag distance
 
-const handleTouchStart = (e: TouchEvent) => {
-  startX.value = e.touches[0].clientX;
-};
+function handleTouchStart(e: TouchEvent) {
+  startX.value = e.touches[0].clientX
+}
 
-const handleTouchMove = (e: TouchEvent) => {
-  const currentX = e.touches[0].clientX;
-  const diff = currentX - startX.value;
-  
+function handleTouchMove(e: TouchEvent) {
+  const currentX = e.touches[0].clientX
+  const diff = currentX - startX.value
+
   // Only allow swiping left
   if (diff < 0) {
-    swipeOffset.value = Math.max(diff, MAX_SWIPE);
-  } else {
-    swipeOffset.value = 0;
+    swipeOffset.value = Math.max(diff, MAX_SWIPE)
   }
-};
+  else {
+    swipeOffset.value = 0
+  }
+}
 
-const handleTouchEnd = () => {
+function handleTouchEnd() {
   if (swipeOffset.value < SWIPE_THRESHOLD) {
-    swipeOffset.value = SWIPE_THRESHOLD; // Snap to open
-  } else {
-    swipeOffset.value = 0; // Snap back closed
+    swipeOffset.value = SWIPE_THRESHOLD // Snap to open
   }
-};
+  else {
+    swipeOffset.value = 0 // Snap back closed
+  }
+}
 
 // -- Desktop Menu Logic --
-const showMenu = ref(false);
-const menuRef = ref<HTMLElement | null>(null);
+const showMenu = ref(false)
+const menuRef = ref<HTMLElement | null>(null)
 
-const toggleMenu = () => {
-  showMenu.value = !showMenu.value;
-};
+function toggleMenu() {
+  showMenu.value = !showMenu.value
+}
 
-const handleClickOutside = (event: MouseEvent) => {
+function handleClickOutside(event: MouseEvent) {
   if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
-    showMenu.value = false;
+    showMenu.value = false
   }
-};
+}
 
 onMounted(() => {
-  document.addEventListener("click", handleClickOutside);
-});
+  document.addEventListener('click', handleClickOutside)
+})
 
 onUnmounted(() => {
-  document.removeEventListener("click", handleClickOutside);
-});
+  document.removeEventListener('click', handleClickOutside)
+})
 
-const handleEditClick = () => {
-  showMenu.value = false;
-  swipeOffset.value = 0;
-  emit("edit", props.task);
-};
+function handleEditClick() {
+  showMenu.value = false
+  swipeOffset.value = 0
+  emit('edit', props.task)
+}
 
-const handleDeleteClick = () => {
-  showMenu.value = false;
-  swipeOffset.value = 0;
-  emit("delete", props.task.id);
-};
+function handleDeleteClick() {
+  showMenu.value = false
+  swipeOffset.value = 0
+  emit('delete', props.task.id)
+}
 </script>
 
 <template>
-  <div 
+  <div
     class="task-card-container"
   >
     <!-- Background Actions (Visible on Swipe) -->
-    <div 
+    <div
       class="swipe-actions"
       :style="{ opacity: swipeOffset < 0 ? 1 : 0, pointerEvents: swipeOffset < 0 ? 'auto' : 'none' }"
     >
-        <SquarePen  class="swipe-btn edit-swipe-btn" @click="handleEditClick" :size="32" />
-        <CircleX  class="swipe-btn delete-swipe-btn" @click="handleDeleteClick" :size="32" />
+      <SquarePen class="swipe-btn edit-swipe-btn" :size="32" @click="handleEditClick" />
+      <CircleX class="swipe-btn delete-swipe-btn" :size="32" @click="handleDeleteClick" />
     </div>
 
     <!-- Foreground Content (Swipeable) -->
-    <div 
+    <div
       class="task-card-content"
       :style="{ transform: `translateX(${swipeOffset}px)` }"
       @touchstart="handleTouchStart"
@@ -105,36 +107,36 @@ const handleDeleteClick = () => {
       @touchend="handleTouchEnd"
     >
       <!-- Display Mode (Always active now, edit happens in sheet) -->
-        <div class="checkbox-wrapper" @click="$emit('toggle', task)">
-           <div class="custom-checkbox" :class="{ 'checked': task.completed }">
-              <Check v-if="task.completed" :size="14" stroke-width="3" class="check-icon" />
-           </div>
+      <div class="checkbox-wrapper" @click="$emit('toggle', task)">
+        <div class="custom-checkbox" :class="{ checked: task.completed }">
+          <Check v-if="task.completed" :size="14" stroke-width="3" class="check-icon" />
         </div>
-        
-        <span class="task-text" :class="{ 'text-completed': task.completed }" @click="$emit('toggle', task)">
-          {{ task.taskContent }}
-        </span>
+      </div>
 
-        <!-- Desktop Menu Trigger -->
-        <div class="desktop-menu-wrapper" ref="menuRef">
-          <button class="action-btn menu-btn" @click.stop="toggleMenu">
-             <MoreVertical :size="18" />
-          </button>
-          
-          <!-- Dropdown Menu -->
-          <transition name="fade">
-            <div v-if="showMenu" class="dropdown-menu">
-              <button class="menu-item" @click.stop="handleEditClick">
-                <SquarePen :size="16" />
-                <span>Edit</span>
-              </button>
-              <button class="menu-item delete" @click.stop="handleDeleteClick">
-                <CircleX :size="16" />
-                <span>Delete</span>
-              </button>
-            </div>
-          </transition>
-        </div>
+      <span class="task-text" :class="{ 'text-completed': task.completed }" @click="$emit('toggle', task)">
+        {{ task.taskContent }}
+      </span>
+
+      <!-- Desktop Menu Trigger -->
+      <div ref="menuRef" class="desktop-menu-wrapper">
+        <button class="action-btn menu-btn" @click.stop="toggleMenu">
+          <MoreVertical :size="18" />
+        </button>
+
+        <!-- Dropdown Menu -->
+        <transition name="fade">
+          <div v-if="showMenu" class="dropdown-menu">
+            <button class="menu-item" @click.stop="handleEditClick">
+              <SquarePen :size="16" />
+              <span>Edit</span>
+            </button>
+            <button class="menu-item delete" @click.stop="handleDeleteClick">
+              <CircleX :size="16" />
+              <span>Delete</span>
+            </button>
+          </div>
+        </transition>
+      </div>
     </div>
   </div>
 </template>

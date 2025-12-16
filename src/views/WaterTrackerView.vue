@@ -1,156 +1,164 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { computed, onMounted, ref } from 'vue'
 
 // Constants
-const minGoal = 1500;
-const maxGoal = 2000;
-const quickAddAmounts = [100, 300, 500];
+const minGoal = 1500
+const maxGoal = 2000
+const quickAddAmounts = [100, 300, 500]
 
 // Reactive state
-const showModal = ref(false);
-const currentWater = ref(0);
-const waterHistory = ref([]);
-const waterInput = ref("");
-const errorMessage = ref("");
+const showModal = ref(false)
+const currentWater = ref(0)
+const waterHistory = ref([])
+const waterInput = ref('')
+const errorMessage = ref('')
 const seaweeds = ref([
-  { style: { left: "10%", height: "60px" } },
-  { style: { left: "30%", height: "80px" } },
-  { style: { left: "60%", height: "70px" } },
-  { style: { left: "80%", height: "65px" } },
-]);
+  { style: { left: '10%', height: '60px' } },
+  { style: { left: '30%', height: '80px' } },
+  { style: { left: '60%', height: '70px' } },
+  { style: { left: '80%', height: '65px' } },
+])
 
 // Computed properties
 const waterHeight = computed(() =>
-  Math.min((currentWater.value / maxGoal) * 100, 100)
-);
+  Math.min((currentWater.value / maxGoal) * 100, 100),
+)
 
 const sharkDisplay = computed(() =>
-  waterHeight.value > 25 ? "block" : "none"
-);
+  waterHeight.value > 25 ? 'block' : 'none',
+)
 
-const sharkPosition = computed(() => waterHeight.value / 2);
+const sharkPosition = computed(() => waterHeight.value / 2)
 
 const goalStatus = computed(() => {
   if (currentWater.value < minGoal) {
-    return `${minGoal - currentWater.value}ml below minimum goal`;
-  } else if (currentWater.value <= maxGoal) {
-    return "Within recommended range!";
-  } else {
-    return `${currentWater.value - maxGoal}ml above maximum goal`;
+    return `${minGoal - currentWater.value}ml below minimum goal`
   }
-});
+  else if (currentWater.value <= maxGoal) {
+    return 'Within recommended range!'
+  }
+  else {
+    return `${currentWater.value - maxGoal}ml above maximum goal`
+  }
+})
 
 const goalStatusClass = computed(() => {
-  if (currentWater.value < minGoal) return "under";
-  if (currentWater.value <= maxGoal) return "good";
-  return "over";
-});
+  if (currentWater.value < minGoal)
+    return 'under'
+  if (currentWater.value <= maxGoal)
+    return 'good'
+  return 'over'
+})
 
 // Methods
-const addCustomWater = () => {
-  const amount = parseInt(waterInput.value);
+function addCustomWater() {
+  const amount = Number.parseInt(waterInput.value)
   if (isNaN(amount) || amount <= 0) {
-    errorMessage.value = "Please enter a valid amount";
-    return;
+    errorMessage.value = 'Please enter a valid amount'
+    return
   }
   if (amount > 1000) {
-    errorMessage.value = "Amount seems too high. Maximum is 1000ml at once.";
-    return;
+    errorMessage.value = 'Amount seems too high. Maximum is 1000ml at once.'
+    return
   }
-  addWater(amount);
-  waterInput.value = "";
-  errorMessage.value = "";
-  showModal.value = false;
-};
+  addWater(amount)
+  waterInput.value = ''
+  errorMessage.value = ''
+  showModal.value = false
+}
 
-const addWater = (amount) => {
-  waterHistory.value.push(amount);
-  currentWater.value += amount;
-  saveToLocalStorage();
+function addWater(amount) {
+  waterHistory.value.push(amount)
+  currentWater.value += amount
+  saveToLocalStorage()
   if (currentWater.value >= minGoal && currentWater.value <= maxGoal) {
-    celebrate();
+    celebrate()
   }
-};
+}
 
-const removeLastEntry = () => {
+function removeLastEntry() {
   if (waterHistory.value.length > 0) {
-    const lastAmount = waterHistory.value.pop();
-    currentWater.value -= lastAmount;
-    saveToLocalStorage();
+    const lastAmount = waterHistory.value.pop()
+    currentWater.value -= lastAmount
+    saveToLocalStorage()
   }
-};
+}
 
-const resetWater = () => {
-  currentWater.value = 0;
-  waterHistory.value = [];
-  errorMessage.value = "";
-  saveToLocalStorage();
-};
+function resetWater() {
+  currentWater.value = 0
+  waterHistory.value = []
+  errorMessage.value = ''
+  saveToLocalStorage()
+}
 
-const celebrate = () => {
+function celebrate() {
   // Add celebration animation logic here
-};
+}
 
-const saveToLocalStorage = () => {
-  localStorage.setItem("waterAmount", currentWater.value.toString());
-  localStorage.setItem("waterHistory", JSON.stringify(waterHistory.value));
-};
+function saveToLocalStorage() {
+  localStorage.setItem('waterAmount', currentWater.value.toString())
+  localStorage.setItem('waterHistory', JSON.stringify(waterHistory.value))
+}
 
-const loadFromLocalStorage = () => {
-  const savedAmount = localStorage.getItem("waterAmount");
-  const savedHistory = localStorage.getItem("waterHistory");
+function loadFromLocalStorage() {
+  const savedAmount = localStorage.getItem('waterAmount')
+  const savedHistory = localStorage.getItem('waterHistory')
   if (savedAmount) {
-    currentWater.value = parseInt(savedAmount);
-    waterHistory.value = savedHistory ? JSON.parse(savedHistory) : [];
+    currentWater.value = Number.parseInt(savedAmount)
+    waterHistory.value = savedHistory ? JSON.parse(savedHistory) : []
   }
-};
+}
 
 // Create bubbles
-const createBubble = () => {
-  if (currentWater.value <= 0) return;
+function createBubble() {
+  if (currentWater.value <= 0)
+    return
 
-  const bubble = document.createElement("div");
-  bubble.className = "bubble";
+  const bubble = document.createElement('div')
+  bubble.className = 'bubble'
 
-  const waterElement = document.querySelector(".water");
+  const waterElement = document.querySelector('.water')
 
-  const existingBubbles =
-    waterElement?.querySelectorAll(".bubble")?.length || 0;
+  const existingBubbles
+    = waterElement?.querySelectorAll('.bubble')?.length || 0
 
-  if (existingBubbles >= 6) return;
+  if (existingBubbles >= 6)
+    return
 
-  const size = Math.random() * 15 + 5;
-  bubble.style.width = `${size}px`;
-  bubble.style.height = `${size}px`;
-  bubble.style.left = `${Math.random() * 80 + 10}%`;
-  bubble.style.bottom = "0";
+  const size = Math.random() * 15 + 5
+  bubble.style.width = `${size}px`
+  bubble.style.height = `${size}px`
+  bubble.style.left = `${Math.random() * 80 + 10}%`
+  bubble.style.bottom = '0'
 
   // const duration = ((waterElement?.offsetHeight || 0) / 50) * 2;
-  const duration = 3 + (15 - size) / 10;
-  bubble.style.animationDuration = `${duration}s`;
+  const duration = 3 + (15 - size) / 10
+  bubble.style.animationDuration = `${duration}s`
 
-  waterElement?.appendChild(bubble);
+  waterElement?.appendChild(bubble)
 
   setTimeout(() => {
-    if (bubble.parentNode) bubble.parentNode.removeChild(bubble);
-  }, duration * 1000);
-};
+    if (bubble.parentNode)
+      bubble.parentNode.removeChild(bubble)
+  }, duration * 1000)
+}
 
 onMounted(() => {
-  loadFromLocalStorage();
+  loadFromLocalStorage()
 
   setInterval(() => {
-    if (currentWater.value > 10 && Math.random() > 0.5) createBubble();
-  }, 1000);
+    if (currentWater.value > 10 && Math.random() > 0.5)
+      createBubble()
+  }, 1000)
 
   // Set up daily reset check
   setInterval(() => {
-    const now = new Date();
+    const now = new Date()
     if (now.getHours() === 0 && now.getMinutes() === 0) {
-      resetWater();
+      resetWater()
     }
-  }, 60000);
-});
+  }, 60000)
+})
 </script>
 
 <template>
@@ -170,24 +178,26 @@ onMounted(() => {
         Back
       </router-link>
 
-      <div class="modal" v-if="showModal">
+      <div v-if="showModal" class="modal">
         <div class="modal-content">
           <h2>Add Water</h2>
           <div class="input-group">
             <input
-              type="number"
               v-model="waterInput"
+              type="number"
               placeholder="Enter ml"
               min="0"
               @keypress.enter="addCustomWater"
-            />
-            <div class="error-message" v-if="errorMessage">
+            >
+            <div v-if="errorMessage" class="error-message">
               {{ errorMessage }}
             </div>
           </div>
           <div class="modal-buttons">
-            <button @click="addCustomWater">Add</button>
-            <button @click="showModal = false" class="cancel-button">
+            <button @click="addCustomWater">
+              Add
+            </button>
+            <button class="cancel-button" @click="showModal = false">
               Cancel
             </button>
           </div>
@@ -195,7 +205,7 @@ onMounted(() => {
       </div>
 
       <div class="action-buttons">
-        <button @click="showModal = true" class="add-button">
+        <button class="add-button" @click="showModal = true">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -213,7 +223,7 @@ onMounted(() => {
           </svg>
           Add Water
         </button>
-        <button @click="resetWater" class="reset-button">
+        <button class="reset-button" @click="resetWater">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
@@ -233,38 +243,42 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="modal" v-if="showModal">
+    <div v-if="showModal" class="modal">
       <div class="modal-content">
         <h2>Add Water</h2>
         <div class="quick-amounts">
           <button
             v-for="amount in quickAddAmounts"
             :key="amount"
+            class="quick-amount-btn"
             @click="
               addWater(amount);
               showModal = false;
             "
-            class="quick-amount-btn"
           >
             {{ amount }}ml
           </button>
         </div>
-        <div class="input-divider">or</div>
+        <div class="input-divider">
+          or
+        </div>
         <div class="input-group">
           <input
-            type="number"
             v-model="waterInput"
+            type="number"
             placeholder="Enter ml"
             min="0"
             @keypress.enter="addCustomWater"
-          />
-          <div class="error-message" v-if="errorMessage">
+          >
+          <div v-if="errorMessage" class="error-message">
             {{ errorMessage }}
           </div>
         </div>
         <div class="modal-buttons">
-          <button @click="addCustomWater">Add</button>
-          <button @click="showModal = false" class="cancel-button">
+          <button @click="addCustomWater">
+            Add
+          </button>
+          <button class="cancel-button" @click="showModal = false">
             Cancel
           </button>
         </div>
@@ -274,15 +288,15 @@ onMounted(() => {
     <h1>Sharky Water Tracker</h1>
 
     <div class="fish-tank">
-      <div class="empty-state" v-if="currentWater < 500">
-        <img src="/assets/sadShark.svg" alt="Sad shark" loading="lazy" />
+      <div v-if="currentWater < 500" class="empty-state">
+        <img src="/assets/sadShark.svg" alt="Sad shark" loading="lazy">
       </div>
-      <div class="water" :style="{ height: waterHeight + '%' }">
+      <div class="water" :style="{ height: `${waterHeight}%` }">
         <div
           class="shark"
-          :style="{ display: sharkDisplay, bottom: sharkPosition + '%' }"
+          :style="{ display: sharkDisplay, bottom: `${sharkPosition}%` }"
         >
-          <img src="/assets/shark.svg" alt="Shark" loading="lazy" />
+          <img src="/assets/shark.svg" alt="Shark" loading="lazy">
         </div>
       </div>
       <div
@@ -290,22 +304,23 @@ onMounted(() => {
         :key="index"
         class="seaweed"
         :style="seaweed.style"
-      ></div>
-      <div class="rocks"></div>
+      />
+      <div class="rocks" />
     </div>
 
     <div class="stats">
       <h2>{{ currentWater }} ml</h2>
       <div class="progress-info">
         Recommended: {{ minGoal }}ml - {{ maxGoal }}ml daily
-        <div :class="['goal-status', goalStatusClass]">{{ goalStatus }}</div>
+        <div class="goal-status" :class="[goalStatusClass]">
+          {{ goalStatus }}
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-
 .water-tracker-container {
   background: linear-gradient(45deg, #83a4d4, #b6fbff);
   margin: 0;

@@ -1,28 +1,29 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref } from 'vue'
 
 const props = defineProps<{
-  entry: { id: string; title: string; content: string } | null;
-}>();
+  entry: { id: string, title: string, content: string } | null
+}>()
 
 const emit = defineEmits<{
-  (e: "close"): void;
-  (e: "editEntry", entry: { id: string; title: string; content: string }): void;
-}>();
+  (e: 'close'): void
+  (e: 'editEntry', entry: { id: string, title: string, content: string }): void
+}>()
 
-const title = ref(props.entry?.title || "");
-const content = ref(props.entry?.content || "");
+const title = ref(props.entry?.title || '')
+const content = ref(props.entry?.content || '')
 
-const handleSubmit = () => {
-  if (!props.entry) return;
+function handleSubmit() {
+  if (!props.entry)
+    return
 
-  emit("editEntry", {
+  emit('editEntry', {
     id: props.entry.id,
     title: title.value,
     content: content.value,
-  });
-  emit("close");
-};
+  })
+  emit('close')
+}
 </script>
 
 <template>
@@ -38,7 +39,7 @@ const handleSubmit = () => {
             type="text"
             required
             class="form-input"
-          />
+          >
         </div>
         <div class="form-group">
           <label for="content">Content:</label>
@@ -47,13 +48,15 @@ const handleSubmit = () => {
             v-model="content"
             required
             class="form-input"
-          ></textarea>
+          />
         </div>
         <div class="modal-actions">
           <button type="button" class="btn-secondary" @click="emit('close')">
             Cancel
           </button>
-          <button type="submit" class="btn-primary">Save</button>
+          <button type="submit" class="btn-primary">
+            Save
+          </button>
         </div>
       </form>
     </div>
