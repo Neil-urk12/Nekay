@@ -9,7 +9,6 @@ const SlideUpSheet = defineAsyncComponent(() => import('../components/SlideUpShe
 const FloatingActionButton = defineAsyncComponent(() => import('../components/FloatingActionButton.vue'))
 
 const taskStore = useNotesStore()
-const folders = computed(() => taskStore.getFolders)
 const tasks = computed(() => [...taskStore.getTasks])
 const newTask = ref('')
 const showAddSheet = ref(false)
@@ -92,16 +91,8 @@ async function confirmDelete() {
   }
 }
 
-onMounted(() => {
-  try {
-    if (folders.value.length === 0)
-      taskStore.loadFolders()
-    if (tasks.value.length === 0)
-      taskStore.loadTasks()
-  }
-  catch (error) {
-    console.error('Failed to load tasks:', error)
-  }
+onMounted(async () => {
+  await taskStore.ensureInitialized()
 })
 </script>
 

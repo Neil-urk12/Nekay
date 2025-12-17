@@ -156,11 +156,9 @@ function toggleEntry(entryId: string) {
 }
 
 onMounted(async () => {
+  await entryStore.ensureInitialized()
   if (!currentFolder.value || !currentFolderId.value)
     router.push('/journal')
-  if (folders.value.length === 0)
-    await entryStore.loadFolders()
-  await entryStore.loadEntries()
 })
 </script>
 

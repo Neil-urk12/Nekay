@@ -90,9 +90,8 @@ function navigateToFolder(folder: FolderItemData) {
   return router.push(`/journal/${folder.id}`)
 }
 
-onMounted(() => {
-  if (folders.value.length === 0)
-    journalStore.loadFolders()
+onMounted(async () => {
+  await journalStore.ensureInitialized()
 })
 </script>
 

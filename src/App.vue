@@ -5,13 +5,11 @@ import { syncService } from './services/syncService'
 import { useAffirmationStore } from './stores/affirmationStore'
 import { useAuthStore } from './stores/authStore'
 import { useBackgroundStore } from './stores/backgroundStore'
-import { useNotesStore } from './stores/notes'
 
 const BottomNav = defineAsyncComponent(
   () => import('./components/BottomNav.vue'),
 )
 const backgroundStore = useBackgroundStore()
-const notesStore = useNotesStore()
 const affirmationStore = useAffirmationStore()
 const isLoading = ref(true)
 const error = ref<Error | null>(null)
@@ -42,10 +40,7 @@ onMounted(async () => {
     await initializeApp()
     backgroundStore.determineTimeOfDay()
     setInterval(() => backgroundStore.determineTimeOfDay(), 60000)
-    await Promise.allSettled([
-      notesStore.initializeStore(),
-      authStore.setUser(),
-    ])
+    await authStore.setUser()
   }
   catch (err) {
     console.error('Failed to initialize app:', err)

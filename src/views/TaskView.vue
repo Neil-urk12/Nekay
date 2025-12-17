@@ -117,10 +117,7 @@ async function confirmDeleteTask() {
 }
 
 onMounted(async () => {
-  if (!currentFolder.value)
-    return
-  if (tasks.value.length === 0)
-    taskStore.loadTasks()
+  await taskStore.ensureInitialized()
 })
 </script>
 

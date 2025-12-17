@@ -68,9 +68,8 @@ async function confirmDelete() {
 
 const cancelDelete = () => deleteConfirm.value = null
 
-onMounted(() => {
-  if (folders.value.length === 0)
-    noteStore.loadFolders()
+onMounted(async () => {
+  await noteStore.ensureInitialized()
 })
 </script>
 

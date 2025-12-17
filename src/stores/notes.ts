@@ -41,13 +41,18 @@ export const useNotesStore = defineStore('notes', {
       return session?.user?.id || null
     },
 
+    async ensureInitialized() {
+      if (this.initialized)
+        return
+      await this.initializeStore()
+    },
+
     async initializeStore() {
       try {
         await this.loadTasks()
         await this.loadEntries()
         await this.loadFolders()
         this.initialized = true
-        console.log('Store initialized')
       }
       catch (error) {
         console.error('Error initializing store:', error)
