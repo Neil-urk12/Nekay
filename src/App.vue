@@ -66,7 +66,7 @@ onMounted(async () => {
     </div>
     <div v-else class="app-content">
       <router-view :daily-affirmation="affirmationStore.dailyAffirmation" />
-      <BottomNav v-if="$route.path !== '/' && $route.path !== '/login' && $route.path !== '/messaging'" />
+      <BottomNav v-if="!$route.meta.hideBottomNav" />
     </div>
   </div>
 </template>
