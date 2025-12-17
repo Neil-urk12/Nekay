@@ -209,8 +209,5 @@ h1 {
   padding-bottom: 5rem;
 }
 
-.btn-primary {
-  color: white;
-  font-weight: bold;
-}
+
 </style>

@@ -785,17 +785,7 @@ async function handleLogout() {
   gap: 1rem;
 }
 
-.btn-danger {
-  background: #ef4444;
-  color: white;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
-}
 
-.btn-danger:hover {
-  background: #dc2626;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35);
-}
 
 /* Modal Transitions */
 .modal-enter-active,

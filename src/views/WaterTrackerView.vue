@@ -407,9 +407,7 @@ onMounted(() => {
   margin-top: 1rem;
 }
 
-.cancel-button {
-  background: #95a5a6;
-}
+
 
 h1 {
   color: #2c3e50;

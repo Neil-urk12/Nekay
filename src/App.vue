@@ -192,4 +192,38 @@ button {
 .sheet-btn:active {
   transform: translateY(0);
 }
+
+/* Global Button Classes */
+.btn-primary {
+  color: white;
+  font-weight: bold;
+}
+
+.btn-secondary {
+  background: #95a5a6;
+  color: white;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35);
+}
+
+.cancel-button {
+  background: #95a5a6;
+}
+
+.btn-primary:hover,
+.btn-secondary:hover,
+.cancel-button:hover {
+  transform: translateY(-2px);
+  transition: all 0.2s ease;
+}
 </style>

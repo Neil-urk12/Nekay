@@ -209,8 +209,4 @@ h1 {
   font-size: 0.875rem;
 }
 
-.btn-primary {
-  color: white;
-  font-weight: bold;
-}
 </style>
