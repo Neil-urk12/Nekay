@@ -2,7 +2,7 @@ let timer = null
 let timeLeft = 0
 let isRunning = false
 
-self.onmessage = function (e) {
+globalThis.onmessage = function (e) {
   const { type, payload } = e.data
 
   switch (type) {
@@ -27,19 +27,15 @@ function startTimer() {
     return
 
   isRunning = true
-  const startTime = Date.now()
 
   timer = setInterval(() => {
-    const currentTime = Date.now()
-    const elapsedSeconds = Math.floor((currentTime - startTime) / 1000)
-
     if (timeLeft > 0) {
       timeLeft--
-      self.postMessage({ type: 'TICK', timeLeft })
+      globalThis.postMessage({ type: 'TICK', timeLeft })
     }
     else {
       pauseTimer()
-      self.postMessage({ type: 'COMPLETE' })
+      globalThis.postMessage({ type: 'COMPLETE' })
     }
   }, 1000)
 }
@@ -58,13 +54,13 @@ function pauseTimer() {
 function resetTimer(duration) {
   pauseTimer()
   timeLeft = duration
-  self.postMessage({ type: 'TICK', timeLeft })
+  globalThis.postMessage({ type: 'TICK', timeLeft })
 }
 
 function syncTime(serverTime) {
   const timeDiff = Date.now() - serverTime
-  if (Math.abs(timeDiff) > 2000) { // If difference is more than 2 seconds
+  if (Math.abs(timeDiff) > 2000) {
     timeLeft = Math.max(0, timeLeft - Math.floor(timeDiff / 1000))
-    self.postMessage({ type: 'TICK', timeLeft })
+    globalThis.postMessage({ type: 'TICK', timeLeft })
   }
 }
