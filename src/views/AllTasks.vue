@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Task } from '../composables/interfaces'
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
-import DeleteTaskModal from '../components/DeleteTaskModal.vue'
+import ConfirmationModal from '../components/ConfirmationModal.vue'
 import TaskItem from '../components/TaskItem.vue'
 import { useNotesStore } from '../stores/notes'
 
@@ -129,8 +129,12 @@ onMounted(() => {
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <DeleteTaskModal
+    <ConfirmationModal
       :show="showDeleteModal"
+      title="Delete Task"
+      message="Are you sure you want to delete this task? This action cannot be undone."
+      confirm-text="Delete"
+      variant="danger"
       :loading="isDeleting"
       @close="showDeleteModal = false"
       @confirm="confirmDelete"

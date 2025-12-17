@@ -2,13 +2,11 @@
 import type { JournalEntry } from '../composables/interfaces'
 import { computed, defineAsyncComponent, nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import ConfirmationModal from '../components/ConfirmationModal.vue'
 import { useNotesStore } from '../stores/notes'
 
 const AddJournalEntryModal = defineAsyncComponent(
   () => import('../components/AddModal.vue'),
-)
-const DeleteEntryModal = defineAsyncComponent(
-  () => import('../components/DeleteEntryModal.vue'),
 )
 const EditEntryModal = defineAsyncComponent(
   () => import('../components/EditEntryModal.vue'),
@@ -30,6 +28,7 @@ const selectedEntry = ref<{
 } | null>(null)
 const editingEntry = ref<{ id: string, title: string } | null>(null)
 const showDeleteModal = ref<{ id: string, title: string } | null>(null)
+const isDeleting = ref(false)
 const entries = computed(() => entryStore.getEntries)
 const folders = computed(() => entryStore.getJournalFolders)
 const currentFolderId = computed(() => route.params.id as string)
@@ -120,13 +119,20 @@ async function saveEdit() {
   }
 }
 
-async function confirmDelete(id: string) {
+async function confirmDelete() {
+  if (!showDeleteModal.value)
+    return
+
+  isDeleting.value = true
   try {
-    await entryStore.deleteJournalEntry(id)
+    await entryStore.deleteJournalEntry(showDeleteModal.value.id)
     showDeleteModal.value = null
   }
   catch (err) {
     console.error('Failed to delete entry : ', err)
+  }
+  finally {
+    isDeleting.value = false
   }
 }
 
@@ -284,13 +290,16 @@ onMounted(async () => {
     <div v-else class="empty-state">
       <p>No entries yet. Click "Add Entry" to create your first entry!</p>
     </div>
-    <DeleteEntryModal
-      v-if="showDeleteModal"
-      :id="showDeleteModal?.id"
+    <ConfirmationModal
       :show="!!showDeleteModal"
-      :title="showDeleteModal?.title"
+      title="Delete Entry"
+      message="Are you sure you want to delete"
+      :item-name="showDeleteModal?.title"
+      confirm-text="Delete"
+      variant="danger"
+      :loading="isDeleting"
       @close="showDeleteModal = null"
-      @delete="confirmDelete"
+      @confirm="confirmDelete"
     />
   </div>
   <EditEntryModal

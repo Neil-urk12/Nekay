@@ -3,14 +3,12 @@ import type { FolderItemData } from '../components/FolderItem.vue'
 import type { Folder } from '../composables/interfaces'
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import ConfirmationModal from '../components/ConfirmationModal.vue'
 import FolderItem from '../components/FolderItem.vue'
 import { useNotesStore } from '../stores/notes'
 
 const EditFolderModal = defineAsyncComponent(
   () => import('../components/EditFolderModal.vue'),
-)
-const DeleteConfirmModal = defineAsyncComponent(
-  () => import('../components/DeleteConfirmModal.vue'),
 )
 const FloatingActionButton = defineAsyncComponent(
   () => import('../components/FloatingActionButton.vue'),
@@ -28,6 +26,7 @@ const showDeleteModal = ref(false)
 const selectedFolder = ref<Folder | null>(null)
 const folderToDelete = ref<Folder | null>(null)
 const newFolderName = ref('')
+const isDeleting = ref(false)
 
 const folders = computed(() => journalStore.getJournalFolders)
 
@@ -65,17 +64,20 @@ function openDeleteModal(folder: FolderItemData) {
 }
 
 async function deleteFolder() {
+  if (!folderToDelete.value || !folderToDelete.value.id)
+    return
+
+  isDeleting.value = true
   try {
-    if (!folderToDelete.value || !folderToDelete.value.id)
-      return
-
     await journalStore.deleteFolder(folderToDelete.value.id)
-
     showDeleteModal.value = false
     folderToDelete.value = null
   }
   catch (err) {
     console.error('Error deleting folder:', err)
+  }
+  finally {
+    isDeleting.value = false
   }
 }
 
@@ -142,9 +144,14 @@ onMounted(() => {
       @edit-folder="editFolder"
     />
 
-    <DeleteConfirmModal
-      v-if="showDeleteModal"
-      :folder-name="folderToDelete?.name"
+    <ConfirmationModal
+      :show="showDeleteModal"
+      title="Delete Folder"
+      message="Are you sure you want to delete"
+      :item-name="folderToDelete?.name"
+      confirm-text="Delete"
+      variant="danger"
+      :loading="isDeleting"
       @close="showDeleteModal = false"
       @confirm="deleteFolder"
     />
