@@ -94,6 +94,11 @@ export const useAuthStore = defineStore('auth', {
         this.currentUser = null
         this.uid = null
         localStorage.setItem('isAuthenticated', 'false')
+        
+        // Clear user profile data
+        const { useUserProfileStore } = await import('./userProfileStore')
+        const userProfileStore = useUserProfileStore()
+        userProfileStore.clearProfile()
       }
       catch (err) {
         console.error('Logout error:', err)

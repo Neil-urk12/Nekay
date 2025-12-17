@@ -5,18 +5,15 @@ import { useRouter } from 'vue-router'
 import SlideUpSheet from '../components/SlideUpSheet.vue'
 import UserAvatar from '../components/UserAvatar.vue'
 import { useAuthStore } from '../stores/authStore'
+import { useUserProfileStore } from '../stores/userProfileStore'
 import { supabase } from '../supabase/supabase-config'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const userProfileStore = useUserProfileStore()
 
-const loading = ref(false)
-const userName = ref('')
-const userEmail = ref('')
-const avatarUrl = ref<string | null>(null)
 const showLogoutConfirm = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
-const uploadingAvatar = ref(false)
 
 // Edit State
 const showEditName = ref(false)
@@ -60,100 +57,30 @@ async function uploadAvatar(event: Event) {
   if (!file)
     return
 
-  // Validate file type
-  if (!file.type.startsWith('image/')) {
-    console.warn('Please select an image file')
-    return
-  }
-
-  // Validate file size (max 2MB)
-  if (file.size > 2 * 1024 * 1024) {
-    console.warn('Image must be less than 2MB')
-    return
-  }
-
-  uploadingAvatar.value = true
-
   try {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user?.id) {
-      throw new Error('User not authenticated')
-    }
-
-    const userId = session.user.id
-    const fileExt = file.name.split('.').pop()
-    const filePath = `${userId}/avatar.${fileExt}`
-
-    // Upload to Supabase storage
-    const { error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(filePath, file, { upsert: true })
-
-    if (uploadError)
-      throw uploadError
-
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(filePath)
-
-    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`
-
-    // Update user record in database
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ avatar_url: publicUrl })
-      .eq('id', userId)
-
-    if (updateError)
-      throw updateError
-
-    avatarUrl.value = publicUrl
+    await userProfileStore.updateAvatar(file)
   }
-  catch (error) {
-    console.error('Error uploading avatar:', error)
+  catch (error: any) {
+    console.warn(error.message || 'Failed to upload avatar')
   }
   finally {
-    uploadingAvatar.value = false
     // Reset input so same file can be selected again
     input.value = ''
   }
 }
 
 onMounted(async () => {
-  loading.value = true
   try {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session?.user) {
-      userEmail.value = session.user.email || ''
-
-      // Fetch the user's name and avatar from the public.users table
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('name, avatar_url')
-        .eq('id', session.user.id)
-        .single()
-
-      if (error) {
-        console.error('Error fetching user data:', error)
-      }
-      else {
-        userName.value = userData?.name || ''
-        avatarUrl.value = userData?.avatar_url || null
-      }
-    }
+    await userProfileStore.fetchUserProfile()
   }
   catch (error) {
     console.error('Error loading profile:', error)
-  }
-  finally {
-    loading.value = false
   }
 })
 
 // Name Logic
 function startEditName() {
-  newName.value = userName.value
+  newName.value = userProfileStore.name
   showEditName.value = true
 }
 
@@ -161,63 +88,34 @@ async function saveName() {
   if (!newName.value.trim())
     return
 
-  loading.value = true
   try {
-    // Get the current user's ID from auth session
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user?.id) {
-      throw new Error('User not authenticated')
-    }
-
-    // Update the name in the public.users table
-    const { error } = await supabase
-      .from('users')
-      .update({ name: newName.value.trim() })
-      .eq('id', session.user.id)
-
-    if (error)
-      throw error
-
-    userName.value = newName.value.trim()
+    await userProfileStore.updateName(newName.value)
     showEditName.value = false
   }
   catch (error) {
     console.error('Error updating name:', error)
   }
-  finally {
-    loading.value = false
-  }
 }
 
 // Email Logic
 function startEditEmail() {
-  newEmail.value = userEmail.value
+  newEmail.value = userProfileStore.email
   showEditEmail.value = true
 }
 
 async function saveEmail() {
-  if (!newEmail.value.trim() || newEmail.value === userEmail.value) {
+  if (!newEmail.value.trim() || newEmail.value === userProfileStore.email) {
     showEditEmail.value = false
     return
   }
 
-  loading.value = true
   try {
-    const { error } = await supabase.auth.updateUser({
-      email: newEmail.value.trim(),
-    })
-
-    if (error)
-      throw error
-
+    await userProfileStore.updateEmail(newEmail.value)
     // A confirmation email has been sent to the new address
     showEditEmail.value = false
   }
   catch (error: any) {
     console.error('Error updating email:', error)
-  }
-  finally {
-    loading.value = false
   }
 }
 
@@ -261,17 +159,15 @@ async function savePassword() {
     return
   }
 
-  loading.value = true
   try {
     // First, reauthenticate with current password
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: userEmail.value,
+      email: userProfileStore.email,
       password: currentPassword.value,
     })
 
     if (signInError) {
       passwordError.value = 'Current password is incorrect'
-      loading.value = false
       return
     }
 
@@ -292,13 +188,9 @@ async function savePassword() {
     console.error('Error updating password:', error)
     passwordError.value = error.message || 'Failed to update password'
   }
-  finally {
-    loading.value = false
-  }
 }
 
 async function handleLogout() {
-  loading.value = true
   try {
     await authStore.handleLogout()
     router.push('/login')
@@ -307,7 +199,6 @@ async function handleLogout() {
     console.error('Error logging out:', error)
   }
   finally {
-    loading.value = false
     showLogoutConfirm.value = false
   }
 }
@@ -321,7 +212,7 @@ async function handleLogout() {
     </div>
 
     <!-- Loading state -->
-    <div v-if="loading" class="loading-container">
+    <div v-if="userProfileStore.loading" class="loading-container">
       <div class="loading-spinner" />
     </div>
 
@@ -335,14 +226,14 @@ async function handleLogout() {
         <div class="avatar-section">
           <div class="avatar-wrapper" @click="triggerFileInput">
             <UserAvatar
-              :avatar-url="avatarUrl"
-              :name="userName || userEmail"
+              :avatar-url="userProfileStore.avatarUrl"
+              :name="userProfileStore.name || userProfileStore.email"
               :size="120"
               class="profile-avatar"
             />
             <div class="avatar-glow" />
-            <div class="avatar-overlay" :class="{ uploading: uploadingAvatar }">
-              <Camera v-if="!uploadingAvatar" :size="24" />
+            <div class="avatar-overlay" :class="{ uploading: userProfileStore.loading }">
+              <Camera v-if="!userProfileStore.loading" :size="24" />
               <div v-else class="mini-spinner" />
             </div>
             <input
@@ -358,7 +249,7 @@ async function handleLogout() {
             <!-- Name Section -->
             <div class="name-display">
               <h2 class="user-name">
-                {{ userName || 'Set your name' }}
+                {{ userProfileStore.name || 'Set your name' }}
               </h2>
               <button class="edit-btn" title="Edit Name" @click="startEditName">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
@@ -368,7 +259,7 @@ async function handleLogout() {
             <!-- Email Section -->
             <div class="email-display">
               <p class="user-email">
-                {{ userEmail }}
+                {{ userProfileStore.email }}
               </p>
               <button class="edit-btn" title="Edit Email" @click="startEditEmail">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-edit-2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>
@@ -404,8 +295,8 @@ async function handleLogout() {
         <input v-model="newName" type="text" placeholder="Enter your name" class="sheet-input" @keydown.enter="saveName">
       </div>
 
-      <button class="btn-save sheet-save-btn" :disabled="loading" @click="saveName">
-        {{ loading ? 'Saving...' : 'Save Changes' }}
+      <button class="btn-save sheet-save-btn" :disabled="userProfileStore.loading" @click="saveName">
+        {{ userProfileStore.loading ? 'Saving...' : 'Save Changes' }}
       </button>
     </SlideUpSheet>
 
@@ -420,8 +311,8 @@ async function handleLogout() {
         You will need to confirm the new email address.
       </p>
 
-      <button class="btn-save sheet-save-btn" :disabled="loading" @click="saveEmail">
-        {{ loading ? 'Saving...' : 'Update Email' }}
+      <button class="btn-save sheet-save-btn" :disabled="userProfileStore.loading" @click="saveEmail">
+        {{ userProfileStore.loading ? 'Saving...' : 'Update Email' }}
       </button>
     </SlideUpSheet>
 
@@ -531,8 +422,8 @@ async function handleLogout() {
         {{ passwordSuccess }}
       </div>
 
-      <button class="btn-save sheet-save-btn" :disabled="loading" @click="savePassword">
-        {{ loading ? 'Saving...' : 'Update Password' }}
+      <button class="btn-save sheet-save-btn" :disabled="userProfileStore.loading" @click="savePassword">
+        {{ userProfileStore.loading ? 'Saving...' : 'Update Password' }}
       </button>
     </SlideUpSheet>
 
