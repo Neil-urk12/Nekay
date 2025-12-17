@@ -53,7 +53,7 @@ const goalStatusClass = computed(() => {
 // Methods
 function addCustomWater() {
   const amount = Number.parseInt(waterInput.value)
-  if (isNaN(amount) || amount <= 0) {
+  if (Number.isNaN(amount) || amount <= 0) {
     errorMessage.value = 'Please enter a valid amount'
     return
   }
@@ -76,7 +76,7 @@ function addWater(amount) {
   }
 }
 
-function removeLastEntry() {
+function _removeLastEntry() {
   if (waterHistory.value.length > 0) {
     const lastAmount = waterHistory.value.pop()
     currentWater.value -= lastAmount
