@@ -27,14 +27,14 @@ const newRecipientId = ref('')
 
 // Theme support
 const themes: Record<string, string> = {
-  default: 'linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)',
-  sunset: 'linear-gradient(135deg, #f5af19 0%, #f12711 100%)',
-  ocean: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  forest: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
-  midnight: 'linear-gradient(135deg, #232526 0%, #414345 100%)',
-  rose: 'linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%)',
-  aurora: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-  lavender: 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)',
+  default: 'linear-gradient(160deg, #e8eaf6 0%, #c5cae9 50%, #b39ddb 100%)',
+  sunset: 'linear-gradient(160deg, #ffecd2 0%, #fcb69f 50%, #ff8a80 100%)',
+  ocean: 'linear-gradient(160deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+  forest: 'linear-gradient(160deg, #11998e 0%, #38ef7d 50%, #a8e6cf 100%)',
+  midnight: 'linear-gradient(160deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+  rose: 'linear-gradient(160deg, #ffecd2 0%, #fcb69f 50%, #f8b4b4 100%)',
+  aurora: 'linear-gradient(160deg, #a8edea 0%, #fed6e3 50%, #ffecd2 100%)',
+  lavender: 'linear-gradient(160deg, #e0c3fc 0%, #8ec5fc 50%, #a1c4fd 100%)',
 }
 
 const currentTheme = ref(localStorage.getItem('messaging-theme') || 'default')
@@ -45,6 +45,43 @@ const backgroundStyle = computed(() => ({
 // Computed
 const hasConversations = computed(() => conversationStore.hasConversations)
 const currentUserId = computed(() => getCurrentUserId.value)
+
+// Group messages by date
+const groupedMessages = computed(() => {
+  const groups: { date: string, messages: typeof messages.value }[] = []
+  let currentDate = ''
+
+  messages.value.forEach((msg) => {
+    const msgDate = new Date(msg.createdAt).toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+    })
+
+    if (msgDate !== currentDate) {
+      currentDate = msgDate
+      groups.push({ date: msgDate, messages: [msg] })
+    }
+    else {
+      groups[groups.length - 1].messages.push(msg)
+    }
+  })
+
+  return groups
+})
+
+// Check if message is first/last in a group from same sender
+function isFirstInGroup(msgList: typeof messages.value, index: number) {
+  if (index === 0)
+    return true
+  return msgList[index - 1].isSelf !== msgList[index].isSelf
+}
+
+function isLastInGroup(msgList: typeof messages.value, index: number) {
+  if (index === msgList.length - 1)
+    return true
+  return msgList[index + 1].isSelf !== msgList[index].isSelf
+}
 
 // Initialize messaging
 onMounted(async () => {
@@ -200,21 +237,54 @@ const FloatingActionButton = defineAsyncComponent(() => import('../components/Fl
 
       <!-- Chat View -->
       <div v-else class="messages-list">
-        <div
-          v-for="msg in messages"
-          :key="msg.id"
-          class="message"
-          :class="{ 'message-self': msg.isSelf }"
-          @click="toggleTimestamp(msg.id)"
-        >
-          <div class="message-content">
-            {{ msg.content }}
-            <span
-              class="message-timestamp"
-              :class="{ 'timestamp-visible': messageTimestampsVisible[msg.id] }"
+        <div v-for="group in groupedMessages" :key="group.date" class="message-group">
+          <!-- Date Separator -->
+          <div class="date-separator">
+            <span class="date-separator-text">{{ group.date }}</span>
+          </div>
+
+          <!-- Messages in this date group -->
+          <div
+            v-for="(msg, idx) in group.messages"
+            :key="msg.id"
+            class="message-wrapper"
+            :class="{
+              'message-wrapper-self': msg.isSelf,
+              'first-in-group': isFirstInGroup(group.messages, idx),
+              'last-in-group': isLastInGroup(group.messages, idx),
+            }"
+          >
+            <!-- Avatar for other user (only show on last message in group) -->
+            <div
+              v-if="!msg.isSelf && isLastInGroup(group.messages, idx)"
+              class="message-avatar"
             >
-              {{ formatTimestamp(msg.createdAt) }}
-            </span>
+              {{ currentConversation?.otherUserName?.charAt(0).toUpperCase() }}
+            </div>
+            <div v-else-if="!msg.isSelf" class="message-avatar-spacer" />
+
+            <div
+              class="message-bubble"
+              :class="{
+                'message-self': msg.isSelf,
+                'message-other': !msg.isSelf,
+                'bubble-first': isFirstInGroup(group.messages, idx),
+                'bubble-last': isLastInGroup(group.messages, idx),
+                'bubble-middle': !isFirstInGroup(group.messages, idx) && !isLastInGroup(group.messages, idx),
+              }"
+              @click="toggleTimestamp(msg.id)"
+            >
+              <p class="message-text">
+                {{ msg.content }}
+              </p>
+              <span
+                class="message-timestamp"
+                :class="{ 'timestamp-visible': messageTimestampsVisible[msg.id] }"
+              >
+                {{ formatTimestamp(msg.createdAt) }}
+                <span v-if="msg.isSelf" class="read-status">✓✓</span>
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -421,56 +491,212 @@ const FloatingActionButton = defineAsyncComponent(() => import('../components/Fl
 .messages-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.25rem;
   padding-bottom: 1rem;
 }
 
-.message {
+.message-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Date Separator */
+.date-separator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0;
+  margin: 0.5rem 0;
+}
+
+.date-separator-text {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Message Wrapper */
+.message-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  animation: messageSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0.125rem 0;
+}
+
+.message-wrapper-self {
+  flex-direction: row-reverse;
+}
+
+.message-wrapper.first-in-group {
+  margin-top: 0.75rem;
+}
+
+.message-wrapper.last-in-group {
+  margin-bottom: 0.25rem;
+}
+
+/* Message Avatar */
+.message-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.35);
+}
+
+.message-avatar-spacer {
+  width: 32px;
+  flex-shrink: 0;
+}
+
+/* Message Bubble */
+.message-bubble {
   max-width: 75%;
-  animation: messageSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.message-bubble:active {
+  transform: scale(0.98);
+}
+
+/* Other User Messages */
+.message-other {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #1e293b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.message-other.bubble-first {
+  border-radius: 20px 20px 20px 6px;
+}
+
+.message-other.bubble-middle {
+  border-radius: 6px 20px 20px 6px;
+}
+
+.message-other.bubble-last {
+  border-radius: 6px 20px 20px 20px;
+}
+
+.message-other.bubble-first.bubble-last {
+  border-radius: 20px 20px 20px 6px;
+}
+
+/* Self Messages */
+.message-self {
+  background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 50%, #a78bfa 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3), 0 2px 6px rgba(124, 58, 237, 0.2);
+}
+
+.message-self.bubble-first {
+  border-radius: 20px 20px 6px 20px;
+}
+
+.message-self.bubble-middle {
+  border-radius: 20px 6px 6px 20px;
+}
+
+.message-self.bubble-last {
+  border-radius: 20px 6px 20px 20px;
+}
+
+.message-self.bubble-first.bubble-last {
+  border-radius: 20px 20px 6px 20px;
+}
+
+/* Hover Effects */
+.message-other:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08), 0 8px 20px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+.message-self:hover {
+  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.35), 0 4px 10px rgba(124, 58, 237, 0.25);
+  transform: translateY(-1px);
+}
+
+/* Message Text */
+.message-text {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Timestamp */
+.message-timestamp {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.6875rem;
+  margin-top: 0.375rem;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+}
+
+.message-other .message-timestamp {
+  color: #64748b;
+}
+
+.message-self .message-timestamp {
+  color: rgba(255, 255, 255, 0.85);
+  justify-content: flex-end;
+}
+
+.timestamp-visible {
+  opacity: 1;
+  max-height: 1.5rem;
+}
+
+/* Read Status */
+.read-status {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-left: 0.125rem;
 }
 
 @keyframes messageSlideIn {
-  from { opacity: 0; transform: translateY(20px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
-.message-self {
-  align-self: flex-end;
-}
-
-.message-content {
-  background: white;
-  padding: 1rem 1.25rem;
-  border-radius: 18px;
-  border-bottom-left-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  color: #2d3748;
-  font-size: 1rem;
-  line-height: 1.5;
-  transition: all 0.2s ease;
-  width: fit-content;
-}
-
-.message:hover .message-content {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-
-.message-self .message-content {
-  background: linear-gradient(135deg, #8a4fff 0%, #6e3aff 100%);
-  color: white;
-  border-radius: 18px;
-  border-bottom-right-radius: 4px;
-  border-bottom-left-radius: 18px;
-  box-shadow: 0 4px 15px rgba(138, 79, 255, 0.25);
-}
-
-.message-timestamp {
-  display: block;
-  font-size: 0.75rem;
-  margin-top: 0.4rem;
-  opacity: 0.7;
-  font-weight: 500;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Modals & Inputs */
@@ -521,8 +747,23 @@ const FloatingActionButton = defineAsyncComponent(() => import('../components/Fl
 }
 
 @media (max-width: 480px) {
-  .message {
+  .message-bubble {
     max-width: 85%;
+  }
+
+  .message-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
+  }
+
+  .message-avatar-spacer {
+    width: 28px;
+  }
+
+  .date-separator-text {
+    font-size: 0.6875rem;
+    padding: 0.375rem 0.875rem;
   }
 
   .empty-icon {
