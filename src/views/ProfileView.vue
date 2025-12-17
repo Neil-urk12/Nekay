@@ -9,8 +9,8 @@ const route = useRoute()
 const nicknameParam = route.params.nickname as string
 const currentUserId = ref<string | null>(null)
 
-interface Profile { avatar: string, username: string, bio: string, highlights: { image: string, label: string }[], posts: string[] }
-const profile = ref<Profile>({ avatar: '', username: '', bio: '', highlights: [], posts: [] })
+interface Profile { avatar_url: string, username: string, bio: string, highlights: { image: string, label: string }[], posts: string[] }
+const profile = ref<Profile>({ avatar_url: '', username: '', bio: '', highlights: [], posts: [] })
 const activeTab = ref('posts')
 const newPostUrl = ref('')
 
@@ -35,7 +35,7 @@ async function loadProfile() {
 
   if (profileData) {
     profile.value = {
-      avatar: profileData.avatar || '',
+      avatar_url: profileData.avatar_url || '',
       username: profileData.username || '',
       bio: profileData.bio || '',
       highlights: profileData.highlights || [],
@@ -112,7 +112,7 @@ onUnmounted(() => {
     <!-- Header: Avatar, Stats, Edit Button -->
     <header class="profile-header grid-cols">
       <div class="avatar-wrapper">
-        <img class="avatar" :src="profile.avatar" alt="User Avatar">
+        <img class="avatar" :src="profile.avatar_url" alt="User Avatar">
       </div>
       <div class="profile-details">
         <div class="profile-actions">
