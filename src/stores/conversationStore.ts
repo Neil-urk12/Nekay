@@ -38,6 +38,7 @@ export interface Conversation {
   user1Id: string
   user2Id: string
   otherUserName: string
+  otherUserAvatarUrl: string | null
 }
 
 interface ConversationState {
@@ -98,28 +99,32 @@ export const useConversationStore = defineStore('conversation', {
           // Fetch names for all other users in one query
           const { data: usersData } = await supabase
             .from('users')
-            .select('id, name')
+            .select('id, name, avatar_url')
             .in('id', otherUserIds)
 
-          // Create a map of userId -> name for quick lookup
-          const userNameMap = new Map<string, string>()
+          // Create a map of userId -> user data for quick lookup
+          const userDataMap = new Map<string, { name: string | null, avatarUrl: string | null }>()
           if (usersData) {
             usersData.forEach((user) => {
-              if (user.name) {
-                userNameMap.set(user.id, user.name)
-              }
+              userDataMap.set(user.id, {
+                name: user.name,
+                avatarUrl: user.avatar_url,
+              })
             })
           }
 
           this.conversations = conversations.map((c) => {
             const otherUserId = c.user1_id === currentUserId ? c.user2_id : c.user1_id
-            const otherUserName = userNameMap.get(otherUserId) || `User ${otherUserId.slice(0, 4)}`
+            const otherUserData = userDataMap.get(otherUserId)
+            const otherUserName = otherUserData?.name || `User ${otherUserId.slice(0, 4)}`
+            const otherUserAvatarUrl = otherUserData?.avatarUrl || null
 
             return {
               id: c.id,
               user1Id: c.user1_id,
               user2Id: c.user2_id,
               otherUserName,
+              otherUserAvatarUrl,
             }
           })
         }

@@ -42,14 +42,20 @@ function goBack() {
           <path fill="currentColor" d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z" />
         </svg>
       </button>
-      <h1 class="settings-title">Chat Settings</h1>
+      <h1 class="settings-title">
+        Chat Settings
+      </h1>
       <div class="spacer" />
     </div>
 
     <div class="settings-content">
       <section class="settings-section">
-        <h2 class="section-title">Background Theme</h2>
-        <p class="section-description">Choose a theme for your messaging background</p>
+        <h2 class="section-title">
+          Background Theme
+        </h2>
+        <p class="section-description">
+          Choose a theme for your messaging background
+        </p>
 
         <div class="theme-grid">
           <button
@@ -67,7 +73,9 @@ function goBack() {
       </section>
 
       <section class="settings-section preview-section">
-        <h2 class="section-title">Preview</h2>
+        <h2 class="section-title">
+          Preview
+        </h2>
         <div class="preview-container" :style="{ background: getThemeGradient(selectedTheme) }">
           <div class="preview-message preview-received">
             <span>Hey! How are you?</span>

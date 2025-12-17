@@ -2,7 +2,8 @@
 import { storeToRefs } from 'pinia'
 import { computed, defineAsyncComponent, onActivated, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import AddModal from '../components/AddModal.vue'
+import SlideUpSheet from '../components/SlideUpSheet.vue'
+import UserAvatar from '../components/UserAvatar.vue'
 import { useAuthStore } from '../stores/authStore'
 import { useConversationStore } from '../stores/conversationStore'
 
@@ -56,7 +57,8 @@ function selectConversation(conversationId: string) {
 }
 
 async function createConversation() {
-  if (!currentUserId.value) return
+  if (!currentUserId.value)
+    return
 
   const success = await conversationStore.createConversation(currentUserId.value, newRecipientId.value)
 
@@ -117,9 +119,11 @@ const FloatingActionButton = defineAsyncComponent(() => import('../components/Fl
           class="conversation-item"
           @click="selectConversation(conv.id)"
         >
-          <div class="conv-avatar">
-            {{ conv.otherUserName.charAt(0).toUpperCase() }}
-          </div>
+          <UserAvatar
+            :avatar-url="conv.otherUserAvatarUrl"
+            :name="conv.otherUserName"
+            :size="50"
+          />
           <div class="conv-details">
             <span class="conv-name">{{ conv.otherUserName }}</span>
             <span class="conv-preview">Tap to chat</span>
@@ -129,12 +133,10 @@ const FloatingActionButton = defineAsyncComponent(() => import('../components/Fl
       </div>
     </div>
 
-    <AddModal
-      :show-modal="showCreateModal"
+    <SlideUpSheet
+      :show="showCreateModal"
       title="Start New Conversation"
-      submit-button-text="Start Chat"
       @close="showCreateModal = false"
-      @submit="createConversation"
     >
       <div class="input-group">
         <label for="userId">User ID</label>
@@ -143,10 +145,17 @@ const FloatingActionButton = defineAsyncComponent(() => import('../components/Fl
           v-model="newRecipientId"
           type="text"
           placeholder="Enter User ID to message..."
-          required
         >
       </div>
-    </AddModal>
+      <div class="button-group">
+        <button type="button" class="cancel-btn" @click="showCreateModal = false">
+          Cancel
+        </button>
+        <button type="button" class="submit-btn" @click="createConversation">
+          Start Chat
+        </button>
+      </div>
+    </SlideUpSheet>
   </div>
 </template>
 
@@ -373,6 +382,46 @@ const FloatingActionButton = defineAsyncComponent(() => import('../components/Fl
 .input-group input:focus {
   border-color: #8a4fff;
   box-shadow: 0 0 0 4px rgba(138, 79, 255, 0.1);
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.cancel-btn,
+.submit-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancel-btn {
+  background: white;
+  border: 2px solid #e5e7eb;
+  color: #6b7280;
+}
+
+.cancel-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.submit-btn {
+  background: linear-gradient(135deg, #8a4fff 0%, #6122e6 100%);
+  border: none;
+  color: white;
+  box-shadow: 0 4px 12px rgba(138, 79, 255, 0.3);
+}
+
+.submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(138, 79, 255, 0.4);
 }
 
 @keyframes fadeIn {

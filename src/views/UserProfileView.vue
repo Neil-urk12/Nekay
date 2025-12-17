@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Eye, EyeOff } from 'lucide-vue-next'
+import { Camera, Eye, EyeOff } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import SlideUpSheet from '../components/SlideUpSheet.vue'
+import UserAvatar from '../components/UserAvatar.vue'
 import { useAuthStore } from '../stores/authStore'
 import { supabase } from '../supabase/supabase-config'
 
@@ -12,7 +13,10 @@ const authStore = useAuthStore()
 const loading = ref(false)
 const userName = ref('')
 const userEmail = ref('')
+const avatarUrl = ref<string | null>(null)
 const showLogoutConfirm = ref(false)
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const uploadingAvatar = ref(false)
 
 // Edit State
 const showEditName = ref(false)
@@ -45,13 +49,76 @@ const passwordStrength = computed(() => {
   }
 })
 
-const userInitial = computed(() => {
-  if (userName.value)
-    return userName.value.charAt(0).toUpperCase()
-  if (userEmail.value)
-    return userEmail.value.charAt(0).toUpperCase()
-  return '?'
-})
+function triggerFileInput() {
+  fileInputRef.value?.click()
+}
+
+async function uploadAvatar(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+
+  if (!file)
+    return
+
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    console.warn('Please select an image file')
+    return
+  }
+
+  // Validate file size (max 2MB)
+  if (file.size > 2 * 1024 * 1024) {
+    console.warn('Image must be less than 2MB')
+    return
+  }
+
+  uploadingAvatar.value = true
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user?.id) {
+      throw new Error('User not authenticated')
+    }
+
+    const userId = session.user.id
+    const fileExt = file.name.split('.').pop()
+    const filePath = `${userId}/avatar.${fileExt}`
+
+    // Upload to Supabase storage
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, file, { upsert: true })
+
+    if (uploadError)
+      throw uploadError
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filePath)
+
+    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`
+
+    // Update user record in database
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ avatar_url: publicUrl })
+      .eq('id', userId)
+
+    if (updateError)
+      throw updateError
+
+    avatarUrl.value = publicUrl
+  }
+  catch (error) {
+    console.error('Error uploading avatar:', error)
+  }
+  finally {
+    uploadingAvatar.value = false
+    // Reset input so same file can be selected again
+    input.value = ''
+  }
+}
 
 onMounted(async () => {
   loading.value = true
@@ -60,10 +127,10 @@ onMounted(async () => {
     if (session?.user) {
       userEmail.value = session.user.email || ''
 
-      // Fetch the user's name from the public.users table
+      // Fetch the user's name and avatar from the public.users table
       const { data: userData, error } = await supabase
         .from('users')
-        .select('name')
+        .select('name, avatar_url')
         .eq('id', session.user.id)
         .single()
 
@@ -72,6 +139,7 @@ onMounted(async () => {
       }
       else {
         userName.value = userData?.name || ''
+        avatarUrl.value = userData?.avatar_url || null
       }
     }
   }
@@ -142,12 +210,11 @@ async function saveEmail() {
     if (error)
       throw error
 
-    alert('A confirmation email has been sent to your new address. Please check your inbox to complete the update.')
+    // A confirmation email has been sent to the new address
     showEditEmail.value = false
   }
   catch (error: any) {
     console.error('Error updating email:', error)
-    alert(error.message || 'Failed to update email')
   }
   finally {
     loading.value = false
@@ -266,11 +333,25 @@ async function handleLogout() {
         </header>
 
         <div class="avatar-section">
-          <div class="avatar-wrapper">
-            <div class="avatar">
-              {{ userInitial }}
-            </div>
+          <div class="avatar-wrapper" @click="triggerFileInput">
+            <UserAvatar
+              :avatar-url="avatarUrl"
+              :name="userName || userEmail"
+              :size="120"
+              class="profile-avatar"
+            />
             <div class="avatar-glow" />
+            <div class="avatar-overlay" :class="{ uploading: uploadingAvatar }">
+              <Camera v-if="!uploadingAvatar" :size="24" />
+              <div v-else class="mini-spinner" />
+            </div>
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept="image/*"
+              class="hidden-input"
+              @change="uploadAvatar"
+            >
           </div>
 
           <div class="user-info">
@@ -1028,5 +1109,54 @@ async function handleLogout() {
 
 .eye-toggle-btn:active {
   transform: translateY(-50%) scale(0.95);
+}
+
+/* Avatar Upload Styles */
+.avatar-wrapper {
+  cursor: pointer;
+}
+
+.profile-avatar {
+  box-shadow: 0 10px 25px -5px rgba(219, 39, 119, 0.4);
+  border: 4px solid white;
+}
+
+.avatar-overlay {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #db2777, #be185d);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 4px 12px rgba(219, 39, 119, 0.4);
+  border: 3px solid white;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.avatar-overlay:hover {
+  transform: scale(1.1);
+}
+
+.avatar-overlay.uploading {
+  pointer-events: none;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.mini-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 </style>

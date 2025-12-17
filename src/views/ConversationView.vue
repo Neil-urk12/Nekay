@@ -2,6 +2,7 @@
 import { storeToRefs } from 'pinia'
 import { computed, defineAsyncComponent, nextTick, onActivated, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import UserAvatar from '../components/UserAvatar.vue'
 import { useAuthStore } from '../stores/authStore'
 import { useConversationStore } from '../stores/conversationStore'
 
@@ -60,12 +61,14 @@ const groupedMessages = computed(() => {
 })
 
 function isFirstInGroup(msgList: typeof messages.value, index: number) {
-  if (index === 0) return true
+  if (index === 0)
+    return true
   return msgList[index - 1].isSelf !== msgList[index].isSelf
 }
 
 function isLastInGroup(msgList: typeof messages.value, index: number) {
-  if (index === msgList.length - 1) return true
+  if (index === msgList.length - 1)
+    return true
   return msgList[index + 1].isSelf !== msgList[index].isSelf
 }
 
@@ -83,7 +86,8 @@ onMounted(async () => {
     const conv = conversationStore.conversations.find(c => c.id === conversationId)
     if (conv) {
       conversationStore.selectConversation(conv, currentUserId.value)
-    } else {
+    }
+    else {
       router.push('/messaging')
     }
   }
@@ -106,7 +110,8 @@ function backToConversations() {
 }
 
 async function sendMessage() {
-  if (!newMessage.value.trim() || !currentUserId.value) return
+  if (!newMessage.value.trim() || !currentUserId.value)
+    return
 
   const success = await conversationStore.sendMessage(newMessage.value, currentUserId.value)
 
@@ -164,12 +169,13 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
               'last-in-group': isLastInGroup(group.messages, idx),
             }"
           >
-            <div
+            <UserAvatar
               v-if="!msg.isSelf && isLastInGroup(group.messages, idx)"
-              class="message-avatar"
-            >
-              {{ currentConversation?.otherUserName?.charAt(0).toUpperCase() }}
-            </div>
+              :avatar-url="currentConversation?.otherUserAvatarUrl"
+              :name="currentConversation?.otherUserName"
+              :size="32"
+              class="message-avatar-img"
+            />
             <div v-else-if="!msg.isSelf" class="message-avatar-spacer" />
 
             <div
