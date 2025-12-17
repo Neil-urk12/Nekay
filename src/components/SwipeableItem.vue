@@ -6,8 +6,7 @@ import {
 } from 'lucide-vue-next'
 import { onMounted, onUnmounted, ref } from 'vue'
 
-// eslint-disable-next-line unused-imports/no-unused-vars
-const props = defineProps<{
+defineProps<{
   showEdit?: boolean
   showDelete?: boolean
 }>()

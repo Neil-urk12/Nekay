@@ -205,7 +205,7 @@ export const useConversationStore = defineStore('conversation', {
 
     cleanupRealtimeListener() {
       if (this.messageChannel) {
-        supabase.removeChannel(this.messageChannel)
+        supabase.removeChannel(this.messageChannel as RealtimeChannel)
         this.messageChannel = null
       }
     },

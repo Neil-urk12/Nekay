@@ -2,6 +2,7 @@
 import type { FolderItemData } from '../components/FolderItem.vue'
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import ConfirmationModal from '../components/ConfirmationModal.vue'
 import FolderItem from '../components/FolderItem.vue'
 import { useNotesStore } from '../stores/notes'
 
@@ -14,6 +15,7 @@ const noteStore = useNotesStore()
 const newFolderName = ref('')
 const showAddSheet = ref(false)
 const deleteConfirm = ref<{ id: string, name: string } | null>(null)
+const isDeleting = ref(false)
 
 const folders = computed(() => noteStore.getTaskFolders)
 
@@ -51,12 +53,16 @@ async function confirmDelete() {
   if (!deleteConfirm.value)
     return
 
+  isDeleting.value = true
   try {
     await noteStore.deleteFolder(deleteConfirm.value.id)
     deleteConfirm.value = null
   }
   catch (err) {
     console.error('Failed to delete folder: ', err)
+  }
+  finally {
+    isDeleting.value = false
   }
 }
 
@@ -97,34 +103,17 @@ onMounted(() => {
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="deleteConfirm" class="modal-overlay" @click="cancelDelete">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>Delete Folder</h3>
-          <button class="close-btn" @click="cancelDelete">
-            ×
-          </button>
-        </div>
-        <div class="modal-body">
-          <p>
-            Are you sure you want to delete "<span class="folder-highlight">{{
-              deleteConfirm.name
-            }}</span>"?
-          </p>
-          <p class="warning-text">
-            This action cannot be undone.
-          </p>
-        </div>
-        <div class="modal-actions">
-          <button class="btn-secondary" @click="cancelDelete">
-            Cancel
-          </button>
-          <button class="btn-danger" @click="confirmDelete">
-            Delete
-          </button>
-        </div>
-      </div>
-    </div>
+    <ConfirmationModal
+      :show="!!deleteConfirm"
+      title="Delete Folder"
+      message="Are you sure you want to delete"
+      :item-name="deleteConfirm?.name"
+      confirm-text="Delete"
+      variant="danger"
+      :loading="isDeleting"
+      @close="cancelDelete"
+      @confirm="confirmDelete"
+    />
 
     <!-- FAB Button -->
     <FloatingActionButton aria-label="Add new folder" @click="showAddSheet = true" />
