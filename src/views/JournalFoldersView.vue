@@ -4,6 +4,7 @@ import type { Folder } from '../composables/interfaces'
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ConfirmationModal from '../components/ConfirmationModal.vue'
+import EmptyState from '../components/EmptyState.vue'
 import FolderItem from '../components/FolderItem.vue'
 import { useNotesStore } from '../stores/notes'
 
@@ -113,9 +114,11 @@ onMounted(async () => {
     </div>
 
     <div class="journal-folder-list">
-      <div v-if="folders.length === 0" class="empty-state">
-        <p>No folders yet. Create your first journal folder!</p>
-      </div>
+      <EmptyState
+        v-if="folders.length === 0"
+        message="No folders yet. Create your first journal folder!"
+        icon="📖"
+      />
 
       <FolderItem
         v-for="folder in folders"
@@ -204,13 +207,6 @@ h1 {
   flex-direction: column;
   gap: 0.75rem;
   padding-bottom: 5rem;
-}
-
-.empty-state {
-  text-align: center;
-  background: pink;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
 }
 
 .btn-primary {

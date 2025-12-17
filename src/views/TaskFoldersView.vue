@@ -3,6 +3,7 @@ import type { FolderItemData } from '../components/FolderItem.vue'
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import ConfirmationModal from '../components/ConfirmationModal.vue'
+import EmptyState from '../components/EmptyState.vue'
 import FolderItem from '../components/FolderItem.vue'
 import { useNotesStore } from '../stores/notes'
 
@@ -88,9 +89,17 @@ onMounted(async () => {
         </div>
       </div>
 
+      <!-- Empty State for user folders -->
+      <EmptyState
+        v-if="folders.length === 0"
+        message="No custom folders yet. Create one to organize your tasks!"
+        icon="📁"
+      />
+
       <!-- User Created Folders -->
       <FolderItem
         v-for="folder in folders"
+        v-else
         :key="folder.id"
         :folder="folder"
         item-label="tasks"

@@ -2,6 +2,7 @@
 import type { Task } from '../composables/interfaces'
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import ConfirmationModal from '../components/ConfirmationModal.vue'
+import EmptyState from '../components/EmptyState.vue'
 import PageHeader from '../components/PageHeader.vue'
 import TaskItem from '../components/TaskItem.vue'
 import { useNotesStore } from '../stores/notes'
@@ -101,7 +102,14 @@ onMounted(async () => {
   <div class="tasks-container">
     <PageHeader title="All Tasks" />
 
-    <div class="tasks-list">
+    <div v-if="tasks.length === 0">
+      <EmptyState
+        message="No tasks yet. Add your first task!"
+        icon="📝"
+      />
+    </div>
+
+    <div v-else class="tasks-list">
       <div v-for="task in tasks" :key="task.id" class="task-wrapper">
         <TaskItem
           :task="task"
