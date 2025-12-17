@@ -14,7 +14,7 @@ async function initApp() {
   }
   catch (err) {
     console.error('App initialization failed:', err)
-    alert('Unable to initialize app storage. Some features may be unavailable.')
+    console.warn('Unable to initialize app storage. Some features may be unavailable.')
     app.mount('#app')
   }
 }

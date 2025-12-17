@@ -6,9 +6,7 @@ export const useAffirmationStore = defineStore('affirmation', () => {
 
   async function fetchAffirmation() {
     try {
-      console.log('Fetching affirmation...')
       const response = await fetch('https://affi-rm.vercel.app/daily-affirmation')
-      console.log('Response status: ', response.status)
       if (!response.ok) {
         throw new Error('Failed to fetch affirmation')
       }

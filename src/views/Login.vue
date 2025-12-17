@@ -64,6 +64,7 @@ function handleButtonClick(button: Button) {
     inputValue.value = inputValue.value.slice(0, -1)
   }
   else if (button.action === 'emergency') {
+    // Emergency action - no-op for now
   }
   else {
     inputValue.value += button.number

@@ -13,7 +13,6 @@ defineEmits<{
 <template>
   <div class="message-input">
     <input
-      ref="inputRef"
       type="text"
       :value="modelValue"
       placeholder="Type a message..."

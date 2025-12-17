@@ -65,12 +65,11 @@ function createHeart() {
 }
 
 function acceptLove() {
-  console.log('Love accepted!')
   showAcceptModal.value = true
 
   const acceptAudio = new Audio('/accept.wav')
-  acceptAudio.play().catch((err) => {
-    console.error('Error playing accept.wav:', err)
+  acceptAudio.play().catch(() => {
+    // Audio playback failed
   })
 
   for (let i = 0; i < 15; i++) createHeart()
@@ -148,12 +147,10 @@ async function submitAgreement() {
     if (error)
       throw error
 
-    console.log('Agreement stored successfully!')
     showAcceptModal.value = false
     showSuccessModal.value = true
   }
-  catch (error) {
-    console.error('Error storing agreement:', error)
+  catch {
     closeAcceptModal()
   }
 }

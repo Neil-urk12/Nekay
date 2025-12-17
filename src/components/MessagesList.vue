@@ -4,6 +4,7 @@ import { nextTick, ref, watch } from 'vue'
 import { RecycleScroller } from 'vue-virtual-scroller'
 
 const props = defineProps<{ messages: any[], messageTimestampsVisible: Record<string, boolean> }>()
+defineEmits<{ toggle: [id: string] }>()
 const scrollerRef = ref<any>(null)
 
 watch(

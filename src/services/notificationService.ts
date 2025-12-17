@@ -19,7 +19,6 @@ class NotificationService {
 
   private async init() {
     if (!isNotificationSupported()) {
-      console.log('Notifications are not supported')
       return
     }
 
@@ -50,7 +49,6 @@ class NotificationService {
 
   scheduleReminders() {
     if (!isNotificationSupported() || this.permission !== 'granted') {
-      console.log('Notifications are not supported or not permitted')
       return
     }
 

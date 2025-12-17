@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import type { TimeOfDay } from '../stores/backgroundStore'
-import { computed, defineAsyncComponent, toRefs, watch } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import { useBackgroundStore } from '../stores/backgroundStore'
 
-const props = defineProps<{ dailyAffirmation: string }>()
+defineProps<{ dailyAffirmation: string }>()
 
 const MelodyHeader = defineAsyncComponent(
   () => import('../components/MelodyHeader.vue'),
@@ -23,8 +23,6 @@ const greetingMessage = computed(() => {
     messages[backgroundStore.timeOfDay as TimeOfDay] || 'Have a great day!'
   )
 })
-const { dailyAffirmation } = toRefs(props)
-watch(dailyAffirmation, newVal => console.log('Affirmation updated:', newVal))
 </script>
 
 <template>

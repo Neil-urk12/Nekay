@@ -25,11 +25,11 @@ export function onAuthStateChange(callback: (session: any) => void) {
 
 // Network status helpers
 window.addEventListener('online', () => {
-  console.log('App is online')
+  // App is online
 })
 
 window.addEventListener('offline', () => {
-  console.log('App is offline')
+  // App is offline
 })
 
 export default supabase

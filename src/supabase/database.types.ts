@@ -18,6 +18,7 @@ export interface Database {
           email: string
           password_hash: string
           name: string | null
+          avatar_url: string | null
           created_at: string
         }
         Insert: {
@@ -25,6 +26,7 @@ export interface Database {
           email: string
           password_hash: string
           name?: string | null
+          avatar_url?: string | null
           created_at?: string
         }
         Update: {
@@ -32,6 +34,7 @@ export interface Database {
           email?: string
           password_hash?: string
           name?: string | null
+          avatar_url?: string | null
           created_at?: string
         }
       }
@@ -265,7 +268,7 @@ export interface Database {
           id: string
           nickname: string
           username: string
-          avatar: string | null
+          avatar_url: string | null
           bio: string | null
           highlights: any[] | null
           created_at: string
@@ -274,7 +277,7 @@ export interface Database {
           id?: string
           nickname: string
           username: string
-          avatar?: string | null
+          avatar_url?: string | null
           bio?: string | null
           highlights?: any[] | null
           created_at?: string
@@ -283,7 +286,7 @@ export interface Database {
           id?: string
           nickname?: string
           username?: string
-          avatar?: string | null
+          avatar_url?: string | null
           bio?: string | null
           highlights?: any[] | null
           created_at?: string
