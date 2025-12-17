@@ -1,34 +1,37 @@
 <script setup lang="ts">
-import { onMounted, watch, ref } from "vue";
-import { useRouter } from "vue-router";
-import { useAuthStore } from "../stores/authStore";
+import { onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/authStore'
 
-const authStore = useAuthStore();
-const router = useRouter();
-const isLoading = ref(true);
+const authStore = useAuthStore()
+const router = useRouter()
+const isLoading = ref(true)
 
 onMounted(async () => {
   try {
-    await authStore.setupAuthListener();
-  } catch (error) {
-    console.error('Auth listener setup failed:', error);
-  } finally {
-    isLoading.value = false;
+    await authStore.setupAuthListener()
   }
-});
+  catch (error) {
+    console.error('Auth listener setup failed:', error)
+  }
+  finally {
+    isLoading.value = false
+  }
+})
 
 watch(() => authStore.isAuthenticated, (isAuthenticated) => {
   if (isAuthenticated) {
-    router.push('/');
+    router.push('/')
   }
 })
 
 async function handleLogin() {
   try {
-    await authStore.handleLogin();
-    router.push('/');
-  } catch (error) {
-    console.error('Login failed:', error);
+    await authStore.handleLogin()
+    router.push('/')
+  }
+  catch (error) {
+    console.error('Login failed:', error)
   }
 }
 </script>
@@ -36,7 +39,7 @@ async function handleLogin() {
 <template>
   <div v-if="isLoading" class="loading-container">
     <div class="loading-spinner">
-      <div class="spinner"></div>
+      <div class="spinner" />
       <p>Loading...</p>
     </div>
   </div>
@@ -45,30 +48,30 @@ async function handleLogin() {
     <div class="login-card">
       <h1>Welcome Back!</h1>
 
-      <form @submit.prevent="handleLogin" class="login-form">
+      <form class="login-form" @submit.prevent="handleLogin">
         <div class="form-group">
           <label for="email">Email</label>
           <input
             id="email"
-            type="email"
             v-model="authStore.email"
+            type="email"
             required
             placeholder="Enter your email"
             :disabled="authStore.isLoading"
-          />
+          >
         </div>
 
         <div class="form-group">
           <label for="password">Password</label>
           <input
             id="password"
-            type="password"
             v-model="authStore.password"
+            type="password"
             required
             placeholder="Enter your password"
             :disabled="authStore.isLoading"
             autocomplete="current-password"
-          />
+          >
         </div>
 
         <div v-if="authStore.error" class="error-message">

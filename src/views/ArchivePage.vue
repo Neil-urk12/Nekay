@@ -4,8 +4,12 @@
 
 <template>
   <div class="archive-page">
-    <h1 class="archive-title">Archive</h1>
-    <h2 class="archive-subtitle">Heartfelt Memories</h2>
+    <h1 class="archive-title">
+      Archive
+    </h1>
+    <h2 class="archive-subtitle">
+      Heartfelt Memories
+    </h2>
     <router-link to="/letter">
       <div class="app-icon">
         <svg
@@ -47,7 +51,7 @@
 /* Title styles */
 .archive-title {
   text-align: center;
-  color: #f472b6; 
+  color: #f472b6;
   margin-bottom: 0.5rem;
   font-size: 2rem;
 }

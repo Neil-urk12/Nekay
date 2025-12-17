@@ -1,3 +1,137 @@
+<script setup lang="ts">
+import { computed, onMounted, ref, watch } from 'vue'
+import { db } from '../services/indexedDB'
+import { syncService } from '../services/syncService'
+import { supabase } from '../supabase/supabase-config'
+import { generateUUID } from '../utils/functions'
+
+const syncStates = ref({
+  tasks: syncService.getSyncState('tasks'),
+  folders: syncService.getSyncState('folders'),
+  journal: syncService.getSyncState('journal'),
+})
+
+const localData = ref<{
+  tasks: any[]
+  folders: any[]
+  journal: any[]
+}>({
+  tasks: [],
+  folders: [],
+  journal: [],
+})
+
+const remoteData = ref<{
+  tasks: any[]
+  folders: any[]
+  journal: any[]
+}>({
+  tasks: [],
+  folders: [],
+  journal: [],
+})
+
+const isOnline = computed(() => navigator.onLine)
+
+async function createPendingTask() {
+  const task = {
+    id: generateUUID(),
+    taskContent: `Test Task ${Date.now()}`,
+    completed: false,
+    syncStatus: 'pending' as const,
+    lastModified: Date.now(),
+    timestamp: Date.now(),
+  }
+
+  await db.createTask(task)
+  await refreshLocalData()
+}
+
+async function createPendingFolder() {
+  const folder = {
+    id: generateUUID(),
+    name: `Test Folder ${Date.now()}`,
+    type: 'task' as const,
+    syncStatus: 'pending' as const,
+    lastModified: Date.now(),
+    timestamp: Date.now(),
+    numOfItems: 0,
+  }
+
+  await db.createFolder(folder)
+  await refreshLocalData()
+}
+
+async function triggerSync() {
+  await syncService.syncAll()
+  await refreshData()
+}
+
+function toggleConnection() {
+  // Simulate network status change
+  const newStatus = !isOnline.value
+  Object.defineProperty(navigator, 'onLine', {
+    value: newStatus,
+    configurable: true,
+  })
+  window.dispatchEvent(new Event(newStatus ? 'online' : 'offline'))
+  refreshData()
+}
+
+async function refreshLocalData() {
+  localData.value = {
+    tasks: await db.getTasks(),
+    folders: await db.getFolders(),
+    journal: await db.getEntries(),
+  }
+}
+
+async function refreshRemoteData() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    const userId = session?.user?.id
+
+    if (!userId) {
+      console.warn('No user logged in')
+      return
+    }
+
+    const [tasksResult, foldersResult, entriesResult] = await Promise.all([
+      supabase.from('tasks').select('*').eq('user_id', userId),
+      supabase.from('folders').select('*').eq('user_id', userId),
+      supabase.from('journal_entries').select('*').eq('user_id', userId),
+    ])
+
+    remoteData.value = {
+      tasks: tasksResult.data || [],
+      folders: foldersResult.data || [],
+      journal: entriesResult.data || [],
+    }
+  }
+  catch (error) {
+    console.error('Error fetching remote data:', error)
+  }
+}
+
+async function refreshData() {
+  await Promise.all([refreshLocalData(), refreshRemoteData()])
+}
+
+// Set up watchers for sync state changes
+watch(
+  syncStates,
+  () => {
+    refreshData()
+  },
+  { deep: true },
+)
+
+// Initial setup
+onMounted(async () => {
+  await refreshData()
+})
+</script>
+
 <template>
   <div class="sync-tester">
     <h2>Sync Service Tester</h2>
@@ -23,10 +157,18 @@
 
     <!-- Test Actions -->
     <div class="test-actions">
-      <button @click="createPendingTask">Create Pending Task</button>
-      <button @click="createPendingFolder">Create Pending Folder</button>
-      <button @click="triggerSync">Trigger Sync</button>
-      <button @click="refreshData">Refresh Data</button>
+      <button @click="createPendingTask">
+        Create Pending Task
+      </button>
+      <button @click="createPendingFolder">
+        Create Pending Folder
+      </button>
+      <button @click="triggerSync">
+        Trigger Sync
+      </button>
+      <button @click="refreshData">
+        Refresh Data
+      </button>
       <button @click="toggleConnection">
         {{ isOnline ? "Go Offline" : "Go Online" }}
       </button>
@@ -43,7 +185,7 @@
       </div>
 
       <div class="remote-data">
-        <h3>Remote Data (Firestore):</h3>
+        <h3>Remote Data (Supabase):</h3>
         <div v-for="(items, type) in remoteData" :key="type">
           <h4>{{ type }} ({{ items.length }})</h4>
           <pre>{{ JSON.stringify(items, null, 2) }}</pre>
@@ -52,130 +194,6 @@
     </div>
   </div>
 </template>
-
-<script setup lang="js">
-import { ref, onMounted, computed, watch } from "vue";
-import { syncService } from "../services/syncService";
-import { db } from "../services/indexedDB";
-import { db as fireDb } from "../firebase/firebase-config";
-import { collection, getDocs } from "firebase/firestore";
-import { generateUUID } from "../utils/functions";
-
-const syncStates = ref({
-  tasks: syncService.getSyncState("tasks"),
-  folders: syncService.getSyncState("folders"),
-  journal: syncService.getSyncState("journal"),
-  pomodoro: syncService.getSyncState("pomodoro"),
-});
-
-const localData = ref({
-  tasks: [],
-  folders: [],
-  journal: [],
-});
-
-const remoteData = ref({
-  tasks: [],
-  folders: [],
-  journal: [],
-});
-
-const isOnline = computed(() => navigator.onLine);
-
-async function createPendingTask() {
-  const task = {
-    id: generateUUID(),
-    taskContent: `Test Task ${Date.now()}`,
-    completed: false,
-    syncStatus: "pending",
-    lastModified: Date.now(),
-    timestamp: Date.now(),
-  };
-
-  await db.createTask(task);
-  await refreshLocalData();
-}
-
-async function createPendingFolder() {
-  const folder = {
-    id: generateUUID(),
-    name: `Test Folder ${Date.now()}`,
-    type: "task",
-    syncStatus: "pending",
-    lastModified: Date.now(),
-    timestamp: Date.now(),
-    numOfItems: 0,
-  };
-
-  await db.createFolder(folder);
-  await refreshLocalData();
-}
-
-async function triggerSync() {
-  await syncService.syncAll();
-  await refreshData();
-}
-
-function toggleConnection() {
-  // Simulate network status change
-  const newStatus = !isOnline.value;
-  Object.defineProperty(navigator, "onLine", {
-    value: newStatus,
-    configurable: true,
-  });
-  window.dispatchEvent(new Event(newStatus ? "online" : "offline"));
-  refreshData();
-}
-
-async function refreshLocalData() {
-  localData.value = {
-    tasks: await db.getTasks(),
-    folders: await db.getFolders(),
-    journal: await db.getEntries(),
-  };
-}
-
-async function refreshRemoteData() {
-  try {
-    const collections = ["tasks", "folders", "entries"];
-    const fetchPromises = collections.map(async (collectionName) => {
-      const snapshot = await getDocs(collection(fireDb, collectionName));
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-    });
-
-    const [tasks, folders, entries] = await Promise.all(fetchPromises);
-
-    remoteData.value = {
-      tasks,
-      folders,
-      journal: entries,
-    };
-  } catch (error) {
-    console.error("Error fetching remote data:", error);
-  }
-}
-
-async function refreshData() {
-  await Promise.all([refreshLocalData(), refreshRemoteData()]);
-}
-
-// Set up watchers for sync state changes
-watch(
-  syncStates,
-  () => {
-    refreshData();
-  },
-  { deep: true }
-);
-
-// Initial setup
-onMounted(async () => {
-  await refreshData();
-});
-</script>
 
 <style scoped>
 .sync-tester {

@@ -1,7 +1,8 @@
 <script lang="ts" setup>
-import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
-import { getFirestore, collection, addDoc } from 'firebase/firestore'
+import { Heart, X } from 'lucide-vue-next'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { supabase } from '../supabase/supabase-config'
 
 let lrtAudio: HTMLAudioElement | null = null
 let heartsInterval: ReturnType<typeof setInterval> | null = null
@@ -18,11 +19,12 @@ onUnmounted(() => {
     lrtAudio.pause()
     lrtAudio.currentTime = 0
   }
-  if (heartsInterval) clearInterval(heartsInterval)
+  if (heartsInterval)
+    clearInterval(heartsInterval)
 })
 
 const showAcceptModal = ref(false)
-const closeAcceptModal = () => {
+function closeAcceptModal() {
   showAcceptModal.value = false
 }
 
@@ -32,7 +34,7 @@ const declineClickCount = ref(0)
 const declineButtonStyle = ref({})
 const showFinalMessage = ref(false)
 
-const floatingHearts = ref<{ id: number; left: number; style?: { fontSize: string; transform?: string; animationDuration: string; animationDelay: string } }[]>([])
+const floatingHearts = ref<{ id: number, left: number, style?: { fontSize: string, transform?: string, animationDuration: string, animationDelay: string } }[]>([])
 
 const hiddenClass = computed(() => isExpanded.value ? 'hidden' : '')
 const isDeclineHidden = computed(() => declineClickCount.value >= 4)
@@ -41,11 +43,11 @@ const toggleExpand = () => isExpanded.value = !isExpanded.value
 
 let heartId = 0
 
-const createHeart = () => {
+function createHeart() {
   const newHeartId = heartId++
   const randomSize = Math.random() * (1.8 - 1.2) + 1.2
   const randomDuration = Math.random() * (8 - 6) + 6
-  const randomDelay = Math.random() * 0.5;
+  const randomDelay = Math.random() * 0.5
 
   floatingHearts.value.push({
     id: newHeartId,
@@ -53,8 +55,8 @@ const createHeart = () => {
     style: {
       fontSize: `${randomSize}rem`,
       animationDuration: `${randomDuration}s`,
-      animationDelay: `${randomDelay}s`
-    }
+      animationDelay: `${randomDelay}s`,
+    },
   })
 
   setTimeout(() => {
@@ -62,13 +64,12 @@ const createHeart = () => {
   }, randomDuration * 1000 + (randomDelay * 1000))
 }
 
-const acceptLove = () => {
-  console.log('Love accepted!')
+function acceptLove() {
   showAcceptModal.value = true
 
   const acceptAudio = new Audio('/accept.wav')
-  acceptAudio.play().catch((err) => {
-    console.error('Error playing accept.wav:', err)
+  acceptAudio.play().catch(() => {
+    // Audio playback failed
   })
 
   for (let i = 0; i < 15; i++) createHeart()
@@ -83,12 +84,12 @@ const acceptLove = () => {
 
       heartsInterval = setInterval(() => {
         createHeart()
-      }, 500);
-    }, 10000);
-  }, 500);
+      }, 500)
+    }, 10000)
+  }, 500)
 }
 
-const declineLove = () => {
+function declineLove() {
   declineClickCount.value++
 
   if (declineClickCount.value >= 4) {
@@ -100,7 +101,8 @@ const declineLove = () => {
 
   const viewportWidth = window.innerWidth
   const buttonElement = document.querySelector('.decline-button') as HTMLElement
-  if (!buttonElement) return
+  if (!buttonElement)
+    return
 
   const buttonWidth = buttonElement.offsetWidth
 
@@ -109,16 +111,17 @@ const declineLove = () => {
   const padding = 20
   let xPosition
 
-  if (goToRight) xPosition = viewportWidth - buttonWidth - padding
+  if (goToRight)
+    xPosition = viewportWidth - buttonWidth - padding
   else xPosition = padding
-  
+
   declineButtonStyle.value = {
     position: 'fixed',
     left: `${xPosition}px`,
     transform: `scale(${scale})`,
     transition: 'all 0.3s ease',
     background: '#e2e6ea',
-    color: '#333'
+    color: '#333',
   }
 }
 
@@ -126,28 +129,28 @@ const checkboxes = reactive({
   pizza: false,
   cake: false,
   movies: false,
-  stardew: false
+  stardew: false,
 })
 
 const showSuccessModal = ref(false)
 const closeSuccessModal = () => showSuccessModal.value = false
 
-const db = getFirestore()
-
-const submitAgreement = async () => {
+async function submitAgreement() {
   try {
-    await addDoc(collection(db, 'agreements'), {
+    const { error } = await supabase.from('agreements').insert({
       pizza: checkboxes.pizza,
       cake: checkboxes.cake,
       movies: checkboxes.movies,
       stardew: checkboxes.stardew,
-      timestamp: new Date()
     })
-    console.log('Agreement stored successfully!')
+
+    if (error)
+      throw error
+
     showAcceptModal.value = false
     showSuccessModal.value = true
-  } catch (error) {
-    console.error('Error storing agreement:', error)
+  }
+  catch {
     closeAcceptModal()
   }
 }
@@ -155,22 +158,36 @@ const submitAgreement = async () => {
 
 <template>
   <div class="letter-container">
-    <button class="return-button" :class="hiddenClass" @click="router.push('/home')">Return Home</button>
+    <button class="return-button" :class="hiddenClass" @click="router.push('/home')">
+      Return Home
+    </button>
 
     <div v-if="!isExpanded" class="letter-cover" @click="toggleExpand">
       <div class="cover-content">
-        <div class="arrow top">▼</div>
-        <div class="heart">♥</div>
-        <div class="arrow bottom">▼</div>
+        <div class="arrow top">
+          ▼
+        </div>
+        <div class="heart">
+          <Heart :size="64" fill="#d6336c" stroke="#d6336c" />
+        </div>
+        <div class="arrow bottom">
+          ▼
+        </div>
       </div>
     </div>
 
     <transition name="expand">
       <div v-show="isExpanded" class="full-letter">
-        <div class="toggle-arrow top" @click="toggleExpand">▼</div>
+        <div class="toggle-arrow top" @click="toggleExpand">
+          ▼
+        </div>
         <header>
-          <h1 class="header">A Valentine's Note</h1>
-          <p class="subheader">A message from my heart to yours</p>
+          <h1 class="header">
+            A Valentine's Note
+          </h1>
+          <p class="subheader">
+            A message from my heart to yours
+          </p>
         </header>
         <div class="letter-content">
           <p>Dear Kaykay,</p>
@@ -183,7 +200,7 @@ const submitAgreement = async () => {
           <p>
             May our journey together be as enchanting as a starlit night and as warm as the first bloom of spring. I eagerly await each new day wrapped in your loving embrace.
           </p>
-          <p>Happy Valentine's Day Babiee!! Am lovee youuuuuu<b> 💖 </b><br></p>
+          <p>Happy Valentine's Day Babiee!! Am lovee youuuuuu<b> <Heart :size="20" fill="#d6336c" stroke="#d6336c" class="inline-heart" /> </b><br></p>
           <p>
             Thank you for being comforting and caring babie. Thank you for being my safe space. I can't wait to hug and kiss youuu my babiee. I love youuuu my babiee. I'm so grateful for you. I'm so grateful for us. I'm so grateful for our story. I'm so grateful for our love. I'm so grateful for our journey. I'm so grateful for our future. I'm so grateful for youuuu. <br><b>I LOVEEE YOUUUUUU</b>
           </p>
@@ -191,7 +208,9 @@ const submitAgreement = async () => {
           <p>Sharky Babie</p>
         </div>
 
-        <div class="toggle-arrow bottom" @click="toggleExpand">▼</div>
+        <div class="toggle-arrow bottom" @click="toggleExpand">
+          ▼
+        </div>
       </div>
     </transition>
 
@@ -200,23 +219,30 @@ const submitAgreement = async () => {
     </div>
     <div class="button-container" :class="hiddenClass">
       <div class="accept-section">
-        <button class="heart-button" @click="acceptLove">&#10084; Accept</button>
+        <button class="heart-button" @click="acceptLove">
+          <Heart :size="18" /> Accept
+        </button>
         <span v-if="showFinalMessage" class="final-message">
           This is your only choice &#128521;
         </span>
       </div>
-      <button v-if="!isDeclineHidden"
-              class="decline-button"
-              @click="declineLove"
-              :style="declineButtonStyle">&#128148; Decline</button>
+      <button
+        v-if="!isDeclineHidden"
+        class="decline-button"
+        :style="declineButtonStyle"
+        @click="declineLove"
+      >
+        <X :size="18" /> Decline
+      </button>
     </div>
 
     <div
       v-for="heart in floatingHearts"
       :key="heart.id"
       class="floating-heart"
-      :style="{ left: heart.left + '%', ...heart.style }">
-      ♥
+      :style="{ left: `${heart.left}%`, ...heart.style }"
+    >
+      <Heart :size="32" fill="#d6336c" stroke="#d6336c" />
     </div>
 
     <transition name="fade">
@@ -225,12 +251,14 @@ const submitAgreement = async () => {
           <h2>Date? Sunday?</h2>
           <p>Do you agree to have a date on Sunday? Please select your preferences:</p>
           <div class="checkbox-list">
-            <label><input type="checkbox" v-model="checkboxes.pizza"> Pizza?</label>
-            <label><input type="checkbox" v-model="checkboxes.cake"> Cake?</label>
-            <label><input type="checkbox" v-model="checkboxes.movies"> Movies?</label>
-            <label><input type="checkbox" v-model="checkboxes.stardew"> Stardew?</label>
+            <label><input v-model="checkboxes.pizza" type="checkbox"> Pizza?</label>
+            <label><input v-model="checkboxes.cake" type="checkbox"> Cake?</label>
+            <label><input v-model="checkboxes.movies" type="checkbox"> Movies?</label>
+            <label><input v-model="checkboxes.stardew" type="checkbox"> Stardew?</label>
           </div>
-          <button @click="submitAgreement">Agree</button>
+          <button @click="submitAgreement">
+            Agree
+          </button>
         </div>
       </div>
     </transition>
@@ -240,11 +268,12 @@ const submitAgreement = async () => {
         <div class="modal-content">
           <h2>Woohoo!</h2>
           <p>Your preferences have been recorded. We can't wait for Sunday's date!</p>
-          <button @click="closeSuccessModal">Close</button>
+          <button @click="closeSuccessModal">
+            Close
+          </button>
         </div>
       </div>
     </transition>
-
   </div>
 </template>
 

@@ -1,35 +1,110 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import type { RealtimeChannel } from '@supabase/supabase-js'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { db } from '../firebase/firebase-config'
-import { doc, getDoc, collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore'
+import { supabase } from '../supabase/supabase-config'
 
 const myNickname = 'bubu1112041823'
 const route = useRoute()
 const nicknameParam = route.params.nickname as string
+const currentUserId = ref<string | null>(null)
 
-interface Profile { avatar: string; username: string; bio: string; highlights: { image: string; label: string }[]; posts: string[] }
-const profile = ref<Profile>({ avatar: '', username: '', bio: '', highlights: [], posts: [] })
+interface Profile { avatar_url: string, username: string, bio: string, highlights: { image: string, label: string }[], posts: string[] }
+const profile = ref<Profile>({ avatar_url: '', username: '', bio: '', highlights: [], posts: [] })
 const activeTab = ref('posts')
 const newPostUrl = ref('')
 
-const loadProfile = async () => {
-  const pDoc = await getDoc(doc(db, 'profiles', nicknameParam))
-  if (pDoc.exists()) profile.value = pDoc.data() as Profile
-  // subscribe to posts
-  const postsQuery = query(collection(db, 'profiles', nicknameParam, 'posts'), orderBy('createdAt', 'desc'))
-  onSnapshot(postsQuery, snap => {
-    profile.value.posts = snap.docs.map(d => (d.data() as any).url)
-  })
+let postsChannel: RealtimeChannel | null = null
+
+async function loadProfile() {
+  // Get current user
+  const { data: { session } } = await supabase.auth.getSession()
+  currentUserId.value = session?.user?.id || null
+
+  // Load profile
+  const { data: profileData, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('nickname', nicknameParam)
+    .single()
+
+  if (profileError) {
+    console.error('Error loading profile:', profileError)
+    return
+  }
+
+  if (profileData) {
+    profile.value = {
+      avatar_url: profileData.avatar_url || '',
+      username: profileData.username || '',
+      bio: profileData.bio || '',
+      highlights: profileData.highlights || [],
+      posts: [],
+    }
+  }
+
+  // Load posts
+  const { data: postsData, error: postsError } = await supabase
+    .from('profile_posts')
+    .select('url, created_at')
+    .eq('profile_nickname', nicknameParam)
+    .order('created_at', { ascending: false })
+
+  if (postsError) {
+    console.error('Error loading posts:', postsError)
+    return
+  }
+
+  profile.value.posts = (postsData || []).map(p => p.url)
+
+  // Subscribe to real-time post updates
+  postsChannel = supabase
+    .channel('profile_posts_realtime')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'profile_posts',
+        filter: `profile_nickname=eq.${nicknameParam}`,
+      },
+      (payload) => {
+        const newPost = payload.new as any
+        profile.value.posts.unshift(newPost.url)
+      },
+    )
+    .subscribe()
 }
 
-const addPost = async () => {
-  if (!newPostUrl.value.trim()) return
-  await addDoc(collection(db, 'profiles', nicknameParam, 'posts'), { url: newPostUrl.value.trim(), createdAt: serverTimestamp() })
+async function addPost() {
+  if (!newPostUrl.value.trim())
+    return
+  if (!currentUserId.value) {
+    console.error('Not authenticated')
+    return
+  }
+
+  const { error } = await supabase.from('profile_posts').insert({
+    user_id: currentUserId.value,
+    profile_nickname: nicknameParam,
+    url: newPostUrl.value.trim(),
+  })
+
+  if (error) {
+    console.error('Error adding post:', error)
+    return
+  }
+
   newPostUrl.value = ''
 }
 
 onMounted(loadProfile)
+
+onUnmounted(() => {
+  if (postsChannel) {
+    supabase.removeChannel(postsChannel)
+  }
+})
 </script>
 
 <template>
@@ -37,18 +112,26 @@ onMounted(loadProfile)
     <!-- Header: Avatar, Stats, Edit Button -->
     <header class="profile-header grid-cols">
       <div class="avatar-wrapper">
-        <img class="avatar" :src="profile.avatar" alt="User Avatar" />
+        <img class="avatar" :src="profile.avatar_url" alt="User Avatar">
       </div>
       <div class="profile-details">
         <div class="profile-actions">
-          <h1 class="username">{{ profile.username }}</h1>
-          <button class="edit-btn">Edit Profile</button>
+          <h1 class="username">
+            {{ profile.username }}
+          </h1>
+          <button class="edit-btn">
+            Edit Profile
+          </button>
           <!-- Add settings icon button maybe -->
         </div>
 
         <div class="profile-bio">
-          <h2 class="display-name">{{ profile.username }}</h2>
-          <p class="bio">{{ profile.bio }}</p>
+          <h2 class="display-name">
+            {{ profile.username }}
+          </h2>
+          <p class="bio">
+            {{ profile.bio }}
+          </p>
         </div>
       </div>
     </header>
@@ -56,61 +139,37 @@ onMounted(loadProfile)
     <!-- Bio (for smaller screens) -->
     <div class="profile-bio-mobile">
       <!-- <h2 class="display-name">Display Name</h2> Optional -->
-      <p class="bio">{{ profile.bio }}</p>
+      <p class="bio">
+        {{ profile.bio }}
+      </p>
     </div>
 
     <!-- Highlights -->
-    <section class="highlights-section" v-if="profile.highlights.length > 0">
+    <section v-if="profile.highlights.length > 0" class="highlights-section">
       <div class="highlights-container">
         <div v-for="(h, idx) in profile.highlights" :key="idx" class="highlight">
           <div class="highlight-image-wrapper">
-            <img :src="h.image" :alt="`Highlight: ${h.label}`" />
+            <img :src="h.image" :alt="`Highlight: ${h.label}`">
           </div>
           <span class="highlight-label">{{ h.label }}</span>
         </div>
       </div>
     </section>
 
-    <!-- Navigation Tabs -->
-    <!-- <nav class="profile-nav">
-      <button
-        :class="['profile-nav-item', { active: activeTab === 'posts' }]"
-        @click="activeTab = 'posts'"
-        aria-label="Posts"
-      >
-        <span v-html="IconGrid" class="nav-icon"></span>
-        <span class="nav-label">Posts</span>
-      </button>
-      <button
-        :class="['profile-nav-item', { active: activeTab === 'reels' }]"
-        @click="activeTab = 'reels'"
-        aria-label="Reels"
-      >
-        <span v-html="IconReels" class="nav-icon"></span>
-        <span class="nav-label">Reels</span>
-      </button>
-      <button
-        :class="['profile-nav-item', { active: activeTab === 'tagged' }]"
-        @click="activeTab = 'tagged'"
-        aria-label="Tagged Posts"
-      >
-        <span v-html="IconTagged" class="nav-icon"></span>
-        <span class="nav-label">Tagged</span>
-      </button>
-    </nav> -->
-
     <!-- Content Area (Posts Grid, Reels, Tagged) -->
     <main class="profile-content">
       <div v-if="activeTab === 'posts'">
         <!-- Post creation form (own profile only) -->
-        <div v-if="activeTab==='posts' && nicknameParam===myNickname" class="add-post">
-          <input v-model="newPostUrl" placeholder="Image URL" />
-          <button @click="addPost">Add Post</button>
+        <div v-if="activeTab === 'posts' && nicknameParam === myNickname" class="add-post">
+          <input v-model="newPostUrl" placeholder="Image URL">
+          <button @click="addPost">
+            Add Post
+          </button>
         </div>
         <!-- Posts Grid -->
         <div v-if="profile.posts.length > 0" class="posts-grid">
           <div v-for="(post, index) in profile.posts" :key="`post-${index}`" class="post-item">
-            <img :src="post" alt="User post" loading="lazy" />
+            <img :src="post" alt="User post" loading="lazy">
             <!-- Add overlay with likes/comments on hover if desired -->
           </div>
         </div>
@@ -407,7 +466,6 @@ onMounted(loadProfile)
   font-size: 1.4rem;
 }
 
-
 /* --- Responsiveness --- */
 @media (max-width: 767px) {
   .profile-container {
@@ -517,5 +575,4 @@ onMounted(loadProfile)
     gap: 2px; /* Even smaller gap on mobile */
   }
 }
-
 </style>

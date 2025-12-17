@@ -21,4 +21,4 @@ A beautiful and cute girl needs a cute and fun app too! 💕
 - Vite for lightning-fast builds (almost as fast as my heart beats when she uses the app)
 - PWA-enabled for offline functionality (because our love doesn't need an internet connection)
 - IndexedDB for local data persistence (like memories, but digital)
-- Firebase backend for real-time sync (keeping us connected, one commit at a time)
+- Supabase backend for real-time sync (keeping us connected, one commit at a time)

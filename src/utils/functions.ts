@@ -3,7 +3,7 @@ export function generateUUID(): string {
 }
 
 export function isNotificationSupported(): boolean {
-  return 'Notification' in window && 
-         'serviceWorker' in navigator && 
-         'PushManager' in window;
+  return 'Notification' in window
+    && 'serviceWorker' in navigator
+    && 'PushManager' in window
 }

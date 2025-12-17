@@ -1,56 +1,52 @@
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, ref } from "vue";
-import { useBackgroundStore } from "./stores/backgroundStore";
-import { useNotesStore } from "./stores/notes";
-import { useAffirmationStore } from "./stores/affirmationStore";
-const BottomNav = defineAsyncComponent(
-  () => import("./components/BottomNav.vue")
-);
-import { syncService } from "./services/syncService";
-import { notificationService } from "./services/notificationService";
-const backgroundStore = useBackgroundStore();
-const notesStore = useNotesStore()
-const affirmationStore = useAffirmationStore();
-const isLoading = ref(true);
-const error = ref<Error | null>(null);
-import { useAuthStore } from "./stores/authStore";
+import { defineAsyncComponent, onMounted, ref } from 'vue'
+import { notificationService } from './services/notificationService'
+import { syncService } from './services/syncService'
+import { useAffirmationStore } from './stores/affirmationStore'
+import { useAuthStore } from './stores/authStore'
+import { useBackgroundStore } from './stores/backgroundStore'
 
-const authStore = useAuthStore();
+const BottomNav = defineAsyncComponent(
+  () => import('./components/BottomNav.vue'),
+)
+const backgroundStore = useBackgroundStore()
+const affirmationStore = useAffirmationStore()
+const isLoading = ref(true)
+const error = ref<Error | null>(null)
+
+const authStore = useAuthStore()
 
 async function initializeApp() {
   try {
-    await Promise.all([
-      syncService.loadFromCache(),
-      affirmationStore.fetchAffirmation(),
-    ])
+    await affirmationStore.fetchAffirmation()
     if (navigator.onLine) {
       await syncService.syncAll().catch((err) => {
-        console.error("Background sync failed:", err);
-      });
+        console.error('Background sync failed:', err)
+      })
     }
-    notificationService.scheduleReminders();
-  } catch (err) {
-    console.error("Failed to initialize app:", err);
-    error.value = err as Error;
+    notificationService.scheduleReminders()
+  }
+  catch (err) {
+    console.error('Failed to initialize app:', err)
+    error.value = err as Error
   }
 };
 
 onMounted(async () => {
   try {
-    await initializeApp();
-    backgroundStore.determineTimeOfDay();
-    setInterval(() => backgroundStore.determineTimeOfDay, 60000);
-    await Promise.allSettled([
-      notesStore.initializeStore(),
-      authStore.setUser(),
-    ])
-  } catch (err) {
-    console.error("Failed to initialize app:", err);
-    error.value = err as Error;
-  } finally {
-    isLoading.value = false;
+    await initializeApp()
+    backgroundStore.determineTimeOfDay()
+    setInterval(() => backgroundStore.determineTimeOfDay(), 60000)
+    await authStore.setUser()
   }
-});
+  catch (err) {
+    console.error('Failed to initialize app:', err)
+    error.value = err as Error
+  }
+  finally {
+    isLoading.value = false
+  }
+})
 </script>
 
 <template>
@@ -65,12 +61,12 @@ onMounted(async () => {
       v-if="isLoading"
       class="loading-overlay"
     >
-      <div class="spinner"></div>
+      <div class="spinner" />
       Please wait...
     </div>
     <div v-else class="app-content">
-      <router-view :dailyAffirmation="affirmationStore.dailyAffirmation"></router-view>
-      <BottomNav v-if="$route.path !== '/' && $route.path !== '/login' && $route.path !== '/messaging'" />
+      <router-view :daily-affirmation="affirmationStore.dailyAffirmation" />
+      <BottomNav v-if="!$route.meta.hideBottomNav" />
     </div>
   </div>
 </template>
@@ -150,5 +146,84 @@ button {
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   cursor: pointer;
+}
+
+/* Sheet Form Styles */
+.sheet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sheet-input {
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+  background: #f9fafb;
+}
+
+.sheet-input:focus {
+  outline: none;
+  border-color: #db2777;
+  background: white;
+}
+
+.sheet-btn {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #db2777, #ec4899);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sheet-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(219, 39, 119, 0.4);
+}
+
+.sheet-btn:active {
+  transform: translateY(0);
+}
+
+/* Global Button Classes */
+.btn-primary {
+  color: white;
+  font-weight: bold;
+}
+
+.btn-secondary {
+  background: #95a5a6;
+  color: white;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35);
+}
+
+.cancel-button {
+  background: #95a5a6;
+}
+
+.btn-primary:hover,
+.btn-secondary:hover,
+.cancel-button:hover {
+  transform: translateY(-2px);
+  transition: all 0.2s ease;
 }
 </style>

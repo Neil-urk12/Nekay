@@ -1,73 +1,76 @@
 <script setup>
-import { ref, onUnmounted, defineAsyncComponent } from "vue";
-const DarkModeToggle = defineAsyncComponent(() => import('../components/DarkModeToggle.vue'));
+import { defineAsyncComponent, onUnmounted, ref } from 'vue'
 
-const inhaleInput = ref(4);
-const holdInput = ref(4);
-const exhaleInput = ref(6);
-const isRunning = ref(false);
-const circleText = ref("Ready");
-const message = ref("");
-const circleClass = ref("circle");
-const isDarkMode = ref(false);
-let intervalId;
+const DarkModeToggle = defineAsyncComponent(() => import('../components/DarkModeToggle.vue'))
+
+const inhaleInput = ref(4)
+const holdInput = ref(4)
+const exhaleInput = ref(6)
+const isRunning = ref(false)
+const circleText = ref('Ready')
+const message = ref('')
+const circleClass = ref('circle')
+const isDarkMode = ref(false)
+let intervalId
 
 function startBreathing() {
-  if (isRunning.value) return;
-  isRunning.value = true;
-  breatheCycle();
+  if (isRunning.value)
+    return
+  isRunning.value = true
+  breatheCycle()
 }
 
 function stopBreathing() {
-  isRunning.value = false;
-  clearTimeout(intervalId);
-  circleText.value = "Ready";
-  circleClass.value = "circle";
-  message.value = "";
+  isRunning.value = false
+  clearTimeout(intervalId)
+  circleText.value = 'Ready'
+  circleClass.value = 'circle'
+  message.value = ''
 }
 
 function breatheCycle() {
-  const inhaleTime = inhaleInput.value * 1000;
-  const holdTime = holdInput.value * 1000;
-  const exhaleTime = exhaleInput.value * 1000;
+  const inhaleTime = inhaleInput.value * 1000
+  const holdTime = holdInput.value * 1000
+  const exhaleTime = exhaleInput.value * 1000
 
-  circleText.value = "Inhale";
-  circleClass.value = "circle inhale";
-  message.value = "Inhale slowly...";
+  circleText.value = 'Inhale'
+  circleClass.value = 'circle inhale'
+  message.value = 'Inhale slowly...'
 
   intervalId = setTimeout(() => {
-    circleText.value = "Hold";
-    circleClass.value = "circle hold";
-    message.value = "Hold your breath...";
+    circleText.value = 'Hold'
+    circleClass.value = 'circle hold'
+    message.value = 'Hold your breath...'
 
     intervalId = setTimeout(() => {
-      circleText.value = "Exhale";
-      circleClass.value = "circle exhale";
-      message.value = "Exhale slowly...";
+      circleText.value = 'Exhale'
+      circleClass.value = 'circle exhale'
+      message.value = 'Exhale slowly...'
 
       intervalId = setTimeout(() => {
         if (isRunning.value) {
-          breatheCycle();
-        } else {
-          stopBreathing();
+          breatheCycle()
         }
-      }, exhaleTime);
-    }, holdTime);
-  }, inhaleTime);
+        else {
+          stopBreathing()
+        }
+      }, exhaleTime)
+    }, holdTime)
+  }, inhaleTime)
 }
 
 function toggleDarkMode() {
-  isDarkMode.value = !isDarkMode.value;
+  isDarkMode.value = !isDarkMode.value
 }
 
 onUnmounted(() => {
-  clearTimeout(intervalId);
-});
+  clearTimeout(intervalId)
+})
 </script>
 
 <template>
   <div class="exercise-container" :class="{ dark: isDarkMode }">
-    <DarkModeToggle :isDarkMode="isDarkMode" @toggle="toggleDarkMode" />
+    <DarkModeToggle :is-dark-mode="isDarkMode" @toggle="toggleDarkMode" />
     <router-link to="/home" class="back-button">
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -86,43 +89,47 @@ onUnmounted(() => {
       <div class="control-group">
         <label for="inhale">Inhale (s)</label>
         <input
-          type="number"
           id="inhale"
           v-model="inhaleInput"
+          type="number"
           min="1"
           :disabled="isRunning"
           inputmode="numeric"
           pattern="[0-9]*"
-        />
+        >
       </div>
       <div class="control-group">
         <label for="hold">Hold (s)</label>
         <input
-          type="number"
           id="hold"
           v-model="holdInput"
+          type="number"
           min="0"
           :disabled="isRunning"
-        />
+        >
       </div>
       <div class="control-group">
         <label for="exhale">Exhale (s)</label>
         <input
-          type="number"
           id="exhale"
           v-model="exhaleInput"
+          type="number"
           min="1"
           :disabled="isRunning"
-        />
+        >
       </div>
     </div>
     <button @click="isRunning ? stopBreathing() : startBreathing()">
       {{ isRunning ? "Stop" : "Start" }}
     </button>
     <div class="circle-container">
-      <div :class="circleClass">{{ circleText }}</div>
+      <div :class="circleClass">
+        {{ circleText }}
+      </div>
     </div>
-    <div id="message">{{ message }}</div>
+    <div id="message">
+      {{ message }}
+    </div>
   </div>
 </template>
 
@@ -350,7 +357,7 @@ button:active {
   .controls {
     gap: 0.5rem;
   }
-  
+
   .control-group {
     flex-direction: column;
   }
