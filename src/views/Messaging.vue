@@ -1,61 +1,22 @@
 <script setup lang="ts">
-import type { RealtimeChannel } from '@supabase/supabase-js'
-import AES from 'crypto-js/aes'
-import Utf8 from 'crypto-js/enc-utf8'
-import { defineAsyncComponent, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { storeToRefs } from 'pinia'
+import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AddModal from '../components/AddModal.vue'
-import { supabase } from '../supabase/supabase-config'
+import { useAuthStore } from '../stores/authStore'
+import { useConversationStore } from '../stores/conversationStore'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 
 const router = useRouter()
+const authStore = useAuthStore()
+const conversationStore = useConversationStore()
 
-let messageChannel: RealtimeChannel | null = null
+// Store refs
+const { conversations, currentConversation, messages, isLoading, error } = storeToRefs(conversationStore)
+const { getCurrentUserId } = storeToRefs(authStore)
 
-const encryptionKey: string = import.meta.env.VITE_ENCRYPTION_KEY
-if (!encryptionKey) {
-  throw new Error('Missing VITE_ENCRYPTION_KEY in environment variables')
-}
-
-function encryptMessage(message: string) {
-  return AES.encrypt(message, encryptionKey).toString()
-}
-
-function decryptMessage(encryptedMessage: string) {
-  try {
-    const bytes = AES.decrypt(encryptedMessage, encryptionKey)
-    return bytes.toString(Utf8) || ''
-  }
-  catch (e) {
-    console.error('Decryption error', e)
-    return '' // Handle decryption errors gracefully
-  }
-}
-
-interface Message {
-  id: string
-  content: string
-  createdAt: string
-  isSelf: boolean
-  senderId: string
-  readBy: string[] | null
-}
-
-interface Conversation {
-  id: string
-  user1Id: string
-  user2Id: string
-  otherUserName: string
-}
-
-const messages = ref<Message[]>([])
 const newMessage = ref('')
 const messageTimestampsVisible = ref<{ [key: string]: boolean }>({})
-const currentConversation = ref<Conversation | null>(null)
-const currentUserId = ref<string | null>(null)
-
-// TODO: This is hardcoded for now - in a real app you'd get this from route params or user selection
-const otherUserId = ref<string | null>(null)
 
 // refs for auto-scroll and input focus
 const scrollerRef = ref<any>(null)
@@ -63,195 +24,64 @@ const inputRef = ref<HTMLInputElement | null>(null)
 
 const showCreateModal = ref(false)
 const newRecipientId = ref('')
-const hasConversations = ref(false)
-const isLoading = ref(false)
-const error = ref<string | null>(null)
+
+// Computed
+const hasConversations = computed(() => conversationStore.hasConversations)
+const currentUserId = computed(() => getCurrentUserId.value)
 
 // Initialize messaging
 onMounted(async () => {
-  const { data: { session } } = await supabase.auth.getSession()
-  currentUserId.value = session?.user?.id || null
+  await authStore.setUser()
 
   if (!currentUserId.value) {
     router.push('/login')
     return
   }
 
-  await loadConversations()
+  // Load conversations - will skip if already loaded
+  await conversationStore.loadConversations(currentUserId.value)
 })
 
-async function loadConversations() {
-  if (!currentUserId.value)
+// Watch for new messages to auto-scroll
+watch(messages, () => {
+  nextTick(() => scrollerRef.value?.scrollToItem(messages.value.length - 1))
+}, { deep: true })
+
+function selectConversation(conversation: typeof currentConversation.value) {
+  if (!currentUserId.value || !conversation)
     return
+  conversationStore.selectConversation(conversation, currentUserId.value)
+}
 
-  // Get user's conversations
-  const { data: conversations, error } = await supabase
-    .from('conversations')
-    .select('*')
-    .or(`user1_id.eq.${currentUserId.value},user2_id.eq.${currentUserId.value}`)
-
-  if (error) {
-    console.error('Error loading conversations:', error)
-    return
-  }
-
-  hasConversations.value = !!conversations && conversations.length > 0
-
-  if (hasConversations.value) {
-    // Load the first conversation for now
-    const convo = conversations[0]
-    const otherId = convo.user1_id === currentUserId.value ? convo.user2_id : convo.user1_id
-
-    currentConversation.value = {
-      id: convo.id,
-      user1Id: convo.user1_id,
-      user2Id: convo.user2_id,
-      otherUserName: 'Dudu', // TODO: Fetch actual user name
-    }
-
-    otherUserId.value = otherId
-    await loadMessages(convo.id)
-    setupRealtimeListener(convo.id)
-  }
+function backToConversations() {
+  conversationStore.backToConversations()
 }
 
 async function createConversation() {
-  if (!newRecipientId.value.trim()) {
-    error.value = 'Please enter a User ID'
+  if (!currentUserId.value)
     return
-  }
 
-  try {
-    // 1. Check if user exists
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('id', newRecipientId.value.trim())
-      .single()
+  const success = await conversationStore.createConversation(currentUserId.value, newRecipientId.value)
 
-    if (userError || !user) {
-      error.value = 'User not found. Please check the ID.'
-      return
-    }
-
-    // 2. Check if conversation already exists (optional but good)
-    // For now, allow DB to handle unique constraint or just insert
-
-    const { error: insertError } = await supabase.from('conversations').insert({
-      user1_id: currentUserId.value,
-      user2_id: user.id,
-    }).select().single()
-
-    if (insertError)
-      throw insertError
-
+  if (success) {
     showCreateModal.value = false
     newRecipientId.value = ''
-
-    // Reload to show the new conversation
-    await loadConversations()
   }
-  catch (err) {
-    console.error('Error creating conversation', err)
-    error.value = 'Failed to create conversation.'
-  }
-}
-
-async function loadMessages(conversationId: string) {
-  const { data, error } = await supabase
-    .from('messages')
-    .select('*')
-    .eq('conversation_id', conversationId)
-    .order('created_at', { ascending: true })
-
-  if (error) {
-    console.error('Error loading messages:', error)
-    return
-  }
-
-  messages.value = (data || []).map(msg => ({
-    id: msg.id,
-    content: decryptMessage(msg.content),
-    createdAt: msg.created_at,
-    isSelf: msg.sender_id === currentUserId.value,
-    senderId: msg.sender_id,
-    readBy: msg.read_by,
-  }))
-
-  nextTick(() => scrollerRef.value?.scrollToItem(messages.value.length - 1))
-}
-
-function setupRealtimeListener(conversationId: string) {
-  messageChannel = supabase
-    .channel(`messages_${conversationId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `conversation_id=eq.${conversationId}`,
-      },
-      (payload) => {
-        const msg = payload.new as any
-
-        const newMsg: Message = {
-          id: msg.id,
-          content: decryptMessage(msg.content),
-          createdAt: msg.created_at,
-          isSelf: msg.sender_id === currentUserId.value,
-          senderId: msg.sender_id,
-          readBy: msg.read_by,
-        }
-
-        // Avoid duplicates
-        if (!messages.value.find(m => m.id === newMsg.id)) {
-          messages.value.push(newMsg)
-          nextTick(() => scrollerRef.value?.scrollToItem(messages.value.length - 1))
-        }
-      },
-    )
-    .subscribe()
 }
 
 onUnmounted(() => {
-  if (messageChannel) {
-    supabase.removeChannel(messageChannel)
-  }
+  conversationStore.cleanupRealtimeListener()
 })
 
 async function sendMessage() {
-  if (!newMessage.value.trim())
+  if (!newMessage.value.trim() || !currentUserId.value)
     return
-  if (!currentUserId.value || !currentConversation.value) {
-    error.value = 'No active conversation'
-    return
-  }
 
-  isLoading.value = true
-  error.value = null
+  const success = await conversationStore.sendMessage(newMessage.value, currentUserId.value)
 
-  try {
-    const encryptedContent = encryptMessage(newMessage.value)
-
-    const { error: insertError } = await supabase.from('messages').insert({
-      conversation_id: currentConversation.value.id,
-      sender_id: currentUserId.value,
-      content: encryptedContent,
-    })
-
-    if (insertError)
-      throw insertError
-
+  if (success) {
     newMessage.value = ''
     nextTick(() => inputRef.value?.focus())
-  }
-  catch (e) {
-    error.value = 'Failed to send message'
-    console.error(e)
-  }
-  finally {
-    isLoading.value = false
   }
 }
 
@@ -268,34 +98,49 @@ function formatTimestamp(dateString: string) {
 }
 
 const MessageInput = defineAsyncComponent(() => import('../components/MessageInput.vue'))
+const FloatingActionButton = defineAsyncComponent(() => import('../components/FloatingActionButton.vue'))
 </script>
 
 <template>
   <div class="messaging-bg">
     <div class="messaging-header">
-      <button class="back-btn" @click="router.back()">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 448 512"
-          width="1rem"
-        >
-          <path
-            fill="currentColor"
-            d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"
-          />
-        </svg>
-      </button>
-      <div class="chat-info">
-        <!-- <span class="chat-avatar">🐱</span> -->
-        <span class="chat-title">Cutiegram chats</span>
-      </div>
-      <button class="menu-btn" disabled>
-        ⋮
-      </button>
+      <template v-if="currentConversation">
+        <button class="back-btn" @click="backToConversations">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="1rem">
+            <path fill="currentColor" d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z" />
+          </svg>
+        </button>
+        <div class="chat-info">
+          <!-- <span class="chat-avatar">🐱</span> -->
+          <span class="chat-title">{{ currentConversation.otherUserName }}</span>
+        </div>
+        <button class="menu-btn" disabled>
+          ⋮
+        </button>
+      </template>
+      <template v-else>
+        <button class="back-btn" @click="router.back()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="1rem">
+            <path fill="currentColor" d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z" />
+          </svg>
+        </button>
+        <div class="chat-info">
+          <span class="chat-title">Cutiegram chats</span>
+        </div>
+        <button class="menu-btn" disabled style="opacity: 0">
+          ⋮
+        </button>
+      </template>
     </div>
 
     <div class="messaging-container">
-      <div v-if="!hasConversations && !isLoading" class="empty-state">
+      <!-- Loading State -->
+      <div v-if="isLoading && !conversations.length" class="loading-state">
+        <p>Loading...</p>
+      </div>
+
+      <!-- Empty State (No Conversations) -->
+      <div v-else-if="!hasConversations && !currentConversation" class="empty-state">
         <div class="empty-state-content">
           <span class="empty-icon">💬</span>
           <h3>No conversations yet</h3>
@@ -305,9 +150,27 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
           </button>
         </div>
       </div>
-      <div v-else-if="!currentConversation" class="no-conversation">
-        <p>No conversation selected</p>
+
+      <!-- Conversation List View -->
+      <div v-else-if="!currentConversation" class="conversation-list">
+        <div
+          v-for="conv in conversations"
+          :key="conv.id"
+          class="conversation-item"
+          @click="selectConversation(conv)"
+        >
+          <div class="conv-avatar">
+            {{ conv.otherUserName.charAt(0).toUpperCase() }}
+          </div>
+          <div class="conv-details">
+            <span class="conv-name">{{ conv.otherUserName }}</span>
+            <span class="conv-preview">Tap to chat</span>
+          </div>
+        </div>
+        <FloatingActionButton aria-label="Start new chat" @click="showCreateModal = true" />
       </div>
+
+      <!-- Chat View -->
       <div v-else class="messages-list">
         <div
           v-for="msg in messages"
@@ -641,5 +504,70 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
   .empty-state h3 {
     font-size: 1.5rem;
   }
+}
+
+/* Conversation List Styles */
+.conversation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 5rem; /* Space for FAB */
+}
+
+.conversation-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.conversation-item:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.conv-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(139, 92, 246, 0.3);
+}
+
+.conv-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.conv-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 1.1rem;
+}
+
+.conv-preview {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.loading-state {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+  color: #6b7280;
+  font-style: italic;
 }
 </style>
