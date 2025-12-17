@@ -26,7 +26,7 @@ withDefaults(defineProps<Props>(), {
   flex-direction: row;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
   padding: 0.75rem 0.5rem;
   border-bottom: 1px solid rgba(219, 39, 119, 0.1);
   box-shadow: 0 2px 8px rgba(219, 39, 119, 0.08);

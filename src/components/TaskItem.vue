@@ -144,10 +144,9 @@ function handleDeleteClick() {
 <style scoped>
 .task-card-container {
   position: relative;
-  margin-bottom: 0.75rem;
   border-radius: 16px;
-  width: 100%; /* Fix width */
-  overflow: hidden; /* Hide swipe actions initially */
+  width: 100%;
+  overflow: hidden;
   background: transparent;
   display: flex;
   justify-content: center;

@@ -201,5 +201,7 @@ onMounted(async () => {
 .tasks-list{
   display: flex;
   justify-content: center;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 </style>

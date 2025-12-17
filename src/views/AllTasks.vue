@@ -28,7 +28,7 @@ async function addTask() {
   if (!newTask.value.trim())
     return
   try {
-    await taskStore.addTask(newTask.value, 'alltasks')
+    await taskStore.addTask(newTask.value, undefined)
     newTask.value = ''
     showAddSheet.value = false
   }
@@ -172,6 +172,6 @@ onMounted(async () => {
 .tasks-list{
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 </style>
