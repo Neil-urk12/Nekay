@@ -84,6 +84,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/messaging/settings',
+      name: 'MessagingSettings',
+      component: () => import('../views/MessagingSettings.vue'),
+      meta: { requiresAuth: true, hideBottomNav: true },
+    },
+    {
       path: '/profile/:nickname',
       name: 'Profile',
       component: () => import('../views/ProfileView.vue'),

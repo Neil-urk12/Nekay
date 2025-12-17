@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onActivated, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AddModal from '../components/AddModal.vue'
 import { useAuthStore } from '../stores/authStore'
@@ -25,6 +25,23 @@ const inputRef = ref<HTMLInputElement | null>(null)
 const showCreateModal = ref(false)
 const newRecipientId = ref('')
 
+// Theme support
+const themes: Record<string, string> = {
+  default: 'linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%)',
+  sunset: 'linear-gradient(135deg, #f5af19 0%, #f12711 100%)',
+  ocean: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  forest: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+  midnight: 'linear-gradient(135deg, #232526 0%, #414345 100%)',
+  rose: 'linear-gradient(135deg, #ee9ca7 0%, #ffdde1 100%)',
+  aurora: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+  lavender: 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)',
+}
+
+const currentTheme = ref(localStorage.getItem('messaging-theme') || 'default')
+const backgroundStyle = computed(() => ({
+  background: themes[currentTheme.value] || themes.default,
+}))
+
 // Computed
 const hasConversations = computed(() => conversationStore.hasConversations)
 const currentUserId = computed(() => getCurrentUserId.value)
@@ -40,6 +57,11 @@ onMounted(async () => {
 
   // Load conversations - will skip if already loaded
   await conversationStore.loadConversations(currentUserId.value)
+})
+
+// Reload theme when returning from settings
+onActivated(() => {
+  currentTheme.value = localStorage.getItem('messaging-theme') || 'default'
 })
 
 // Watch for new messages to auto-scroll
@@ -85,6 +107,10 @@ async function sendMessage() {
   }
 }
 
+function goToSettings() {
+  router.push('/messaging/settings')
+}
+
 function toggleTimestamp(messageId: string) {
   messageTimestampsVisible.value = {
     ...messageTimestampsVisible.value,
@@ -102,7 +128,7 @@ const FloatingActionButton = defineAsyncComponent(() => import('../components/Fl
 </script>
 
 <template>
-  <div class="messaging-bg">
+  <div class="messaging-bg" :style="backgroundStyle">
     <div class="messaging-header">
       <template v-if="currentConversation">
         <button class="back-btn" @click="backToConversations">
@@ -127,8 +153,10 @@ const FloatingActionButton = defineAsyncComponent(() => import('../components/Fl
         <div class="chat-info">
           <span class="chat-title">Cutiegram chats</span>
         </div>
-        <button class="menu-btn" disabled style="opacity: 0">
-          ⋮
+        <button class="menu-btn" aria-label="Settings" @click="goToSettings">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 512" width="0.5rem">
+            <path fill="currentColor" d="M64 360a56 56 0 1 0 0 112 56 56 0 1 0 0-112zm0-160a56 56 0 1 0 0 112 56 56 0 1 0 0-112zM120 96A56 56 0 1 0 8 96a56 56 0 1 0 112 0z" />
+          </svg>
         </button>
       </template>
     </div>
@@ -231,8 +259,8 @@ const FloatingActionButton = defineAsyncComponent(() => import('../components/Fl
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
   font-family: 'Inter', sans-serif;
+  transition: background 0.3s ease;
 }
 
 .messaging-header {
