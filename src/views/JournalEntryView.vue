@@ -2,15 +2,11 @@
 import type { JournalEntry } from '../composables/interfaces'
 import { computed, defineAsyncComponent, nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import ConfirmationModal from '../components/ConfirmationModal.vue'
 import { useNotesStore } from '../stores/notes'
 
-const SlideUpSheet = defineAsyncComponent(
-  () => import('../components/SlideUpSheet.vue'),
-)
-const TrashIconSvg = defineAsyncComponent(
-  () => import('../components/TrashIconSvg.vue'),
-)
+const ConfirmationModal = defineAsyncComponent(() => import('../components/ConfirmationModal.vue'))
+const SlideUpSheet = defineAsyncComponent(() => import('../components/SlideUpSheet.vue'))
+const TrashIconSvg = defineAsyncComponent(() => import('../components/TrashIconSvg.vue'))
 
 const entryStore = useNotesStore()
 const router = useRouter()

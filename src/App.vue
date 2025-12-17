@@ -18,7 +18,7 @@ const authStore = useAuthStore()
 
 async function initializeApp() {
   try {
-    // await affirmationStore.fetchAffirmation()
+    await affirmationStore.fetchAffirmation()
     if (navigator.onLine) {
       await syncService.syncAll().catch((err) => {
         console.error('Background sync failed:', err)

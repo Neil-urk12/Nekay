@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import type { Task } from '../composables/interfaces'
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
-import ConfirmationModal from '../components/ConfirmationModal.vue'
-import EmptyState from '../components/EmptyState.vue'
-import PageHeader from '../components/PageHeader.vue'
-import TaskItem from '../components/TaskItem.vue'
 import { useNotesStore } from '../stores/notes'
 
+const ConfirmationModal = defineAsyncComponent(() => import('../components/ConfirmationModal.vue'))
+const EmptyState = defineAsyncComponent(() => import('../components/EmptyState.vue'))
+const PageHeader = defineAsyncComponent(() => import('../components/PageHeader.vue'))
+const TaskItem = defineAsyncComponent(() => import('../components/TaskItem.vue'))
 const SlideUpSheet = defineAsyncComponent(() => import('../components/SlideUpSheet.vue'))
 const FloatingActionButton = defineAsyncComponent(() => import('../components/FloatingActionButton.vue'))
 

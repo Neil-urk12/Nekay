@@ -2,8 +2,9 @@
 import { storeToRefs } from 'pinia'
 import { computed, defineAsyncComponent, nextTick, onActivated, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import UserAvatar from '../components/UserAvatar.vue'
 import { useAuthStore } from '../stores/authStore'
+
+const UserAvatar = defineAsyncComponent(() => import('../components/UserAvatar.vue'))
 import { useConversationStore } from '../stores/conversationStore'
 
 const router = useRouter()

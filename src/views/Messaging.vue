@@ -2,9 +2,10 @@
 import { storeToRefs } from 'pinia'
 import { computed, defineAsyncComponent, onActivated, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import SlideUpSheet from '../components/SlideUpSheet.vue'
-import UserAvatar from '../components/UserAvatar.vue'
 import { useAuthStore } from '../stores/authStore'
+
+const SlideUpSheet = defineAsyncComponent(() => import('../components/SlideUpSheet.vue'))
+const UserAvatar = defineAsyncComponent(() => import('../components/UserAvatar.vue'))
 import { useConversationStore } from '../stores/conversationStore'
 
 const router = useRouter()

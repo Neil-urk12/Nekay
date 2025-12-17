@@ -3,16 +3,13 @@ import type { FolderItemData } from '../components/FolderItem.vue'
 import type { Folder } from '../composables/interfaces'
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import ConfirmationModal from '../components/ConfirmationModal.vue'
-import EmptyState from '../components/EmptyState.vue'
-import FolderItem from '../components/FolderItem.vue'
 import { useNotesStore } from '../stores/notes'
 
-const FloatingActionButton = defineAsyncComponent(
-  () => import('../components/FloatingActionButton.vue'),
-)
-const SlideUpSheet = defineAsyncComponent(
-  () => import('../components/SlideUpSheet.vue'),
+const ConfirmationModal = defineAsyncComponent(() => import('../components/ConfirmationModal.vue'))
+const EmptyState = defineAsyncComponent(() => import('../components/EmptyState.vue'))
+const FolderItem = defineAsyncComponent(() => import('../components/FolderItem.vue'))
+const FloatingActionButton = defineAsyncComponent(() => import('../components/FloatingActionButton.vue'))
+const SlideUpSheet = defineAsyncComponent(() => import('../components/SlideUpSheet.vue')
 )
 
 const router = useRouter()
