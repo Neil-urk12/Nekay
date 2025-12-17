@@ -90,14 +90,38 @@ export const useConversationStore = defineStore('conversation', {
         }
 
         if (conversations) {
-          this.conversations = conversations.map(c => ({
-            id: c.id,
-            user1Id: c.user1_id,
-            user2Id: c.user2_id,
-            otherUserName: c.user1_id === currentUserId
-              ? `User ${c.user2_id.slice(0, 4)}`
-              : `User ${c.user1_id.slice(0, 4)}`,
-          }))
+          // Fetch user names for the other users in each conversation
+          const otherUserIds = conversations.map(c =>
+            c.user1_id === currentUserId ? c.user2_id : c.user1_id,
+          )
+
+          // Fetch names for all other users in one query
+          const { data: usersData } = await supabase
+            .from('users')
+            .select('id, name')
+            .in('id', otherUserIds)
+
+          // Create a map of userId -> name for quick lookup
+          const userNameMap = new Map<string, string>()
+          if (usersData) {
+            usersData.forEach((user) => {
+              if (user.name) {
+                userNameMap.set(user.id, user.name)
+              }
+            })
+          }
+
+          this.conversations = conversations.map((c) => {
+            const otherUserId = c.user1_id === currentUserId ? c.user2_id : c.user1_id
+            const otherUserName = userNameMap.get(otherUserId) || `User ${otherUserId.slice(0, 4)}`
+
+            return {
+              id: c.id,
+              user1Id: c.user1_id,
+              user2Id: c.user2_id,
+              otherUserName,
+            }
+          })
         }
 
         this.conversationsLoaded = true
