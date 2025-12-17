@@ -208,6 +208,4 @@ h1 {
   gap: 0.75rem;
   padding-bottom: 5rem;
 }
-
-
 </style>

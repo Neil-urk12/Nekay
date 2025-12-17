@@ -8,7 +8,9 @@ defineProps<{
 <template>
   <div class="empty-state">
     <span v-if="icon" class="empty-icon">{{ icon }}</span>
-    <p class="empty-message">{{ message }}</p>
+    <p class="empty-message">
+      {{ message }}
+    </p>
   </div>
 </template>
 

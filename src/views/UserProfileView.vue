@@ -785,8 +785,6 @@ async function handleLogout() {
   gap: 1rem;
 }
 
-
-
 /* Modal Transitions */
 .modal-enter-active,
 .modal-leave-active {
