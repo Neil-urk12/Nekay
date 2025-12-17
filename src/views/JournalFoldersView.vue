@@ -1,23 +1,28 @@
 <script setup lang="ts">
+import type { FolderItemData } from '../components/FolderItem.vue'
 import type { Folder } from '../composables/interfaces'
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import FolderItem from '../components/FolderItem.vue'
 import { useNotesStore } from '../stores/notes'
 
-const AddFolderModal = defineAsyncComponent(
-  () => import('../components/AddModal.vue'),
-)
 const EditFolderModal = defineAsyncComponent(
   () => import('../components/EditFolderModal.vue'),
 )
 const DeleteConfirmModal = defineAsyncComponent(
   () => import('../components/DeleteConfirmModal.vue'),
 )
+const FloatingActionButton = defineAsyncComponent(
+  () => import('../components/FloatingActionButton.vue'),
+)
+const SlideUpSheet = defineAsyncComponent(
+  () => import('../components/SlideUpSheet.vue'),
+)
 
 const router = useRouter()
 const journalStore = useNotesStore()
 
-const showAddFolderModal = ref(false)
+const showAddSheet = ref(false)
 const showEditFolderModal = ref(false)
 const showDeleteModal = ref(false)
 const selectedFolder = ref<Folder | null>(null)
@@ -26,23 +31,17 @@ const newFolderName = ref('')
 
 const folders = computed(() => journalStore.getJournalFolders)
 
-async function addFolder(folderName: string) {
-  try {
-    if (!folderName.trim())
-      return
+async function addFolder() {
+  if (!newFolderName.value.trim())
+    return
 
-    await journalStore.addFolder(folderName, 'journal')
+  try {
+    await journalStore.addFolder(newFolderName.value, 'journal')
+    newFolderName.value = ''
+    showAddSheet.value = false
   }
   catch (err) {
     console.error(err)
-  }
-}
-
-function handleAddFolder() {
-  if (newFolderName.value.trim()) {
-    addFolder(newFolderName.value)
-    newFolderName.value = ''
-    showAddFolderModal.value = false
   }
 }
 
@@ -60,8 +59,8 @@ async function editFolder(updatedFolder: Partial<Folder>) {
   }
 }
 
-function openDeleteModal(folder: Folder) {
-  folderToDelete.value = folder
+function openDeleteModal(folder: FolderItemData) {
+  folderToDelete.value = folder as Folder
   showDeleteModal.value = true
 }
 
@@ -80,13 +79,13 @@ async function deleteFolder() {
   }
 }
 
-function openEditModal(folder: Folder) {
-  selectedFolder.value = folder
+function openEditModal(folder: FolderItemData) {
+  selectedFolder.value = folder as Folder
   showEditFolderModal.value = true
 }
 
-function navigateToFolder(folderId: string) {
-  return router.push(`/journal/${folderId}`)
+function navigateToFolder(folder: FolderItemData) {
+  return router.push(`/journal/${folder.id}`)
 }
 
 onMounted(() => {
@@ -99,9 +98,6 @@ onMounted(() => {
   <div class="journal-container">
     <div class="journal-header">
       <h1>My Journal</h1>
-      <button class="add-folder-button" @click="showAddFolderModal = true">
-        Add Folder
-      </button>
     </div>
 
     <div class="journal-folder-list">
@@ -109,74 +105,43 @@ onMounted(() => {
         <p>No folders yet. Create your first journal folder!</p>
       </div>
 
-      <div
+      <FolderItem
         v-for="folder in folders"
         v-else
         :key="folder.id"
-        class="journal-folder"
-        @click="navigateToFolder(folder.id)"
-      >
-        <div class="folderInfo">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 512 512"
-            width="1rem"
-          >
-            <path
-              fill="#000000"
-              d="M0 96C0 60.7 28.7 32 64 32l132.1 0c19.1 0 37.4 7.6 50.9 21.1L289.9 96 448 96c35.3 0 64 28.7 64 64l0 256c0 35.3-28.7 64-64 64L64 480c-35.3 0-64-28.7-64-64L0 96zM64 80c-8.8 0-16 7.2-16 16l0 320c0 8.8 7.2 16 16 16l384 0c8.8 0 16-7.2 16-16l0-256c0-8.8-7.2-16-16-16l-161.4 0c-10.6 0-20.8-4.2-28.3-11.7L213.1 87c-4.5-4.5-10.6-7-17-7L64 80z"
-            />
-          </svg>
-          <h2>{{ folder.name }}</h2>
-        </div>
-        <div class="folder-actions">
-          <button class="editFolder" @click.stop="openEditModal(folder)">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 512 512"
-              width="1.2rem"
-            >
-              <path
-                fill="#B197FC"
-                d="M441 58.9L453.1 71c9.4 9.4 9.4 24.6 0 33.9L424 134.1 377.9 88 407 58.9c9.4-9.4 24.6-9.4 33.9 0zM209.8 256.2L344 121.9 390.1 168 255.8 302.2c-2.9 2.9-6.5 5-10.4 6.1l-58.5 16.7 16.7-58.5c1.1-3.9 3.2-7.5 6.1-10.4zM373.1 25L175.8 222.2c-8.7 8.7-15 19.4-18.3 31.1l-28.6 100c-2.4 8.4-.1 17.4 6.1 23.6s15.2 8.5 23.6 6.1l100-28.6c11.8-3.4 22.5-9.7 31.1-18.3L487 138.9c28.1-28.1 28.1-73.7 0-101.8L474.9 25C446.8-3.1 401.2-3.1 373.1 25zM88 64C39.4 64 0 103.4 0 152L0 424c0 48.6 39.4 88 88 88l272 0c48.6 0 88-39.4 88-88l0-112c0-13.3-10.7-24-24-24s-24 10.7-24 24l0 112c0 22.1-17.9 40-40 40L88 464c-22.1 0-40-17.9-40-40l0-272c0-22.1 17.9-40 40-40l112 0c13.3 0 24-10.7 24-24s-10.7-24-24-24L88 64z"
-              />
-            </svg>
-          </button>
-          <button class="deleteFolder" @click.stop="openDeleteModal(folder)">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 448 512"
-              width="1.2rem"
-            >
-              <path
-                fill="#a51d2d"
-                d="M135.2 17.7L128 32 32 32C14.3 32 0 46.3 0 64S14.3 96 32 96l384 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0-7.2-14.3C307.4 6.8 296.3 0 284.2 0L163.8 0c-12.1 0-23.2 6.8-28.6 17.7zM416 128L32 128 53.2 467c1.6 25.3 22.6 45 47.9 45l245.8 0c25.3 0 46.3-19.7 47.9-45L416 128z"
-              />
-            </svg>
-          </button>
-        </div>
-      </div>
+        :folder="folder"
+        item-label="entries"
+        @click="navigateToFolder"
+        @edit="openEditModal"
+        @delete="openDeleteModal"
+      />
     </div>
-    <AddFolderModal
-      v-if="showAddFolderModal"
-      title="Add New Folder"
-      :show-modal="showAddFolderModal"
-      @close="showAddFolderModal = false"
-      @submit="handleAddFolder"
-    >
-      <input
-        v-model="newFolderName"
-        type="text"
-        placeholder="Enter folder name"
-        required
-      >
-    </AddFolderModal>
+
+    <FloatingActionButton aria-label="Add new folder" @click="showAddSheet = true" />
+
+    <!-- Add Folder Sheet -->
+    <SlideUpSheet :show="showAddSheet" title="New Journal Folder" @close="showAddSheet = false">
+      <div class="sheet-form">
+        <input
+          v-model="newFolderName"
+          placeholder="Folder name"
+          class="sheet-input"
+          autofocus
+          @keyup.enter="addFolder"
+        >
+        <button class="btn-primary sheet-btn" @click="addFolder">
+          Create Folder
+        </button>
+      </div>
+    </SlideUpSheet>
+
     <EditFolderModal
       v-if="showEditFolderModal"
       :folder="selectedFolder"
       @close="showEditFolderModal = false"
       @edit-folder="editFolder"
     />
+
     <DeleteConfirmModal
       v-if="showDeleteModal"
       :folder-name="folderToDelete?.name"
@@ -208,67 +173,11 @@ h1 {
   color: rgb(219, 39, 119);
 }
 
-.add-folder-button {
-  background: rgb(219, 39, 119);
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.add-folder-button:hover {
-  background: white;
-  color: rgb(219, 39, 119);
-  border: 1px solid rgb(219, 39, 119);
-}
-
-.journal-folder h2 {
-  font-size: 1.2rem;
-  margin-left: 1rem;
-}
-
-.journal-folder {
+.journal-folder-list {
   display: flex;
-  align-items: center;
-  padding: 1rem;
-  justify-content: space-between;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border-radius: 8px;
-  margin: 0.2rem 0;
-}
-
-.folderInfo {
-  display: flex;
-  align-items: center;
-}
-
-.journal-folder:hover {
-  background-color: rgba(219, 39, 119, 0.1);
-  transform: translateX(5px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.folder-actions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  margin-left: auto;
-  position: relative;
-  z-index: 2;
-}
-
-.folder-actions button {
-  background: none;
-  padding: 0 0.5rem;
-  z-index: 1;
-}
-
-.folder-actions button:hover {
-  opacity: 0.8;
-  transform: scale(1.1);
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-bottom: 5rem;
 }
 
 .empty-state {
@@ -276,5 +185,55 @@ h1 {
   background: pink;
   padding: 0.5rem 1rem;
   border-radius: 8px;
+}
+
+/* Sheet Form Styles */
+.sheet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sheet-input {
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+  background: #f9fafb;
+}
+
+.sheet-input:focus {
+  outline: none;
+  border-color: #db2777;
+  background: white;
+}
+
+.sheet-btn {
+  width: 100%;
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #db2777, #ec4899);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sheet-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(219, 39, 119, 0.4);
+}
+
+.sheet-btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  color: white;
+  font-weight: bold;
 }
 </style>

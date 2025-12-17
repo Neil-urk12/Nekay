@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import type { Task } from '../composables/interfaces'
 import {
-  Check,
   CircleX,
   MoreVertical,
   SquarePen,
 } from 'lucide-vue-next'
 import { onMounted, onUnmounted, ref } from 'vue'
 
+// eslint-disable-next-line unused-imports/no-unused-vars
 const props = defineProps<{
-  task: Task
+  showEdit?: boolean
+  showDelete?: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'toggle', task: Task): void
-  (e: 'edit', task: Task): void
-  (e: 'delete', taskId: string): void
+  (e: 'edit'): void
+  (e: 'delete'): void
+  (e: 'contentClick'): void
 }>()
 
 // -- Swipe Logic --
@@ -75,47 +75,42 @@ onUnmounted(() => {
 function handleEditClick() {
   showMenu.value = false
   swipeOffset.value = 0
-  emit('edit', props.task)
+  emit('edit')
 }
 
 function handleDeleteClick() {
   showMenu.value = false
   swipeOffset.value = 0
-  emit('delete', props.task.id)
+  emit('delete')
 }
 </script>
 
 <template>
-  <div
-    class="task-card-container"
-  >
+  <div class="swipeable-item-container">
     <!-- Background Actions (Visible on Swipe) -->
     <div
       class="swipe-actions"
       :style="{ opacity: swipeOffset < 0 ? 1 : 0, pointerEvents: swipeOffset < 0 ? 'auto' : 'none' }"
     >
-      <SquarePen class="swipe-btn edit-swipe-btn" :size="32" @click="handleEditClick" />
-      <CircleX class="swipe-btn delete-swipe-btn" :size="32" @click="handleDeleteClick" />
+      <button v-if="showEdit !== false" class="swipe-btn edit-swipe-btn" @click.stop="handleEditClick">
+        <SquarePen :size="32" />
+      </button>
+      <button v-if="showDelete !== false" class="swipe-btn delete-swipe-btn" @click.stop="handleDeleteClick">
+        <CircleX :size="32" />
+      </button>
     </div>
 
     <!-- Foreground Content (Swipeable) -->
     <div
-      class="task-card-content"
+      class="item-content-card"
       :style="{ transform: `translateX(${swipeOffset}px)` }"
       @touchstart="handleTouchStart"
       @touchmove="handleTouchMove"
       @touchend="handleTouchEnd"
+      @click="$emit('contentClick')"
     >
-      <!-- Display Mode (Always active now, edit happens in sheet) -->
-      <div class="checkbox-wrapper" @click="$emit('toggle', task)">
-        <div class="custom-checkbox" :class="{ checked: task.completed }">
-          <Check v-if="task.completed" :size="14" stroke-width="3" class="check-icon" />
-        </div>
-      </div>
-
-      <span class="task-text" :class="{ 'text-completed': task.completed }" @click="$emit('toggle', task)">
-        {{ task.taskContent }}
-      </span>
+      <!-- Slot for Custom Content -->
+      <slot />
 
       <!-- Desktop Menu Trigger -->
       <div ref="menuRef" class="desktop-menu-wrapper">
@@ -126,11 +121,11 @@ function handleDeleteClick() {
         <!-- Dropdown Menu -->
         <transition name="fade">
           <div v-if="showMenu" class="dropdown-menu">
-            <button class="menu-item" @click.stop="handleEditClick">
+            <button v-if="showEdit !== false" class="menu-item" @click.stop="handleEditClick">
               <SquarePen :size="16" />
               <span>Edit</span>
             </button>
-            <button class="menu-item delete" @click.stop="handleDeleteClick">
+            <button v-if="showDelete !== false" class="menu-item delete" @click.stop="handleDeleteClick">
               <CircleX :size="16" />
               <span>Delete</span>
             </button>
@@ -142,12 +137,12 @@ function handleDeleteClick() {
 </template>
 
 <style scoped>
-.task-card-container {
+.swipeable-item-container {
   position: relative;
   margin-bottom: 0.75rem;
   border-radius: 16px;
-  width: 100%; /* Fix width */
-  overflow: hidden; /* Hide swipe actions initially */
+  width: 100%;
+  overflow: hidden;
   background: transparent;
   display: flex;
   justify-content: center;
@@ -159,35 +154,48 @@ function handleDeleteClick() {
   top: 0;
   bottom: 0;
   right: 0;
-  width: 80px; /* Match MAX_SWIPE approx */
+  width: 90px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding-right: 0.25rem;
+  padding-right: 0.5rem;
   gap: 0.5rem;
   z-index: 0;
   transition: opacity 0.2s ease;
 }
 
 .swipe-btn {
-  padding: 0.25rem;
+  padding: 0;
   border: none;
-  border-radius: 8px;
+  background: none;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   cursor: pointer;
+  border-radius: 8px;
+}
+
+.swipe-btn svg {
+  display: block;
 }
 
 .edit-swipe-btn {
+  color: #3b82f6;
+  /* Or handle background if preferred, but existing design had colored icons or bg.
+     Keeping it simple or matching TaskItem.vue which had background colors:
+  */
   background: #3b82f6;
+  color: white;
+  padding: 4px;
 }
 .delete-swipe-btn {
   background: #ef4444;
+  color: white;
+  padding: 4px;
 }
 
-.task-card-content {
+.item-content-card {
   background: white;
   border-radius: 16px;
   padding: 1rem;
@@ -198,72 +206,20 @@ function handleDeleteClick() {
   transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
   border: 1px solid rgba(0, 0, 0, 0.05);
   position: relative;
-  z-index: 1; /* Sit above actions */
-  width: 95%;
+  z-index: 1;
+  width: 95%; /* Responsive width */
   box-sizing: border-box;
-}
-
-.task-card-content:hover {
-  background: #f8fafc; /* Slight gray on hover */
-}
-
-.task-card-container.editing .task-card-content {
-  background: white;
-  box-shadow: 0 0 0 2px #db2777, 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
-
-/* Checkbox Styling */
-.checkbox-wrapper {
   cursor: pointer;
-  padding: 0.25rem;
-  margin: -0.25rem;
-  flex-shrink: 0;
 }
 
-.custom-checkbox {
-  width: 24px;
-  height: 24px;
-  border-radius: 8px;
-  border: 2px solid #cbd5e1;
-  background: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.checkbox-wrapper:hover .custom-checkbox {
-    border-color: #db2777;
-}
-
-.custom-checkbox.checked {
-  background: #db2777;
-  border-color: #db2777;
-}
-
-.check-icon {
-  color: white;
-}
-
-/* Text Styling */
-.task-text {
-  flex: 1;
-  font-size: 1rem;
-  color: #1e293b;
-  font-weight: 500;
-  cursor: pointer;
-  transition: color 0.2s ease;
-  word-break: break-word;
-}
-
-.text-completed {
-  text-decoration: line-through;
-  color: #94a3b8;
+.item-content-card:hover {
+  background: #f8fafc;
 }
 
 /* Actions & Menu */
 .desktop-menu-wrapper {
   position: relative;
+  margin-left: auto; /* Push to right if slot doesn't fill */
 }
 
 .action-btn {
@@ -286,17 +242,15 @@ function handleDeleteClick() {
 }
 
 .menu-btn {
-  opacity: 0; /* Hidden by default */
+  opacity: 0;
 }
 
-/* Show menu button on hover (Desktop) */
 @media (hover: hover) {
-  .task-card-content:hover .menu-btn {
+  .item-content-card:hover .menu-btn {
     opacity: 1;
   }
 }
 
-/* Always show menu button if menu is open or touch device fallbacks might need it (optional) */
 .dropdown-menu {
   position: absolute;
   right: 0;
@@ -339,34 +293,6 @@ function handleDeleteClick() {
 .menu-item.delete:hover {
   background: #fef2f2;
   color: #ef4444;
-}
-
-/* Edit Mode Styles */
-.edit-wrapper {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.edit-input {
-    flex: 1;
-    border: none;
-    background: transparent;
-    font-size: 1rem;
-    color: #1e293b;
-    font-weight: 500;
-    padding: 0;
-    outline: none;
-    min-width: 0;
-}
-.edit-actions {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.edit-input::placeholder {
-    color: #94a3b8;
 }
 
 /* Transitions */
