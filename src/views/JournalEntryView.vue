@@ -5,11 +5,8 @@ import { useRoute, useRouter } from 'vue-router'
 import ConfirmationModal from '../components/ConfirmationModal.vue'
 import { useNotesStore } from '../stores/notes'
 
-const AddJournalEntryModal = defineAsyncComponent(
-  () => import('../components/AddModal.vue'),
-)
-const EditEntryModal = defineAsyncComponent(
-  () => import('../components/EditEntryModal.vue'),
+const SlideUpSheet = defineAsyncComponent(
+  () => import('../components/SlideUpSheet.vue'),
 )
 const TrashIconSvg = defineAsyncComponent(
   () => import('../components/TrashIconSvg.vue'),
@@ -19,14 +16,19 @@ const entryStore = useNotesStore()
 const router = useRouter()
 const route = useRoute()
 
-const showEditModal = ref(false)
+// Add Sheet State
+const showAddSheet = ref(false)
 const newEntry = ref({ title: '', content: '' })
-const selectedEntry = ref<{
-  id: string
-  title: string
-  content: string
-} | null>(null)
+
+// Edit Sheet State
+const showEditSheet = ref(false)
+const editFormTitle = ref('')
+const editFormContent = ref('')
+const editingEntryId = ref<string | null>(null)
+
+// Inline edit state (for title only)
 const editingEntry = ref<{ id: string, title: string } | null>(null)
+
 const showDeleteModal = ref<{ id: string, title: string } | null>(null)
 const isDeleting = ref(false)
 const entries = computed(() => entryStore.getEntries)
@@ -51,58 +53,61 @@ const formattedEntries = computed(() =>
     formattedDate: formatDate(entry.date),
   })),
 )
-const showModal = ref(false)
-function openModal() {
-  showModal.value = true
-}
-function closeModal() {
-  showModal.value = false
+
+function openAddSheet() {
+  newEntry.value = { title: '', content: '' }
+  showAddSheet.value = true
 }
 
-function handleAddEntry() {
+function closeAddSheet() {
+  showAddSheet.value = false
+  newEntry.value = { title: '', content: '' }
+}
+
+async function handleAddEntry() {
   if (newEntry.value.title.trim() && newEntry.value.content.trim()) {
-    addEntry(newEntry.value)
-    newEntry.value = { title: '', content: '' }
-    closeModal()
+    try {
+      await entryStore.addEntry(
+        newEntry.value.title.trim(),
+        newEntry.value.content.trim(),
+        currentFolderId.value,
+      )
+      closeAddSheet()
+    }
+    catch (err) {
+      console.error(err)
+    }
   }
 }
 
-async function addEntry(entry: { title: string, content: string }) {
-  try {
-    if (!entry)
-      return
-
-    await entryStore.addEntry(
-      entry.title.trim(),
-      entry.content.trim(),
-      currentFolderId.value,
-    )
-    closeModal()
-  }
-  catch (err) {
-    console.error(err)
-  }
+function openEditSheet(entry: JournalEntry) {
+  editingEntryId.value = entry.id
+  editFormTitle.value = entry.title
+  editFormContent.value = entry.content
+  showEditSheet.value = true
 }
 
-async function editEntry(updatedEntry: {
-  id: string
-  title: string
-  content: string
-}) {
+function closeEditSheet() {
+  showEditSheet.value = false
+  editingEntryId.value = null
+  editFormTitle.value = ''
+  editFormContent.value = ''
+}
+
+async function saveEditEntry() {
+  if (!editingEntryId.value)
+    return
+
   try {
-    await entryStore.editJournalEntry(updatedEntry.id, {
-      title: updatedEntry.title,
-      content: updatedEntry.content,
+    await entryStore.editJournalEntry(editingEntryId.value, {
+      title: editFormTitle.value.trim(),
+      content: editFormContent.value.trim(),
     })
+    closeEditSheet()
   }
   catch (err) {
     console.error('Failed to edit entry: ', err)
   }
-}
-
-function openEditModal(entry: JournalEntry) {
-  selectedEntry.value = entry
-  showEditModal.value = true
 }
 
 async function saveEdit() {
@@ -178,29 +183,32 @@ onMounted(async () => {
         </svg>
       </button>
       <h1>{{ currentFolder?.name }}</h1>
-      <button class="add-entry-button" @click="openModal">
+      <button class="add-entry-button" @click="openAddSheet">
         Add Entry
       </button>
     </div>
-    <AddJournalEntryModal
-      v-if="showModal"
-      title="Add New Entry"
-      :show-modal="showModal"
-      @close="closeModal"
-      @submit="handleAddEntry"
-    >
-      <input
-        v-model="newEntry.title"
-        type="text"
-        placeholder="Enter title"
-        required
-      >
-      <textarea
-        v-model="newEntry.content"
-        placeholder="Enter content"
-        required
-      />
-    </AddJournalEntryModal>
+
+    <!-- Add Entry Sheet -->
+    <SlideUpSheet :show="showAddSheet" title="New Entry" @close="closeAddSheet">
+      <div class="sheet-form">
+        <input
+          v-model="newEntry.title"
+          type="text"
+          placeholder="Entry title"
+          class="sheet-input"
+          autofocus
+          @keyup.enter="handleAddEntry"
+        >
+        <textarea
+          v-model="newEntry.content"
+          placeholder="Write your entry..."
+          class="sheet-input sheet-textarea"
+        />
+        <button class="sheet-btn" @click="handleAddEntry">
+          Add Entry
+        </button>
+      </div>
+    </SlideUpSheet>
 
     <div v-if="currentFolderEntries.length" class="entries-list">
       <div v-for="entry in formattedEntries" :key="entry.id" class="entry-item">
@@ -239,7 +247,7 @@ onMounted(async () => {
           </div>
 
           <div class="entry-actions">
-            <button class="icon-btn" @click.stop="openEditModal(entry)">
+            <button class="icon-btn" @click.stop="openEditSheet(entry)">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 512 512"
@@ -288,6 +296,29 @@ onMounted(async () => {
     <div v-else class="empty-state">
       <p>No entries yet. Click "Add Entry" to create your first entry!</p>
     </div>
+
+    <!-- Edit Entry Sheet -->
+    <SlideUpSheet :show="showEditSheet" title="Edit Entry" @close="closeEditSheet">
+      <div class="sheet-form">
+        <input
+          v-model="editFormTitle"
+          type="text"
+          placeholder="Entry title"
+          class="sheet-input"
+          autofocus
+          @keyup.enter="saveEditEntry"
+        >
+        <textarea
+          v-model="editFormContent"
+          placeholder="Write your entry..."
+          class="sheet-input sheet-textarea"
+        />
+        <button class="sheet-btn" @click="saveEditEntry">
+          Save Changes
+        </button>
+      </div>
+    </SlideUpSheet>
+
     <ConfirmationModal
       :show="!!showDeleteModal"
       title="Delete Entry"
@@ -300,12 +331,6 @@ onMounted(async () => {
       @confirm="confirmDelete"
     />
   </div>
-  <EditEntryModal
-    v-if="showEditModal"
-    :entry="selectedEntry"
-    @close="showEditModal = false"
-    @edit-entry="editEntry"
-  />
 </template>
 
 <style scoped>
@@ -457,57 +482,6 @@ h1 {
   font-size: 1.25rem;
 }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  width: 90%;
-  max-width: 400px;
-}
-
-.modal-title {
-  color: rgb(219, 39, 119);
-  margin: 0 0 1rem 0;
-}
-
-.modal-actions {
-  display: felx;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin: 1.5rem 0 0 0;
-}
-
-.btn-secondary {
-  background: #ddd;
-  color: #333;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.btn-danger {
-  background: #e74c3c;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
 .content-wrapper {
   display: grid;
   grid-template-rows: 0fr;
@@ -525,83 +499,9 @@ h1 {
 .collapsible-content > div {
   min-height: 0;
 }
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
 
-.modal-content {
-  background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  position: relative;
-  width: 90%;
-  max-width: 400px;
-}
-
-.close-button {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-h2 {
-  margin-bottom: 1.5rem;
-  color: rgb(219, 39, 119);
-}
-
-input,
-textarea {
-  width: 100%;
-  padding: 0.5rem;
-  margin-bottom: 1.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-textarea {
-  height: 100px;
+.sheet-textarea {
+  min-height: 150px;
   resize: vertical;
-}
-
-.button-group {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-}
-
-.cancel-button,
-.add-button {
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.cancel-button {
-  background: white;
-  border: 1px solid rgb(219, 39, 119);
-  color: rgb(219, 39, 119);
-}
-
-.add-button {
-  background: rgb(219, 39, 119);
-  border: 1px solid rgb(219, 39, 119);
-  color: white;
-}
-
-.add-button:hover {
-  background: white;
-  color: rgb(219, 39, 119);
 }
 </style>

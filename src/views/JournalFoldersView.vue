@@ -7,9 +7,6 @@ import ConfirmationModal from '../components/ConfirmationModal.vue'
 import FolderItem from '../components/FolderItem.vue'
 import { useNotesStore } from '../stores/notes'
 
-const EditFolderModal = defineAsyncComponent(
-  () => import('../components/EditFolderModal.vue'),
-)
 const FloatingActionButton = defineAsyncComponent(
   () => import('../components/FloatingActionButton.vue'),
 )
@@ -20,12 +17,18 @@ const SlideUpSheet = defineAsyncComponent(
 const router = useRouter()
 const journalStore = useNotesStore()
 
+// Add Folder Sheet State
 const showAddSheet = ref(false)
-const showEditFolderModal = ref(false)
-const showDeleteModal = ref(false)
-const selectedFolder = ref<Folder | null>(null)
-const folderToDelete = ref<Folder | null>(null)
 const newFolderName = ref('')
+
+// Edit Folder Sheet State
+const showEditSheet = ref(false)
+const editFolderName = ref('')
+const editingFolderId = ref<string | null>(null)
+
+// Delete State
+const showDeleteModal = ref(false)
+const folderToDelete = ref<Folder | null>(null)
 const isDeleting = ref(false)
 
 const folders = computed(() => journalStore.getJournalFolders)
@@ -44,14 +47,27 @@ async function addFolder() {
   }
 }
 
-async function editFolder(updatedFolder: Partial<Folder>) {
-  try {
-    if (!updatedFolder || !updatedFolder.id)
-      return
+function openEditSheet(folder: FolderItemData) {
+  editingFolderId.value = folder.id
+  editFolderName.value = folder.name
+  showEditSheet.value = true
+}
 
-    await journalStore.editFolder(updatedFolder.id, {
-      name: updatedFolder.name,
+function closeEditSheet() {
+  showEditSheet.value = false
+  editingFolderId.value = null
+  editFolderName.value = ''
+}
+
+async function saveEditFolder() {
+  if (!editingFolderId.value || !editFolderName.value.trim())
+    return
+
+  try {
+    await journalStore.editFolder(editingFolderId.value, {
+      name: editFolderName.value.trim(),
     })
+    closeEditSheet()
   }
   catch (err) {
     console.error('Error editing folder', err)
@@ -81,11 +97,6 @@ async function deleteFolder() {
   }
 }
 
-function openEditModal(folder: FolderItemData) {
-  selectedFolder.value = folder as Folder
-  showEditFolderModal.value = true
-}
-
 function navigateToFolder(folder: FolderItemData) {
   return router.push(`/journal/${folder.id}`)
 }
@@ -113,7 +124,7 @@ onMounted(async () => {
         :folder="folder"
         item-label="entries"
         @click="navigateToFolder"
-        @edit="openEditModal"
+        @edit="openEditSheet"
         @delete="openDeleteModal"
       />
     </div>
@@ -136,12 +147,21 @@ onMounted(async () => {
       </div>
     </SlideUpSheet>
 
-    <EditFolderModal
-      v-if="showEditFolderModal"
-      :folder="selectedFolder"
-      @close="showEditFolderModal = false"
-      @edit-folder="editFolder"
-    />
+    <!-- Edit Folder Sheet -->
+    <SlideUpSheet :show="showEditSheet" title="Edit Folder" @close="closeEditSheet">
+      <div class="sheet-form">
+        <input
+          v-model="editFolderName"
+          placeholder="Folder name"
+          class="sheet-input"
+          autofocus
+          @keyup.enter="saveEditFolder"
+        >
+        <button class="btn-primary sheet-btn" @click="saveEditFolder">
+          Save Changes
+        </button>
+      </div>
+    </SlideUpSheet>
 
     <ConfirmationModal
       :show="showDeleteModal"
