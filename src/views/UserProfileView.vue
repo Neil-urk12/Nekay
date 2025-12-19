@@ -3,11 +3,11 @@ import { Camera, Eye, EyeOff } from 'lucide-vue-next'
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import { useUserProfileStore } from '../stores/userProfileStore'
+import { supabase } from '../supabase/supabase-config'
 
 const SlideUpSheet = defineAsyncComponent(() => import('../components/SlideUpSheet.vue'))
 const UserAvatar = defineAsyncComponent(() => import('../components/UserAvatar.vue'))
-import { useUserProfileStore } from '../stores/userProfileStore'
-import { supabase } from '../supabase/supabase-config'
 
 const router = useRouter()
 const authStore = useAuthStore()
