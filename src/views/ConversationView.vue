@@ -163,6 +163,7 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
       </button>
       <div class="chat-info">
         <span class="chat-title">{{ currentConversation?.otherUserName }}</span>
+        <span v-if="isOtherUserTyping" class="chat-subtitle">typing...</span>
       </div>
       <button class="menu-btn" disabled>
         ⋮
@@ -223,7 +224,9 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
     </div>
 
     <!-- Typing indicator (text) -->
-    <TypingIndicatorText v-if="isOtherUserTyping" :name="typingUserName" />
+    <Transition name="fade-typing">
+      <TypingIndicatorText v-if="isOtherUserTyping" :name="typingUserName" />
+    </Transition>
 
     <MessageInput
       v-model="newMessage"
@@ -271,7 +274,19 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.125rem;
+}
+
+.chat-subtitle {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 500;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .back-btn, .menu-btn {
@@ -522,6 +537,17 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
 @keyframes slideUpFade {
   from { opacity: 0; transform: translate(-50%, 40px); }
   to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.fade-typing-enter-active,
+.fade-typing-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-typing-enter-from,
+.fade-typing-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
 }
 
 @media (max-width: 480px) {
