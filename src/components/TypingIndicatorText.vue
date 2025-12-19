@@ -16,16 +16,17 @@ defineProps<{
 
 <style scoped>
 .typing-indicator-text {
-  padding: 0.25rem 1rem;
-  background: rgba(138, 79, 255, 0.08);
-  border-top: 1px solid rgba(138, 79, 255, 0.15);
+  padding: 0.375rem 1rem;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   text-align: center;
 }
 
 .typing-text {
   font-size: 0.75rem;
-  color: #8a4fff;
-  font-style: italic;
+  color: #374151;
+  font-weight: 500;
   animation: pulse 2s ease-in-out infinite;
 }
 
