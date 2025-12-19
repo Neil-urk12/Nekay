@@ -1,13 +1,59 @@
 <script setup lang="ts">
+import { onUnmounted, ref } from 'vue'
+
 defineProps<{
   modelValue: string
   isLoading: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'update:modelValue': [value: string]
   'send': []
+  'typing': []
+  'stopTyping': []
 }>()
+
+// Debounce timer for typing indicator
+const typingTimeoutId = ref<ReturnType<typeof setTimeout> | null>(null)
+const isCurrentlyTyping = ref(false)
+
+function handleInput(event: Event) {
+  const value = (event.target as HTMLInputElement).value
+  emit('update:modelValue', value)
+
+  // Emit typing event on every keystroke to keep indicator alive
+  isCurrentlyTyping.value = true
+  emit('typing')
+
+  // Reset the stop-typing timer
+  if (typingTimeoutId.value) {
+    clearTimeout(typingTimeoutId.value)
+  }
+
+  // Set timer to stop typing after 3 seconds of inactivity
+  typingTimeoutId.value = setTimeout(() => {
+    isCurrentlyTyping.value = false
+    emit('stopTyping')
+  }, 3000)
+}
+
+function handleSend() {
+  // Clear typing state immediately when sending
+  if (typingTimeoutId.value) {
+    clearTimeout(typingTimeoutId.value)
+  }
+  if (isCurrentlyTyping.value) {
+    isCurrentlyTyping.value = false
+    emit('stopTyping')
+  }
+  emit('send')
+}
+
+onUnmounted(() => {
+  if (typingTimeoutId.value) {
+    clearTimeout(typingTimeoutId.value)
+  }
+})
 </script>
 
 <template>
@@ -17,13 +63,13 @@ defineEmits<{
       :value="modelValue"
       placeholder="Type a message..."
       :disabled="isLoading"
-      @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
-      @keydown.enter="$emit('send')"
+      @input="handleInput"
+      @keydown.enter="handleSend"
     >
     <button
       class="send-btn"
       :disabled="isLoading"
-      @click="$emit('send')"
+      @click="handleSend"
     >
       <svg class="send-icon" viewBox="0 0 24 24" fill="currentColor">
         <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />

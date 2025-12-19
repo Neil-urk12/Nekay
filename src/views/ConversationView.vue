@@ -3,16 +3,20 @@ import { storeToRefs } from 'pinia'
 import { computed, defineAsyncComponent, nextTick, onActivated, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
+import { useConversationStore } from '../stores/conversationStore'
+import { useTypingStore } from '../stores/typingStore'
 
 const UserAvatar = defineAsyncComponent(() => import('../components/UserAvatar.vue'))
-import { useConversationStore } from '../stores/conversationStore'
+const TypingIndicatorText = defineAsyncComponent(() => import('../components/TypingIndicatorText.vue'))
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const conversationStore = useConversationStore()
+const typingStore = useTypingStore()
 
 const { currentConversation, messages, isLoading, error } = storeToRefs(conversationStore)
+const { isOtherUserTyping, otherUserName: typingUserName } = storeToRefs(typingStore)
 const { getCurrentUserId } = storeToRefs(authStore)
 
 const newMessage = ref('')
@@ -87,6 +91,8 @@ onMounted(async () => {
     const conv = conversationStore.conversations.find(c => c.id === conversationId)
     if (conv) {
       conversationStore.selectConversation(conv, currentUserId.value)
+      // Setup typing indicator listener
+      typingStore.setupTypingListener(conversationId, currentUserId.value, conv.otherUserName)
     }
     else {
       router.push('/messaging')
@@ -104,7 +110,17 @@ watch(messages, () => {
 
 onUnmounted(() => {
   conversationStore.backToConversations()
+  typingStore.cleanupTypingListener()
 })
+
+// Typing event handlers
+function handleTyping() {
+  typingStore.broadcastTyping(true)
+}
+
+function handleStopTyping() {
+  typingStore.broadcastTyping(false)
+}
 
 function backToConversations() {
   router.push('/messaging')
@@ -206,10 +222,15 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
       </div>
     </div>
 
+    <!-- Typing indicator (text) -->
+    <TypingIndicatorText v-if="isOtherUserTyping" :name="typingUserName" />
+
     <MessageInput
       v-model="newMessage"
       :is-loading="isLoading"
       @send="sendMessage"
+      @typing="handleTyping"
+      @stop-typing="handleStopTyping"
     />
 
     <div v-if="error" class="error-message">
