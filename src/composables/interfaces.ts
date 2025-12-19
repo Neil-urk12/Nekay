@@ -27,3 +27,15 @@ export interface JournalEntry extends BaseItem {
   status: 'deleted' | 'archived' | 'active' | 'failed'
   date: string
 }
+
+// Typing indicator interfaces
+export interface TypingEvent {
+  userId: string
+  isTyping: boolean
+}
+
+export interface TypingState {
+  isOtherUserTyping: boolean
+  otherUserName: string
+  currentUserId: string | null
+}
