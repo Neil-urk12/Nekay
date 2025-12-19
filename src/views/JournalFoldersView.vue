@@ -9,7 +9,7 @@ const ConfirmationModal = defineAsyncComponent(() => import('../components/Confi
 const EmptyState = defineAsyncComponent(() => import('../components/EmptyState.vue'))
 const FolderItem = defineAsyncComponent(() => import('../components/FolderItem.vue'))
 const FloatingActionButton = defineAsyncComponent(() => import('../components/FloatingActionButton.vue'))
-const SlideUpSheet = defineAsyncComponent(() => import('../components/SlideUpSheet.vue')
+const SlideUpSheet = defineAsyncComponent(() => import('../components/SlideUpSheet.vue'),
 )
 
 const router = useRouter()
