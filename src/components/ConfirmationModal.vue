@@ -99,8 +99,9 @@ function handleOverlayClick(event: MouseEvent) {
             </p>
 
             <!-- Actions -->
-            <div class="modal-actions">
+            <div class="modal-actions" :class="{ 'single-action': !cancelText }">
               <button
+                v-if="cancelText"
                 class="btn btn-cancel"
                 :disabled="loading"
                 @click="emit('close')"
@@ -181,6 +182,10 @@ function handleOverlayClick(event: MouseEvent) {
 .modal-actions {
   display: flex;
   gap: 0.75rem;
+}
+
+.modal-actions.single-action {
+  justify-content: center;
 }
 
 .btn {
