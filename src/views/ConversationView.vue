@@ -40,6 +40,18 @@ const backgroundStyle = computed(() => ({
   background: themes[currentTheme.value] || themes.default,
 }))
 
+const activeBackground = computed(() => {
+  if (currentConversation.value?.backgroundUrl) {
+    return {
+      backgroundImage: `url(${currentConversation.value.backgroundUrl})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundAttachment: 'fixed',
+    }
+  }
+  return backgroundStyle.value
+})
+
 const currentUserId = computed(() => getCurrentUserId.value)
 
 const groupedMessages = computed(() => {
@@ -154,7 +166,7 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
 </script>
 
 <template>
-  <div class="messaging-bg" :style="backgroundStyle">
+  <div class="messaging-bg" :style="activeBackground">
     <div class="messaging-header">
       <button class="back-btn" @click="backToConversations">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" width="1rem">
@@ -165,8 +177,13 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
         <span class="chat-title">{{ currentConversation?.otherUserName }}</span>
         <span v-if="isOtherUserTyping" class="chat-subtitle">typing...</span>
       </div>
-      <button class="menu-btn" disabled>
-        ⋮
+      <button
+        class="menu-btn"
+        @click="conversationStore.currentConversation && router.push(`/messaging/${conversationStore.currentConversation.id}/settings`)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 512" width="0.5rem">
+          <path fill="currentColor" d="M64 360a56 56 0 1 0 0 112 56 56 0 1 0 0-112zm0-160a56 56 0 1 0 0 112 56 56 0 1 0 0-112zM120 96A56 56 0 1 0 8 96a56 56 0 1 0 112 0z" />
+        </svg>
       </button>
     </div>
 

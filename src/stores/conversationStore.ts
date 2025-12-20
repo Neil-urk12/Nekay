@@ -39,6 +39,7 @@ export interface Conversation {
   user2Id: string
   otherUserName: string
   otherUserAvatarUrl: string | null
+  backgroundUrl: string | null
 }
 
 interface ConversationState {
@@ -125,6 +126,7 @@ export const useConversationStore = defineStore('conversation', {
               user2Id: c.user2_id,
               otherUserName,
               otherUserAvatarUrl,
+              backgroundUrl: c.background_url,
             }
           })
         }
@@ -323,6 +325,95 @@ export const useConversationStore = defineStore('conversation', {
       this.isLoading = false
       this.error = null
       this.conversationsLoaded = false
+    },
+    async uploadConversationBackground(file: File, conversationId: string) {
+      this.isLoading = true
+      this.error = null
+
+      try {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+        const filePath = `${conversationId}/${fileName}`
+
+        // 1. Upload to Storage
+        const { error: uploadError } = await supabase.storage
+          .from('conversation-background')
+          .upload(filePath, file)
+
+        if (uploadError)
+          throw uploadError
+
+        // 2. Get Public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('conversation-background')
+          .getPublicUrl(filePath)
+
+        // 3. Update Conversation Record
+        const { data: updateData, error: updateError } = await supabase
+          .from('conversations')
+          .update({ background_url: publicUrl })
+          .eq('id', conversationId)
+          .select()
+
+        if (updateError)
+          throw updateError
+
+        if (!updateData || updateData.length === 0) {
+          throw new Error('Failed to update conversation. Check RLS policies.')
+        }
+
+        // 4. Update Local State
+        const conv = this.conversations.find(c => c.id === conversationId)
+        if (conv) {
+          conv.backgroundUrl = publicUrl
+        }
+        if (this.currentConversation?.id === conversationId) {
+          this.currentConversation.backgroundUrl = publicUrl
+        }
+
+        return true
+      }
+      catch (error) {
+        console.error('Error uploading background:', error)
+        this.error = 'Failed to upload background'
+        return false
+      }
+      finally {
+        this.isLoading = false
+      }
+    },
+
+    async removeConversationBackground(conversationId: string) {
+      this.isLoading = true
+      this.error = null
+
+      try {
+        const { error } = await supabase
+          .from('conversations')
+          .update({ background_url: null })
+          .eq('id', conversationId)
+
+        if (error)
+          throw error
+
+        const conv = this.conversations.find(c => c.id === conversationId)
+        if (conv) {
+          conv.backgroundUrl = null
+        }
+        if (this.currentConversation?.id === conversationId) {
+          this.currentConversation.backgroundUrl = null
+        }
+
+        return true
+      }
+      catch (error) {
+        console.error('Error removing background:', error)
+        this.error = 'Failed to remove background'
+        return false
+      }
+      finally {
+        this.isLoading = false
+      }
     },
   },
 })

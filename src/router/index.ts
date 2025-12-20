@@ -90,6 +90,12 @@ const router = createRouter({
       meta: { requiresAuth: true, hideBottomNav: true },
     },
     {
+      path: '/messaging/:id/settings',
+      name: 'ConversationSettings',
+      component: () => import('../views/ConversationSettings.vue'),
+      meta: { requiresAuth: true, hideBottomNav: true },
+    },
+    {
       path: '/messaging/settings',
       name: 'MessagingSettings',
       component: () => import('../views/MessagingSettings.vue'),
