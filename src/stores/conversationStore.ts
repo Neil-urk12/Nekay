@@ -3,6 +3,7 @@ import AES from 'crypto-js/aes'
 import Utf8 from 'crypto-js/enc-utf8'
 import { defineStore } from 'pinia'
 import { supabase } from '../supabase/supabase-config'
+import { compressImage } from '../utils/imageCompression'
 
 const encryptionKey: string = import.meta.env.VITE_ENCRYPTION_KEY
 if (!encryptionKey) {
@@ -335,10 +336,13 @@ export const useConversationStore = defineStore('conversation', {
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
         const filePath = `${conversationId}/${fileName}`
 
+        // Compress the image before upload
+        const compressedFile = await compressImage(file)
+
         // 1. Upload to Storage
         const { error: uploadError } = await supabase.storage
           .from('conversation-background')
-          .upload(filePath, file)
+          .upload(filePath, compressedFile)
 
         if (uploadError)
           throw uploadError
