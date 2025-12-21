@@ -332,6 +332,33 @@ export const useConversationStore = defineStore('conversation', {
       this.error = null
 
       try {
+        // Validate conversation membership before uploading
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.user?.id) {
+          throw new Error('You must be logged in to change the conversation background.')
+        }
+
+        const currentUserId = session.user.id
+
+        // Check if user is a participant in this conversation
+        const { data: conversation, error: fetchError } = await supabase
+          .from('conversations')
+          .select('user1_id, user2_id')
+          .eq('id', conversationId)
+          .maybeSingle()
+
+        if (fetchError) {
+          throw new Error('Failed to verify conversation membership.')
+        }
+
+        if (!conversation) {
+          throw new Error('Conversation not found.')
+        }
+
+        if (conversation.user1_id !== currentUserId && conversation.user2_id !== currentUserId) {
+          throw new Error('You are not a participant in this conversation.')
+        }
+
         const fileExt = file.name.split('.').pop()
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
         const filePath = `${conversationId}/${fileName}`
@@ -392,6 +419,33 @@ export const useConversationStore = defineStore('conversation', {
       this.error = null
 
       try {
+        // Validate conversation membership before removing background
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session?.user?.id) {
+          throw new Error('You must be logged in to remove the conversation background.')
+        }
+
+        const currentUserId = session.user.id
+
+        // Check if user is a participant in this conversation
+        const { data: conversation, error: fetchError } = await supabase
+          .from('conversations')
+          .select('user1_id, user2_id')
+          .eq('id', conversationId)
+          .maybeSingle()
+
+        if (fetchError) {
+          throw new Error('Failed to verify conversation membership.')
+        }
+
+        if (!conversation) {
+          throw new Error('Conversation not found.')
+        }
+
+        if (conversation.user1_id !== currentUserId && conversation.user2_id !== currentUserId) {
+          throw new Error('You are not a participant in this conversation.')
+        }
+
         const { error } = await supabase
           .from('conversations')
           .update({ background_url: null })
