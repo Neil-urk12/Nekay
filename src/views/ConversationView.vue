@@ -22,6 +22,30 @@ const { getCurrentUserId } = storeToRefs(authStore)
 const newMessage = ref('')
 const messageTimestampsVisible = ref<{ [key: string]: boolean }>({})
 const inputRef = ref<HTMLInputElement | null>(null)
+const messagesContainerRef = ref<HTMLElement | null>(null)
+const showNewMessageToast = ref(false)
+const isInitialLoad = ref(true)
+
+function isNearBottom() {
+  if (!messagesContainerRef.value)
+    return true
+  const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.value
+  return scrollHeight - scrollTop - clientHeight < 100
+}
+
+function scrollToBottom() {
+  nextTick(() => {
+    messagesContainerRef.value?.scrollTo({
+      top: messagesContainerRef.value.scrollHeight,
+      behavior: 'smooth',
+    })
+  })
+}
+
+function handleNewMessageToastClick() {
+  showNewMessageToast.value = false
+  scrollToBottom()
+}
 
 // Theme support
 const themes: Record<string, string> = {
@@ -117,7 +141,16 @@ onActivated(() => {
 })
 
 watch(messages, () => {
-  // Auto-scroll handled by CSS scroll-behavior
+  if (isInitialLoad.value) {
+    isInitialLoad.value = false
+    scrollToBottom()
+  }
+  else if (isNearBottom()) {
+    scrollToBottom()
+  }
+  else {
+    showNewMessageToast.value = true
+  }
 }, { deep: true })
 
 onUnmounted(() => {
@@ -187,7 +220,7 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
       </button>
     </div>
 
-    <div class="messaging-container">
+    <div ref="messagesContainerRef" class="messaging-container">
       <div class="messages-list">
         <div v-for="group in groupedMessages" :key="group.date" class="message-group">
           <div class="date-separator">
@@ -243,6 +276,13 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
     <!-- Typing indicator (text) -->
     <Transition name="fade-typing">
       <TypingIndicatorText v-if="isOtherUserTyping" :name="typingUserName" />
+    </Transition>
+
+    <!-- New message toast -->
+    <Transition name="fade-typing">
+      <button v-if="showNewMessageToast" class="new-message-toast" @click="handleNewMessageToastClick">
+        ↓ New message
+      </button>
     </Transition>
 
     <MessageInput
@@ -565,6 +605,23 @@ const MessageInput = defineAsyncComponent(() => import('../components/MessageInp
 .fade-typing-leave-to {
   opacity: 0;
   transform: translateY(10px);
+}
+
+.new-message-toast {
+  position: absolute;
+  bottom: 5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+  z-index: 50;
 }
 
 @media (max-width: 480px) {
