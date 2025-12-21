@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, ref } from 'vue'
+import { defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue'
+import UpdateBanner from './components/UpdateBanner.vue'
 import { notificationService } from './services/notificationService'
 import { syncService } from './services/syncService'
 import { useAffirmationStore } from './stores/affirmationStore'
 import { useAuthStore } from './stores/authStore'
+
 import { useBackgroundStore } from './stores/backgroundStore'
 
 const BottomNav = defineAsyncComponent(
@@ -15,6 +17,27 @@ const isLoading = ref(true)
 const error = ref<Error | null>(null)
 
 const authStore = useAuthStore()
+
+// Service worker update state
+const showUpdateBanner = ref(false)
+let swRegistration: ServiceWorkerRegistration | null = null
+
+function handleSwUpdated(event: Event) {
+  const customEvent = event as CustomEvent<ServiceWorkerRegistration>
+  swRegistration = customEvent.detail
+  showUpdateBanner.value = true
+}
+
+function applyUpdate() {
+  if (swRegistration?.waiting) {
+    swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' })
+  }
+  window.location.reload()
+}
+
+function dismissUpdate() {
+  showUpdateBanner.value = false
+}
 
 async function initializeApp() {
   try {
@@ -33,6 +56,7 @@ async function initializeApp() {
 };
 
 onMounted(async () => {
+  document.addEventListener('sw-updated', handleSwUpdated)
   try {
     await initializeApp()
     backgroundStore.determineTimeOfDay()
@@ -47,9 +71,18 @@ onMounted(async () => {
     isLoading.value = false
   }
 })
+
+onUnmounted(() => {
+  document.removeEventListener('sw-updated', handleSwUpdated)
+})
 </script>
 
 <template>
+  <UpdateBanner
+    :visible="showUpdateBanner"
+    @refresh="applyUpdate"
+    @dismiss="dismissUpdate"
+  />
   <div
     class="app-container"
     :style="{ backgroundImage: backgroundStore.backgroundImage }"
