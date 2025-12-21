@@ -1,10 +1,14 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 // Constants
 const minGoal = 1500
 const maxGoal = 2000
 const quickAddAmounts = [100, 300, 500]
+
+// Interval IDs for cleanup
+let bubbleIntervalId = null
+let resetIntervalId = null
 
 // Reactive state
 const showModal = ref(false)
@@ -146,18 +150,27 @@ function createBubble() {
 onMounted(() => {
   loadFromLocalStorage()
 
-  setInterval(() => {
+  bubbleIntervalId = setInterval(() => {
     if (currentWater.value > 10 && Math.random() > 0.5)
       createBubble()
   }, 1000)
 
   // Set up daily reset check
-  setInterval(() => {
+  resetIntervalId = setInterval(() => {
     const now = new Date()
     if (now.getHours() === 0 && now.getMinutes() === 0) {
       resetWater()
     }
   }, 60000)
+})
+
+onUnmounted(() => {
+  if (bubbleIntervalId) {
+    clearInterval(bubbleIntervalId)
+  }
+  if (resetIntervalId) {
+    clearInterval(resetIntervalId)
+  }
 })
 </script>
 
