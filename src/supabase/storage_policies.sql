@@ -7,10 +7,18 @@ ON storage.objects FOR SELECT
 USING ( bucket_id = 'conversation-background' );
 
 -- Allow authenticated users to upload to the conversation-background bucket
+-- Only if they are a participant in the conversation referenced by the file path
 CREATE POLICY "Authenticated Upload"
 ON storage.objects FOR INSERT
 TO authenticated
-WITH CHECK ( bucket_id = 'conversation-background' );
+WITH CHECK (
+  bucket_id = 'conversation-background'
+  AND EXISTS (
+    SELECT 1 FROM public.conversations
+    WHERE id = (storage.foldername(name))[1]::uuid
+    AND (auth.uid() = user1_id OR auth.uid() = user2_id)
+  )
+);
 
 -- Allow users to update their own uploads (optional, depends on your needs)
 -- Ideally, you'd want to restrict this to only participants of the conversation, 
