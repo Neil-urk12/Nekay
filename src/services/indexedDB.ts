@@ -59,6 +59,7 @@ class NekayDatabase extends Dexie {
     this.folders = this.table('folders')
     this.notes = this.table('notes')
     this.pomodoro = this.table('pomodoro')
+    this.waterEntries = this.table('waterEntries')
   }
 
   async createFolder(folderObj: Folder) {

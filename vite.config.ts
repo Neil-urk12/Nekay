@@ -1,7 +1,10 @@
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
 import { generateSW } from 'workbox-build'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const generateSWConfig = {
   swDest: path.resolve(__dirname, 'dist/service-worker.js'),
