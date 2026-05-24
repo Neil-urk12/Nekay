@@ -11,7 +11,7 @@
     "coverage": "vitest run --coverage",
     "lint": "eslint . --ext .js,.ts,.vue && oxlint .",
     "lint:fix": "eslint . --ext .js,.ts,.vue --fix && oxlint . --fix",
-    "check": "bun run build && bun lint"
+    "check": "pnpm build && pnpm lint"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",
