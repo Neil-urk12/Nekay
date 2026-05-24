@@ -23,10 +23,6 @@ const router = createRouter({
       },
     },
     {
-      path: '/sync-test',
-      component: () => import('../components/SyncTester.vue'),
-    },
-    {
       path: '/letter',
       component: () => import('../views/LetterView.vue'),
       meta: { requiresAuth: true },

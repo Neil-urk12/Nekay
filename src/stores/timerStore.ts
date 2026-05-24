@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { supabase } from '../supabase/supabase-config'
+import { useAuthStore } from './authStore'
 
 interface Stats {
   completedSessions: number
@@ -37,10 +38,6 @@ export const useTimerStore = defineStore('timer', {
     },
   },
   actions: {
-    async getUserId(): Promise<string | null> {
-      const { data: { session } } = await supabase.auth.getSession()
-      return session?.user?.id || null
-    },
 
     startTimer() {
       if (this.intervalId) {
@@ -155,7 +152,8 @@ export const useTimerStore = defineStore('timer', {
     // Save individual session to Supabase (Option A approach)
     async saveSession() {
       try {
-        const userId = await this.getUserId()
+        const authStore = useAuthStore()
+        const userId = authStore.uid
         if (!navigator.onLine || !userId)
           return
 
@@ -177,7 +175,8 @@ export const useTimerStore = defineStore('timer', {
     // Load stats by computing from individual sessions
     async loadStats() {
       try {
-        const userId = await this.getUserId()
+        const authStore = useAuthStore()
+        const userId = authStore.uid
         if (!navigator.onLine || !userId)
           return
 

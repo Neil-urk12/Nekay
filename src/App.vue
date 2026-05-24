@@ -2,7 +2,7 @@
 import { defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue'
 import UpdateBanner from './components/UpdateBanner.vue'
 import { notificationService } from './services/notificationService'
-import { syncService } from './services/syncService'
+import { createDataAccess } from './services/dataAccess'
 import { useAffirmationStore } from './stores/affirmationStore'
 import { useAuthStore } from './stores/authStore'
 
@@ -43,7 +43,8 @@ async function initializeApp() {
   try {
     await affirmationStore.fetchAffirmation()
     if (navigator.onLine) {
-      await syncService.syncAll().catch((err) => {
+      const dataAccess = createDataAccess()
+      await dataAccess.syncAll().catch((err) => {
         console.error('Background sync failed:', err)
       })
     }
