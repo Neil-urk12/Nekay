@@ -232,7 +232,7 @@ export function createDataAccess(): DataAccess {
       try {
         const { error } = await supabase.from(table).delete().eq('id', item.id)
         if (!error) await dbTable.delete(item.id)
-      } catch { /* skip */ }
+      } catch (err) { console.error('[dataAccess] delete sync failed:', err) }
     }
   }
 
@@ -571,7 +571,7 @@ export function createDataAccess(): DataAccess {
         async (id, data) => { await db.tasks.update(id, { ...data, syncStatus: 'synced' }) },
         async (data) => { await db.tasks.add({ ...data, syncStatus: 'synced' }) },
       )
-    } catch { /* skip */ }
+    } catch (err) { console.error('[dataAccess] task conflict resolution failed:', err) }
 
     try {
       const remoteEntries = await fetchEntries()
@@ -580,7 +580,7 @@ export function createDataAccess(): DataAccess {
         async (id, data) => { await db.journal.update(id, { ...data, syncStatus: 'synced' }) },
         async (data) => { await db.journal.add({ ...data, syncStatus: 'synced' }) },
       )
-    } catch { /* skip */ }
+    } catch (err) { console.error('[dataAccess] entry conflict resolution failed:', err) }
 
     try {
       const remoteFolders = await fetchFolders()
@@ -589,7 +589,7 @@ export function createDataAccess(): DataAccess {
         async (id, data) => { await db.folders.update(id, { ...data, syncStatus: 'synced' }) },
         async (data) => { await db.folders.add({ ...data, syncStatus: 'synced' }) },
       )
-    } catch { /* skip */ }
+    } catch (err) { console.error('[dataAccess] folder conflict resolution failed:', err) }
 
     try {
       const remoteWater = await fetchWaterEntries()
@@ -598,7 +598,7 @@ export function createDataAccess(): DataAccess {
         async (id, data) => { await db.waterEntries.update(id, { ...data, syncStatus: 'synced' }) },
         async (data) => { await db.waterEntries.add({ ...data, syncStatus: 'synced' }) },
       )
-    } catch { /* skip */ }
+    } catch (err) { console.error('[dataAccess] water conflict resolution failed:', err) }
   }
 
   return {

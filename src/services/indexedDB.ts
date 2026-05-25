@@ -80,7 +80,7 @@ class NekayDatabase extends Dexie {
   }
 
   async updateFolder(folderId: string, changes: Folder) {
-    if (!changes && !folderId)
+    if (!changes || !folderId)
       throw new Error('Folder to update doesn\'t exist')
 
     await this.folders.update(folderId, changes)
@@ -98,7 +98,7 @@ class NekayDatabase extends Dexie {
   }
 
   async updateTask(taskId: string, changes: Task) {
-    if (!taskId && !changes)
+    if (!taskId || !changes)
       throw new Error('Failed to update task!')
 
     await this.tasks.update(taskId, changes)
@@ -123,7 +123,7 @@ class NekayDatabase extends Dexie {
   }
 
   async updateEntry(entryId: string, changes: JournalEntry) {
-    if (!entryId && !changes)
+    if (!entryId || !changes)
       throw new Error('Failed to update entry!')
 
     await this.journal.update(entryId, changes)

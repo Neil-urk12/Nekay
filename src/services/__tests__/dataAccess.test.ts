@@ -952,4 +952,161 @@ describe('dataAccess', () => {
       expect(result.lastModified).toBeLessThanOrEqual(Date.now())
     })
   })
+
+  // -------------------------------------------------------
+  // 10. Sync error logging (not silent swallowing)
+  // -------------------------------------------------------
+  describe('sync error logging', () => {
+    it('logs error when delete sync fails', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      // One deleted item in tasks
+      mockDbTasks.toArray.mockResolvedValue([
+        { id: 'del-1', taskContent: 'Deleted', completed: false, syncStatus: 'deleted', lastModified: 100, timestamp: 100 },
+      ])
+      mockDbJournal.toArray.mockResolvedValue([])
+      mockDbFolders.toArray.mockResolvedValue([])
+      mockDbWaterEntries.toArray.mockResolvedValue([])
+
+      // Make Supabase delete chain throw
+      const failChain: any = {}
+      failChain.select = vi.fn().mockReturnValue(failChain)
+      failChain.insert = vi.fn().mockReturnValue(failChain)
+      failChain.update = vi.fn().mockReturnValue(failChain)
+      failChain.delete = vi.fn().mockReturnValue(failChain)
+      failChain.eq = vi.fn().mockRejectedValue(new Error('delete sync network error'))
+      failChain.in = vi.fn().mockReturnValue(failChain)
+      failChain.single = vi.fn()
+      mockSupabaseFrom.mockReturnValue(failChain)
+
+      await da.syncAll()
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[dataAccess] delete sync failed:',
+        expect.any(Error),
+      )
+      consoleSpy.mockRestore()
+    })
+
+    it('logs error when task conflict resolution fails', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      mockDbTasks.toArray.mockResolvedValue([])
+      mockDbJournal.toArray.mockResolvedValue([])
+      mockDbFolders.toArray.mockResolvedValue([])
+      mockDbWaterEntries.toArray.mockResolvedValue([])
+
+      // All DB arrays empty = no supabase calls during sync/push.
+      // First supabase.from('tasks') call is fetchTasks — make it throw.
+      mockSupabaseFrom.mockImplementation((table: string) => {
+        if (table === 'tasks') {
+          const failChain: any = {}
+          failChain.select = vi.fn().mockReturnValue(failChain)
+          failChain.eq = vi.fn().mockReturnValue(failChain)
+          failChain.in = vi.fn().mockReturnValue(failChain)
+          failChain.then = (_resolve: any, reject: any) => Promise.reject(new Error('fetch tasks failed')).then(_resolve, reject)
+          return failChain
+        }
+        return supabaseChain({ data: [], error: null })
+      })
+
+      await da.syncAll()
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[dataAccess] task conflict resolution failed:',
+        expect.any(Error),
+      )
+      consoleSpy.mockRestore()
+    })
+
+    it('logs error when entry conflict resolution fails', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      mockDbTasks.toArray.mockResolvedValue([])
+      mockDbJournal.toArray.mockResolvedValue([])
+      mockDbFolders.toArray.mockResolvedValue([])
+      mockDbWaterEntries.toArray.mockResolvedValue([])
+
+      // tasks fetch succeeds, journal_entries fetch throws
+      mockSupabaseFrom.mockImplementation((table: string) => {
+        if (table === 'journal_entries') {
+          const failChain: any = {}
+          failChain.select = vi.fn().mockReturnValue(failChain)
+          failChain.eq = vi.fn().mockReturnValue(failChain)
+          failChain.in = vi.fn().mockReturnValue(failChain)
+          failChain.then = (_resolve: any, reject: any) => Promise.reject(new Error('fetch entries failed')).then(_resolve, reject)
+          return failChain
+        }
+        return supabaseChain({ data: [], error: null })
+      })
+
+      await da.syncAll()
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[dataAccess] entry conflict resolution failed:',
+        expect.any(Error),
+      )
+      consoleSpy.mockRestore()
+    })
+
+    it('logs error when folder conflict resolution fails', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      mockDbTasks.toArray.mockResolvedValue([])
+      mockDbJournal.toArray.mockResolvedValue([])
+      mockDbFolders.toArray.mockResolvedValue([])
+      mockDbWaterEntries.toArray.mockResolvedValue([])
+
+      // tasks + entries succeed, folders fetch throws
+      mockSupabaseFrom.mockImplementation((table: string) => {
+        if (table === 'folders') {
+          const failChain: any = {}
+          failChain.select = vi.fn().mockReturnValue(failChain)
+          failChain.eq = vi.fn().mockReturnValue(failChain)
+          failChain.in = vi.fn().mockReturnValue(failChain)
+          failChain.then = (_resolve: any, reject: any) => Promise.reject(new Error('fetch folders failed')).then(_resolve, reject)
+          return failChain
+        }
+        return supabaseChain({ data: [], error: null })
+      })
+
+      await da.syncAll()
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[dataAccess] folder conflict resolution failed:',
+        expect.any(Error),
+      )
+      consoleSpy.mockRestore()
+    })
+
+    it('logs error when water conflict resolution fails', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      mockDbTasks.toArray.mockResolvedValue([])
+      mockDbJournal.toArray.mockResolvedValue([])
+      mockDbFolders.toArray.mockResolvedValue([])
+      mockDbWaterEntries.toArray.mockResolvedValue([])
+
+      // tasks + entries + folders succeed, water_logs fetch throws
+      mockSupabaseFrom.mockImplementation((table: string) => {
+        if (table === 'water_logs') {
+          const failChain: any = {}
+          failChain.select = vi.fn().mockReturnValue(failChain)
+          failChain.eq = vi.fn().mockReturnValue(failChain)
+          failChain.in = vi.fn().mockReturnValue(failChain)
+          failChain.then = (_resolve: any, reject: any) => Promise.reject(new Error('fetch water failed')).then(_resolve, reject)
+          return failChain
+        }
+        return supabaseChain({ data: [], error: null })
+      })
+
+      await da.syncAll()
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[dataAccess] water conflict resolution failed:',
+        expect.any(Error),
+      )
+      consoleSpy.mockRestore()
+    })
+  })
 })

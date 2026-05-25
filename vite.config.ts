@@ -110,7 +110,7 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
-    minify: 'terser',
+    minify: 'oxc',
     outDir: 'dist',
     assetsDir: 'assets',
     rollupOptions: {
@@ -119,7 +119,9 @@ export default defineConfig({
       },
       output: {
         manualChunks: {
-          vue: ['vue'],
+          'vendor-vue': ['vue', 'vue-router', 'pinia'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-dexie': ['dexie'],
         },
       },
     },

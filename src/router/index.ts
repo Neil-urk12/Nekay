@@ -24,26 +24,31 @@ const router = createRouter({
     },
     {
       path: '/letter',
+      name: 'Letter',
       component: () => import('../views/LetterView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/home',
+      name: 'Home',
       component: () => import('../views/Home.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/water_tracker',
+      name: 'WaterTracker',
       component: () => import('../views/WaterTrackerView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/breathing_exercise',
+      name: 'BreathingExercises',
       component: () => import('../views/BreathingExercisesView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/pomodoro',
+      name: 'Pomodoro',
       component: () => import('../views/Pomodoro.vue'),
       meta: { requiresAuth: true },
     },
@@ -61,21 +66,25 @@ const router = createRouter({
     },
     {
       path: '/tasks',
+      name: 'Tasks',
       component: () => import('../views/AllTasks.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/journal',
+      name: 'Journal',
       component: () => import('../views/JournalFoldersView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/journal/:id',
+      name: 'JournalEntry',
       component: () => import('../views/JournalEntryView.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/messaging',
+      name: 'Messaging',
       component: () => import('../views/Messaging.vue'),
       meta: { requiresAuth: true, hideBottomNav: true },
     },
@@ -111,9 +120,15 @@ const router = createRouter({
     },
     {
       path: '/archive',
+      name: 'Archive',
       component: () => import('../views/ArchivePage.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'NotFound',
+      redirect: '/',
+    }
   ],
 })
 

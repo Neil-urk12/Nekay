@@ -1,9 +1,10 @@
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 import VueVirtualScroller from 'vue-virtual-scroller'
-import { registerServiceWorker } from '../src/utils/serviceWorker'
+import { registerServiceWorker } from './utils/serviceWorker'
 import App from './App.vue'
 import router from './router'
+import { displayCriticalError } from './utils/displayCriticalError'
 
 async function initApp() {
   const app = createApp(App).use(router).use(createPinia()).use(VueVirtualScroller)
@@ -19,13 +20,4 @@ async function initApp() {
   }
 }
 
-initApp().catch((error) => {
-  console.error('Critical initialization error:', error)
-  document.body.innerHTML = `
-    <div style="padding: 20px; text-align: center;">
-      <h1>Unable to Start App</h1>
-      <p>Please try refreshing the page. If the problem persists, clear your browser data.</p>
-      <pre style="color: red;">${error.message}</pre>
-    </div>
-  `
-})
+initApp().catch(displayCriticalError)
